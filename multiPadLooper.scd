@@ -314,14 +314,13 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	//apply calc-error-for-hits-and-div
 	//select div with least error
 	var currentBeat = 0;
-	var listsPerBeat = List.new();
+	var notesPerBeat = List.new();
 	var quantizedNotes = List.new();
 	var hangingNotes = Set.new();
 	var recBuf = List.newFrom(oldRecBuf);
 	var newBuf;
 	var timeAfterLastHit;
-
-	listsPerBeat.add(List.new());
+	var populatedBeatsCount = 0;
 
 
 	recBuf.do({|hit| /*[hit[0], startBeat].postln;*/ if(hit[0] < startBeat, {hit[0] = startBeat}) });
@@ -355,21 +354,22 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
 	//todo - quantize based on "notes" instead of hits - shift noteOn but keep note duration the same
 	newBuf = hitListToNoteList.(recBuf, startBeat);
-
+	["noteList", newBuf.size].postln;
 	//todo - quant start - can drop in noteList here instead of hit list?
-	"LOG1".postln;
 	newBuf.do({|hit|
 		var indexBeat = hit[0].floor;
-		//["HIT", indexBeat, currentBeat, hit].postln;
-		if(indexBeat > currentBeat, {
-			listsPerBeat.add(List.new());
+		["HIT", indexBeat, currentBeat, hit].postln;
+		if(indexBeat >= currentBeat, {
+			notesPerBeat.add(List.new());
 			currentBeat = indexBeat;
+			populatedBeatsCount = populatedBeatsCount + 1;
 		});
-		listsPerBeat[currentBeat].add(hit);
+		notesPerBeat[populatedBeatsCount].add(hit);
 	});
-	"POST THAT".postln;
 
-	listsPerBeat.do({|hits|
+	["notes per beat", notesPerBeat.collect({|a| a.size})].postln;
+
+	notesPerBeat.do({|hits|
 		var quantLists = List.new();
 		var bestList = [List.new(), 1];
 		var quantHitList;
@@ -388,7 +388,9 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 		});
 		quantizedNotes.add(quantHitList);
 	});
-	quantizedNotes = quantizedNotes.inject([], _++_);
+	["num quantized notes pre", quantizedNotes].postln;
+	quantizedNotes = quantizedNotes.inject(List.new(), _++_);
+	["num quantized notes post", quantizedNotes].postln;
 	quantizedNotes.do({|note| note.postln});
 	//todo - quant end
 
@@ -733,6 +735,7 @@ receiveScene = {|msg, time, addr, recvPort|
 				bank[4] = nil;
 				bank[2] = false;
 				launchpadOut.noteOff(0, button, color1[bank[1]]);
+				midiOut.allNotesOff(bank[1]);
 			});
 			nil;
 		};

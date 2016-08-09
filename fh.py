@@ -162,7 +162,7 @@ class FH:
 			keyval = map(lambda a: int(a.strip()), keyval)
 			if len(keyval) == 0:
 				raise StopIteration("malformed scale string")
-			keyval = ','.join(keyval)
+			keyval = ','.join(str(keyval))
 		msg.append(keyval)
 		msg.append(chan)
 		self.superColliderClient.send(msg)	
