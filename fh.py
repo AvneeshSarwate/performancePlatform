@@ -3,6 +3,7 @@ import threading
 import random
 import copy
 import phrase
+import pickle
 
 #functionHanlder
 class FH:
@@ -24,6 +25,7 @@ class FH:
 		#[(loops, loopInfo)]
 		self.scenes = [0]*100 # scenes[18] is scene in 1st row 8th column of launchpad  
 		self.sceneStack = []
+		self.sceneCollectionsStack = []
 
 		#todo - update scales/roots here when changed programatically?
 		self.scales = [[0, 2, 3, 5, 7, 8, 10] for i in range(n-1)] + [range(12)]
@@ -125,6 +127,20 @@ class FH:
 	def undoScenePlay(self):
 		self.loops, self.loopInfo, self.roots, self.scales = self.sceneStack.pop()
 		self.sendCurrentScene()
+
+	def loadSavedScenes(self, fileName):
+		self.sceneCollectionsStack.append(copy.deepcopy(self.scenes))
+		self.scenes = pickle.load(open(fileName))
+		nonNullScenes = [x in range(len(self.scenes)) if self.scenes[x] != 0] 
+		sceneIndexesString = ",".join(map(str, nonNullScenes))
+		msg = OSC.OSCMessage
+		msg.setAddress("/loadScenes")
+		msg.append(sceneIndexesString)
+		self.superColliderClient.send(msg)
+
+	def saveScene(self, fileName):
+		pickle.dump(self.scenes, open(fileName, "w"))
+
 
 	def end(self):
 		self.superColliderServer.close()

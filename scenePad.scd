@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote;
 
 
 
@@ -24,6 +24,14 @@ noteToInd = {|x|
 	retVal
 }; //convert note to pad index
 
+indToNote = {|x|
+	var note = -1;
+	var col = x % 8;
+	var row = ((x - col)/10).asInt;
+	var midiRow = (7-row) * 16;
+	if((col < 8) && (row < 8), {note = midiRow + col});
+	note;
+};
 
 isPadNote = {|x| noteToInd.(x) != -1};
 record_BUTTON = 8;
@@ -59,12 +67,21 @@ noteOnFunc = {|vel, note, chan, port|
 MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
 
 loadSavedSceneLights = {|msg, time, addr, recvPort|
-	msg[1].asString.split($,).
-		collect({|str| str.asInt})
-		.do({|key|
-			savedScenes[key] = true;
-			miniOut.noteOn(0, key, amber_LIGHT);
-		});
+	msg[1].asString.split($,)
+	.collect({|str| str.asInt})
+	.do({|ind|
+		var note = indToNote.(ind);
+		if(ind > 0,
+			{
+				savedScenes[note] = true;
+				miniOut.noteOn(0, key, amber_LIGHT);
+			},
+			{
+				savedScenes[note] = true;
+				miniOut.noteOn(0, note, 0);
+			}
+		);
+	});
 };
 OSCFunc(loadSavedSceneLights, "/loadScenes");
 
