@@ -1,5 +1,5 @@
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo;
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
@@ -17,7 +17,7 @@ truncateLoop = true;
 quantizationLevels = [4, 3];
 
 
-algButtons = [95, 96];
+algButtons = [95];
 
 
 a = [1, 2, 3, 4];
@@ -155,6 +155,9 @@ newKeysSetPadLights = {|ctrlChanInd|
 //---------------------------------------------------------------------------------------------
 
 //(note%12 - root%12)%12
+
+tempoalignTempoButton = 96;
+alignTempo = false;
 
 arrowButtons = [91, 92, 93, 94];
 up = 91;
@@ -320,7 +323,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	var recBuf = List.newFrom(oldRecBuf);
 	var newBuf;
 	var timeAfterLastHit;
-	var populatedBeatsCount = 0;
+	var populatedBeatsCount = -1;
 
 
 	recBuf.do({|hit| /*[hit[0], startBeat].postln;*/ if(hit[0] < startBeat, {hit[0] = startBeat}) });
@@ -509,9 +512,16 @@ controlHandler = {|vel, note, chan, port|
 	});
 	if((note == tapTempoSetButton) && (vel == 127), {
 		var now = TempoClock.beats;
-		if((now - lastTap) < 2, {masterClockOSCport.sendMsg("/uploadTempo", now - lastTap)});
+		if((now - lastTap) < 2, {masterClockOSCport.sendMsg("/uploadTempo", now - lastTap, alignTempo)});
 		lastTap = now;
 		//TODO - send tap info to master clock
+	});
+	if((note == tempoalignTempoButton) && (vel == 127), {
+		alignTempo = alignTempo.not;
+		if(alignTempo,
+			{launchpadOut.noteOn(0, tempoalignTempoButton, 81)},
+			{launchpadOut.noteOff(0, tempoalignTempoButton, 0)}
+		);
 	});
 	if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
 	if((note == recordButton) && (vel == 127), {
@@ -830,8 +840,10 @@ stringToBuf = {|melString|
 };
 
 //msg[1] is the new BEAT DURATION (not tempo)
+//msg[2] is whether the beat is being realigned
 masterClockTempoHandler = {|msg, time, addr, recvPort|
 	tempoClock.tempo = 1/msg[1].asFloat;
+	if(msg[2].asBoolean, {tempoClock.beats = tempoClock.beats.floor + 1});
 };
 OSCFunc(masterClockTempoHandler, "/masterClockTempo");
 
