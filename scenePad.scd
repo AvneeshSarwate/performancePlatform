@@ -26,7 +26,7 @@ noteToInd = {|x|
 
 indToNote = {|x|
 	var note = -1;
-	var col = x % 8;
+	var col = x % 10;
 	var row = ((x - col)/10).asInt;
 	var midiRow = (7-row) * 16;
 	if((col < 8) && (row < 8), {note = midiRow + col});
@@ -74,7 +74,7 @@ loadSavedSceneLights = {|msg, time, addr, recvPort|
 		if(ind > 0,
 			{
 				savedScenes[note] = true;
-				miniOut.noteOn(0, key, amber_LIGHT);
+				miniOut.noteOn(0, note, amber_LIGHT);
 			},
 			{
 				savedScenes[note] = true;
@@ -84,5 +84,16 @@ loadSavedSceneLights = {|msg, time, addr, recvPort|
 	});
 };
 OSCFunc(loadSavedSceneLights, "/loadScenes");
+)
 
+(
+var indToNote = {|x|
+	var note = -1;
+	var col = x % 10;
+	var row = ((x - col)/10).asInt;
+	var midiRow = (7-row) * 16;
+	if((col < 8) && (row < 8), {note = midiRow + col});
+	note;
+};
+indToNote.(7);
 )

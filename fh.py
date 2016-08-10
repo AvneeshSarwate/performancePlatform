@@ -131,9 +131,9 @@ class FH:
 	def loadSavedScenes(self, fileName):
 		self.sceneCollectionsStack.append(copy.deepcopy(self.scenes))
 		self.scenes = pickle.load(open(fileName))
-		nonNullScenes = [x in range(len(self.scenes)) if self.scenes[x] != 0] 
+		nonNullScenes = [x for x in range(len(self.scenes)) if self.scenes[x] != 0] 
 		sceneIndexesString = ",".join(map(str, nonNullScenes))
-		msg = OSC.OSCMessage
+		msg = OSC.OSCMessage()
 		msg.setAddress("/loadScenes")
 		msg.append(sceneIndexesString)
 		self.superColliderClient.send(msg)
