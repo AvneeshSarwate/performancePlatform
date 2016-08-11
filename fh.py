@@ -138,7 +138,7 @@ class FH:
 		msg.append(sceneIndexesString)
 		self.superColliderClient.send(msg)
 
-	def saveScene(self, fileName):
+	def saveSceneToFile(self, fileName):
 		pickle.dump(self.scenes, open(fileName, "w"))
 
 
