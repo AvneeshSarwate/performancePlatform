@@ -324,6 +324,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	var newBuf;
 	var timeAfterLastHit;
 	var populatedBeatsCount = -1;
+	var melodyEndingBeat;
 
 
 	recBuf.do({|hit| /*[hit[0], startBeat].postln;*/ if(hit[0] < startBeat, {hit[0] = startBeat}) });
@@ -333,6 +334,8 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 			{hangingNotes.remove([elem[1], elem[3]])})
 	});
 	hangingNotes.do({|elem| recBuf.add([endBeat-0.01, elem[0], 0, elem[1], "off"])});
+
+	melodyEndingBeat = recBuf[recBuf.size-1][0].ceil;
 
 	if(truncateLoop,
 		{timeAfterLastHit = (recBuf[recBuf.size-1][0].ceil - recBuf[recBuf.size-1][0])},
@@ -400,8 +403,10 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	//TODO - something still messed up with long held notes
 	//TOGGLE QUANTIZATION HERE
 	if(quantized, {
-		var loopDur = endBeat - startBeat;
+		var loopDur = if(truncateLoop,  melodyEndingBeat - startBeat, endBeat - startBeat);
 		var maxEnd = 0;
+
+		["timeAFterLastHit", startBeat, endBeat, melodyEndingBeat].postln;
 
 		//modify noteEnds and timeAfterLastBeat s.t. it is still within an integral beat length
 		quantizedNotes.do({|note|
@@ -417,7 +422,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
 	});
 
-
+	timeAfterLastHit.postln;
 
 	//recBuf.do({|hit| if(true/*hit[4] == "on"*/, {["HIT TIME", hit[4], hit[0]].postln})});
 
@@ -1098,7 +1103,10 @@ noteListToHitList = {|noteList|
 
 z = noteListToHitList;
 )
-x
+(
+a = if(5 > 6, 1, 2);
+a+1
+)
 
 "abbbc".splitext($b)
 "" == ""
