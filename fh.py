@@ -27,7 +27,7 @@ class FH:
 		self.sceneStack = []
 		self.sceneCollectionsStack = []
 		self.faderBanks = [[[0]*12 for i in range(4)] for j in range(4)]
-		self.currentSliderVals = [[0]*12 for i in range(4)]
+		self.currentFaderVals = [[0]*12 for i in range(4)]
 
 		#todo - update scales/roots here when changed programatically?
 		self.scales = [[0, 2, 3, 5, 7, 8, 10] for i in range(n-1)] + [range(12)]
@@ -61,6 +61,7 @@ class FH:
 
 	#stuff = [chanInd, bankNum, root, scale, loopString] 	
 	def saveNewLaunchpadLoop(self, addr, tags, stuff, source):
+		print "LOOP SAVED"
 		self.savedStrings.append(stuff[4])
 		hitList, button, startBeat = self.stringToHitList(stuff[4])
 		chanInd, bankNum = stuff[:2]
@@ -99,7 +100,7 @@ class FH:
 					sceneStringList.append("none")
 		return ":".join(sceneStringList)
 
-	def sendScene(self, loops, loopInfo, roots, scales):
+	def sendScene(self, loops, loopInfo, roots, scales, faderBanks, currentFaderVals):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/sendScene")
 		msg.append(self.sceneToString(loops, loopInfo))
@@ -108,19 +109,19 @@ class FH:
 		self.superColliderClient.send(msg)
 
 		banksToString = lambda a: "-".join(map(lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank)), a))
-		currentSlidersToString = lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank))
+		currentFadersToString = lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank))
 		msg = OSC.OSCMessage()
 		msg.setAddress("/loadSceneFaders")
-		msg.append(banksToString(self.faderBanks))
-		msg.append(currentSlidersToString(self.currentSliderVals))
+		msg.append(banksToString(faderBanks))
+		msg.append(currentFadersToString(currentFaderVals))
 		self.superColliderClient.send(msg)
 
 
 	def getScene(self):
-		return (self.loops, self.loopInfo, self.roots, self.scales, self.faderBanks, self.currentSliderVals)
+		return (self.loops, self.loopInfo, self.roots, self.scales, self.faderBanks, self.currentFaderVals)
 
 	def sendCurrentScene(self):
-		self.sendScene(self.getScene*)
+		self.sendScene(*self.getScene())
 
 	#stuff[0] is ind of pad to which to save scene
 	def saveSceneHandler(self, addr, tags, stuff, source):
@@ -132,8 +133,8 @@ class FH:
 
 	#msg[0] is cuffentFaderVals string, msg[1] is sceneIndex to save them in
 	def recieveCurrentFaderVals(self, addr, tags, stuff, source):
-		currentSlidersToString = lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank))
-		self.scenes[stuff[1]][5] = currentSlidersToString(stuff[0])
+		currentFadersToString = lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank))
+		self.scenes[stuff[1]][5] = currentFadersToString(stuff[0])
 
 
 	#stuff[0] is ind of pad corresponding to which scene to play
@@ -141,7 +142,7 @@ class FH:
 		self.playScene(int(stuff[0]))
 
 	def setCurrentScene(self, sceneTuple):
-		self.loops, self.loopInfo, self.roots, self.scales, self.faderBanks, self.currentSliderVals = sceneTuple
+		self.loops, self.loopInfo, self.roots, self.scales, self.faderBanks, self.currentFaderVals = sceneTuple
 
 	def playScene(self, ind):
 		c = copy.deepcopy
@@ -167,7 +168,9 @@ class FH:
 		pickle.dump(self.scenes, open(fileName, "w"))
 
 	def saveFaderSetting(self, addr, tags, stuff, source):
-		self.faderBanks[msg[0], msg[1]] = map(int, msg[2].split(","))
+		print "fader saved"
+		self.lastFader = stuff
+		self.faderBanks[stuff[0]][stuff[1]] = map(int, stuff[2].split(","))
 
 	def end(self):
 		self.superColliderServer.close()

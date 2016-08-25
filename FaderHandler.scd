@@ -1,7 +1,6 @@
-(var abletonOut, sliderVals, paramsToString, stringToParams, savedBanks, ipadPort, pushCurrentSliderVals;
+(var abletonOut, sliderVals, paramsToString, stringToParams, savedBanks, ipadPort, pushCurrentSliderVals, sliderValsToString, stringToSliderVals, pythonPort, savedBanksToString, stringToSavedBanks;
 
 
-MIDIClient.init;
 abletonOut = MIDIOut.newByName("IAC Driver", "Bus 4");
 ipadPort = NetAddr("192.168.0.15", 9000);
 pythonPort = NetAddr("localhost", 13371);
@@ -10,11 +9,14 @@ sliderVals = List.fill(4, {List.fill(12, {0})});
 savedBanks = List.fill(4, { List.fill(4, {List.fill(12, {0})}) });
 
 pushCurrentSliderVals = {
-	(0..11).do({|i|
+	(0..11).do({|i| (0..3).do({|bank|
 		abletonOut.control(0, (bank*12)+i, sliderVals[bank][i]);
 		("/faders/" ++ bank.asString + "/" ++ (i+1).asString).postln;
 		ipadPort.sendMsg("/faders/" ++ bank.asString ++ "/" ++ (i+1).asString, sliderVals[bank][i]);
-	});
+	})});
+	(0..3).do({|bank| (0..3).do({|slot|
+		if(savedBanks.sum > 0, {ipadPort.sendMsg("/saveBank/" ++ bank.asString ++ "/1/" ++ (slot+1).asString)});
+	})});
 };
 
 (0..3).do({|i| (1..12).do({|j|
@@ -40,7 +42,7 @@ pushCurrentSliderVals = {
 		);
 
 		//TODO: send to python
-		pythonPort.sendMsg("/faderSettingSave", bank, slot, ",".join(sliderVals[bank]));
+		pythonPort.sendMsg("/faderSettingSave", bank, slot, sliderVals[bank]).join(",");
 
 	}, "/saveBank/" ++ i.asString ++ "/1/" ++ j.asString);
 	//extra /1/ because verticla control where addresses are /widgetBaseAddr/x/y
@@ -51,7 +53,7 @@ pushCurrentSliderVals = {
 		var val = msg[1].asFloat.round;
 		if(val != 0, {
 			sliderVals[bank] = List.copyInstance(savedBanks[bank][slot]);
-			pushCurrentSliderVals.();
+			pushCurrentSliderVals.(bank);
 		});
 	}, "/playBank/" ++ i.asString ++ "/1/" ++ j.asString);
 })});
@@ -65,10 +67,10 @@ OSCFunc({|msg, time, addr, recvPort|
 	})});
 }, "/loadParams");
 
-savedBanksToString = {|params| "-".join(params.collect({|bank| ".".join(bank.collect({|slotVals| ",".join(slotVals)}))}))};
+savedBanksToString = {|params| params.collect({|bank| bank.collect({|slotVals| slotVals.join(",")}).join(".")}).join("-")};
 stringToSavedBanks = {|str| str.split($-).collect({|bankStr| bankStr.split($.).collect({|slotStr| slotStr.split($,).collect({|val| val.asInt})})})};
 
-sliderValsToString = {|bank| ".".join(bank.collect({|faderVals| ",".join(faderVals)}))};
+sliderValsToString = {|bank| bank.collect({|faderVals| faderVals.join(",")}).join(".")};
 stringToSliderVals = {|bankStr| bankStr.split($.).collect({|faderStr| faderStr.split($,).collect({|val| val.asInt})})};
 
 //TODO: method to load all saved banks from python
