@@ -15,7 +15,9 @@ pushCurrentSliderVals = {
 		ipadPort.sendMsg("/faders/" ++ bank.asString ++ "/" ++ (i+1).asString, sliderVals[bank][i]);
 	})});
 	(0..3).do({|bank| (0..3).do({|slot|
-		if(savedBanks.sum > 0, {ipadPort.sendMsg("/saveBank/" ++ bank.asString ++ "/1/" ++ (slot+1).asString)});
+		var bankOn;
+		if(savedBanks[bank][slot].sum > 0, {bankOn = 1}, {bankOn = 0});
+		ipadPort.sendMsg("/saveBank/" ++ bank.asString ++ "/1/" ++ (slot+1).asString, bankOn);
 	})});
 };
 
@@ -38,11 +40,11 @@ pushCurrentSliderVals = {
 		var val = msg[1].asFloat.round;
 		if(val == 0,
 			{}, //TODO: do anything for "erasing" a parameter bank slot?
-			{savedBanks[bank][slot] = List.copyInstance(sliderVals[bank])},
+			{savedBanks[bank][slot] = List.newFrom(sliderVals[bank])},
 		);
 
 		//TODO: send to python
-		pythonPort.sendMsg("/faderSettingSave", bank, slot, sliderVals[bank]).join(",");
+		pythonPort.sendMsg("/faderSettingSave", bank, slot, sliderVals[bank].join(","));
 
 	}, "/saveBank/" ++ i.asString ++ "/1/" ++ j.asString);
 	//extra /1/ because verticla control where addresses are /widgetBaseAddr/x/y
@@ -76,6 +78,7 @@ stringToSliderVals = {|bankStr| bankStr.split($.).collect({|faderStr| faderStr.s
 //TODO: method to load all saved banks from python
 //msg[1] is sceneInd for which the vals are requested
 OSCFunc({|msg, time, addr, recvPort|
+	"SENDING CURRENT FADERS".postln;
 	pythonPort.sendMsg("/getCurrentFaderVals", sliderValsToString.(sliderVals), msg[1].asInt);
 }, "/getCurrentFaderVals");
 

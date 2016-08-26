@@ -130,11 +130,17 @@ class FH:
 	def saveScene(self, ind):
 		c = copy.deepcopy
 		self.scenes[ind] = map(c, self.getScene())
+		msg = OSC.OSCMessage()
+		msg.setAddress("/getCurrentFaderVals")
+		msg.append(ind)
+		self.superColliderClient.send(msg)
 
 	#msg[0] is cuffentFaderVals string, msg[1] is sceneIndex to save them in
 	def recieveCurrentFaderVals(self, addr, tags, stuff, source):
+		print "GOT CURRENT FADER VALS"
+		self.currentFaderVals = map(lambda s: map(int, s.split(",")), stuff[0].split("."))
 		currentFadersToString = lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank))
-		self.scenes[stuff[1]][5] = currentFadersToString(stuff[0])
+		self.scenes[stuff[1]][5] = copy.deepcopy(self.currentFaderVals)
 
 
 	#stuff[0] is ind of pad corresponding to which scene to play
