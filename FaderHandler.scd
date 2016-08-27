@@ -11,7 +11,7 @@ savedBanks = List.fill(4, { List.fill(4, {List.fill(12, {0})}) });
 pushCurrentSliderVals = {
 	(0..11).do({|i| (0..3).do({|bank|
 		abletonOut.control(0, (bank*12)+i, sliderVals[bank][i]);
-		("/faders/" ++ bank.asString + "/" ++ (i+1).asString).postln;
+		("/faders/" ++ bank.asString ++ "/" ++ (i+1).asString).postln;
 		ipadPort.sendMsg("/faders/" ++ bank.asString ++ "/" ++ (i+1).asString, sliderVals[bank][i]);
 	})});
 	(0..3).do({|bank| (0..3).do({|slot|

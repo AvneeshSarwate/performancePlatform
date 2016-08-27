@@ -14,7 +14,7 @@ masterClockOSCport = NetAddr("localhost", 57120);
 //OPTIONS
 preRecordLength = 0;
 truncateLoop = true;
-quantizationLevels = [4, 3];
+quantizationLevels = [3,4];
 
 
 algButtons = [95];
@@ -259,7 +259,7 @@ hitListToNoteList = {|hitList|
 	x = hitList;
 	"A1".postln;
 	hitList.do({|hit|
-		hit.postln;
+		//hit.postln;
 		timeSoFar = timeSoFar + hit[0];
 		if(notesToStartStop[hit[1]].isNil,
 			//time, velocity, midiChan, on/off
@@ -272,7 +272,7 @@ hitListToNoteList = {|hitList|
 			}
 	)});
 	"A2".postln;
-	notesToStartStop.postln;
+	//notesToStartStop.postln;
 	notesToStartStop.keys.do({|midiNote|
 		var startStop = notesToStartStop[midiNote];
 		[count, startStop.size].postln;
@@ -364,7 +364,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	//todo - quant start - can drop in noteList here instead of hit list?
 	newBuf.do({|hit|
 		var indexBeat = hit[0].floor;
-		["HIT", indexBeat, currentBeat, hit].postln;
+		//["HIT", indexBeat, currentBeat, hit].postln;
 		if(indexBeat >= currentBeat, {
 			notesPerBeat.add(List.new());
 			currentBeat = indexBeat;
@@ -372,9 +372,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 		});
 		notesPerBeat[populatedBeatsCount].add(hit);
 	});
-
 	["notes per beat", notesPerBeat.collect({|a| a.size})].postln;
-
 	notesPerBeat.do({|hits|
 		var quantLists = List.new();
 		var bestList = [List.new(), 1];
@@ -383,9 +381,11 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 			var quantList = List.new();
 			var error = 0; //ignore noteOff messages for error calculation
 			hits.do({|hit| quantList.add(hit[0].floor + ((hit[0]%1 * div).round / div))});
-			(hits.size-1).do({|i| error = error + (hits[i][0] - quantList[i]).abs});
+			(0..(hits.size-1)).do({|i| error = error + (hits[i][0] - quantList[i]).abs; "error".postln;});
+			[(hits.size-1), hits[0][0].floor, error, div, error/div, hits.collect({|hit| hit[0]})].postln;
 			quantLists.add([quantList, error]);
 		});
+		"-----".postln;
 		quantLists.do({|listErr| if(listErr[1] < bestList[1], {bestList = listErr})});
 		quantHitList = List.fill(hits.size, {|i|
 			var newHit = List.newFrom(hits[i]);
@@ -397,7 +397,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	["num quantized notes pre", quantizedNotes].postln;
 	quantizedNotes = quantizedNotes.inject(List.new(), _++_);
 	["num quantized notes post", quantizedNotes].postln;
-	quantizedNotes.do({|note| note.postln});
+	//quantizedNotes.do({|note| note.postln});
 	//todo - quant end
 
 	//TODO - something still messed up with long held notes
