@@ -30,8 +30,8 @@ class Pydal:
 		self.superColliderClient.send(msg)
 
 
-def read(rawStr, frac = 1.0):
-	node = parser.parse(rawStr)
+def read(rawStr, frac = 1.0, symbolKey = 'pydal'):
+	node = parser.parse(rawStr, symbolKey)
 	node.frac = float(frac)
 	return node
 	#return PydalStringPattern(rawStr)

@@ -482,14 +482,13 @@ r = createRecordedTask;
 
 
 //TODO: move variable instations to near the functions that use them
-f = {|msg, time, addr, recvPort|
+OSCFunc({|msg, time, addr, recvPort|
 	//msg[1] is the new BEAT DURATION (not tempo)
 	tempoClock = TempoClock.new(1/msg[1], 0);
 	t = tempoClock;
 	tempoClock.schedAbs(1, metronomeFunc);
 	"MULTILOOP ONE SHOT".postln;
-};
-OSCFunc(f, "/masterClockBeat").oneShot;
+}, "/masterClockBeat").oneShot;
 masterClockBeatHandler = {|msg, time, addr, recvPort|
 	//["MULTILOOP BEAT", tempoClock.beats].postln;
 };
@@ -897,6 +896,7 @@ metronomeFlashTask = Task({
 });
 
 metronomeFunc = {
+	//"PAD METRONOME FUNC".postln;
 	metronomeFlashTask.start;
 	if(recordingMetronome, {
 		if((preRecordCount < preRecordLength),

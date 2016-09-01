@@ -168,17 +168,6 @@ stopPlaying = {|padInd, note|
 	isPlaying[padInd] = false;
 };
 
-/*
-noteOn
-IF RECORD
-trigger recBufSynth 1
-unPause recBufSynth
-remember hit times (separate for each pad)
-IF PLAY
-trigger playSynth 1
-unpause playSynth
-start loopTrigger tempoClock
-*/
 noteOnFunc = {|vel, note, chan, port|
 	[note, "NOTE ON"].postln;
 	if(isPadNote.(note), {
@@ -232,17 +221,7 @@ noteOnFunc = {|vel, note, chan, port|
 };
 MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
 
-/*
-noteOff
-IF RECORD
-trigger recBufSynth -1
-pause recBufSynth
-save recorded duration
-IF PLAY
-trigger playSynth -1
-pause playSynth
-destroy loopTrigger tempoClock
-*/
+
 noteOffFunc = {|vel, note, chan, port|
 	if(isPadNote.(note) && isSynched.not, {
 		var padInd = noteToInd.(note);
