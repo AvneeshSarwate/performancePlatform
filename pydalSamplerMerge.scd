@@ -1,5 +1,5 @@
 (
-var noteToInd, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, metronomeFunc, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler;
+var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, metronomeFunc, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler;
 
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
@@ -18,13 +18,23 @@ things to set via python api
 */
 //quneo control variables
 noteToInd = {|x|
-	var row = x / 16;
+	var row = 7 - (x / 16).asInt;
 	var col = x % 16;
 	var retVal = -1;
-	if(col < 8, {retVal = row*8 + col});
+	if(col < 8, {retVal = row*10 + col});
+	retVal.postln;
 	retVal
 }; //convert note to pad index
-noteToXY = {|x| [noteToInd.(x)%8, floor(noteToInd.(x)/8)]}; //convert note to pad xy (bottom left 0,0)
+
+indToNote = {|x|
+	var note = -1;
+	var col = x % 10;
+	var row = ((x - col)/10).asInt;
+	var midiRow = (7-row) * 16;
+	if((col < 8) && (row < 8), {note = midiRow + col});
+	note;
+};
+noteToXY = {|x| [noteToInd.(x)%16, 7 - (x / 16).asInt]}; //convert note to pad xy (bottom left 0,0)
 isPadNote = {|x| noteToInd.(x) != -1};
 record_BUTTON = 8;
 metronomeSync_BUTTON = 24;
@@ -415,6 +425,8 @@ timeListToDurationList = {|oldList|
 	pList
 };
 
+//playBufQs - map{pad -> queue of playBufs]
+//usedBufs - map[string -> playBuf] (string is concat of sampleString + startTime
 sendSample = {|drumStr|
 	var drumInd, drumType;
 	drumInd = drumStr.split($:)[1];
@@ -427,6 +439,15 @@ sendSample = {|drumStr|
 		0.001.wait;
 		midiOut.noteOff(midiChannel, drumType+drumInd);
 	}).play;
+
+	//parse sampleString into sample, start, duration
+	//pull playBuf from appropriate queue
+	//add playBuf to usedBufs
+	//set start of playBuf
+	//play playBuf
+	//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
+	//"endPlay" stops play, playBuf from usedBuffs, adds it back to appropriate queue
+
 };
 
 )
