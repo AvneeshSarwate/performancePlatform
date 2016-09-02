@@ -1,5 +1,5 @@
 (
-var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, metronomeFunc, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs;
+var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs;
 
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
@@ -97,13 +97,6 @@ f2 = {|synth, clock, loopTime, padInd|
 	synth.set(\trigger, -1);
 	clock.sched(loopTime-break, {f1.(synth, clock, loopTime, padInd)});
 };
-
-OSCFunc({|msg, time, addr, recvPort|
-	//msg[1] is the new BEAT DURATION (not tempo)
-	tempoClock = TempoClock.new(1/msg[1], 0);
-	t = tempoClock;
-	tempoClock.schedAbs(1, metronomeFunc);
-}, "/masterClockBeat").oneShot;
 
 OSCFunc({
 	if(isSynched, {
@@ -379,6 +372,12 @@ OSCFunc({|msg, time, addr, recvPort|
 	//msg[1] is the new BEAT DURATION (not tempo)
 	masterTempoClock = TempoClock.new(1/msg[1], 0);
 	t = masterTempoClock;
+
+	//msg[1] is the new BEAT DURATION (not tempo)
+	tempoClock = TempoClock.new(1/msg[1], 0);
+	t = tempoClock;
+
+	"PYDAL SAMPLE ONESHOT".postln;
 }, "/masterClockBeat").oneShot;
 
 //msg[1] is the new BEAT DURATION (not tempo)
@@ -435,7 +434,7 @@ timeListToDurationList = {|oldList|
 usedBufs = Dictionary.new();
 
 sendSample = {|drumStr, patternInd|
-	[drumStr, patternInd].postln;
+	//[drumStr, patternInd].postln;
 	if(drumStr.contains("_"),
 		{
 			//parse sampleString into sample, start, duration
@@ -443,39 +442,44 @@ sendSample = {|drumStr, patternInd|
 			var start;
 			var duration;
 			var bufToUse;
-			["SAMPLE", drumStr.postln].postln;
+			//["SAMPLE", drumStr.postln].postln;
 			bank = drumStr.asString.split($:)[0];
 			start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
 			duration = drumStr.asString.split($:)[1].split($_)[1].asFloat - start; //TODO - make sure duration < clip length
 
 			//pull playBuf from appropriate queue
 			bufToUse = playBufQueues[bank].pop();
-			["bank size for", bank, playBufQueues.size].postln;
+			//["bank size for", bank, playBufQueues[bank].size].postln;
 
 			//add playBuf to usedBufs
 			usedBufs[drumStr++patternInd] = bufToUse;
 
 			//set start of playBuf
-			Task({bufToUse.set(\trigger, -1); //this shouldn't be necessary
+			Task({
+				bufToUse.set(\startPos, ~inputLatency + (start*(1/masterTempoClock.tempo)));
 				s.sync;
-				bufToUse.set(\trigger, 1);}).play;
+				bufToUse.set(\trigger, -1); //this shouldn't be necessary
+				s.sync;
+				bufToUse.set(\trigger, 1);
+				s.sync;
 
-
-			//play playBuf
-			bufToUse.set(\startPos, ~inputLatency);
-			bufToUse.run(true);
+				//play playBuf
+				bufToUse.run(true);
+				[masterTempoClock.beats, "START SAMPLE", drumStr++patternInd,  ~inputLatency + (start*(1/masterTempoClock.tempo))].postln;
+			}).play;
 
 			//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
 			//"stopPlay" stops play, playBuf from usedBuffs, adds it back to appropriate queue
 			masterTempoClock.sched(duration, {
 				usedBufs[drumStr++patternInd].run(false);
 				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
+				[masterTempoClock.beats, "STOPPED SAMPLE", drumStr++patternInd].postln;
 			});
 		},
 		{
 
 			var drumInd, drumType;
-			"DRUM".postln;
+			//"DRUM".postln;
 			drumInd = drumStr.split($:)[1];
 			drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
 			drumType = drumTypes[drumStr.split($:)[0]].asInteger;
