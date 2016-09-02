@@ -58,7 +58,7 @@ Routine.run {
 	SynthDef(\playBuf, {|out = 0, bufnum|
 		var scaledRate, player;
 		scaledRate = BufRateScale.kr(bufnum);
-		player = PlayBuf.ar(2, bufnum, scaledRate, trigger: \trigger.kr(-1), loop: 0); //trigger control
+		player = PlayBuf.ar(2, bufnum, scaledRate, trigger: \trigger.kr(-1), loop: 1); //trigger control
 		Out.ar(out, player)
 	}).add;
 
@@ -450,9 +450,9 @@ sendSample = {|drumStr, patternInd|
 			duration = drumStr.asString.split($:)[1].split($_)[1].asFloat - start; //TODO - make sure duration < clip length
 
 			//pull playBuf from appropriate queue
-			semaphore.wait;
+			//semaphore.wait;
 			bufToUse = playBufQueues[bank].pop();
-			semaphore.signal;
+			//semaphore.signal;
 
 			//["bank size for", bank, playBufQueues[bank].size].postln;
 
@@ -463,24 +463,36 @@ sendSample = {|drumStr, patternInd|
 			Task({
 				bufToUse.set(\startPos, ~inputLatency + (start*(1/masterTempoClock.tempo)));
 				s.sync;
+				//play playBuf
+				bufToUse.run(true);
+				s.sync;
 				bufToUse.set(\trigger, -1); //this shouldn't be necessary
 				s.sync;
 				bufToUse.set(\trigger, 1);
 				s.sync;
 
-				//play playBuf
-				bufToUse.run(true);
 				[masterTempoClock.beats, playBufQueues[bank].size,
 					"START SAMPLE", drumStr++patternInd,  ~inputLatency + (start*(1/masterTempoClock.tempo))].postln;
-			}).play;
+
+
+				duration.wait;
+
+				usedBufs[drumStr++patternInd].run(false);
+				//semaphore.wait;
+				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
+				//semaphore.signal;
+				[masterTempoClock.beats, playBufQueues[bank].size, "STOPPED SAMPLE", drumStr++patternInd].postln;
+
+
+			}, masterTempoClock).play;
 
 			//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
 			//"stopPlay" stops play, playBuf from usedBuffs, adds it back to appropriate queue
 			masterTempoClock.sched(duration, {
 				usedBufs[drumStr++patternInd].run(false);
-				semaphore.wait;
+				//semaphore.wait;
 				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
-				semaphore.signal;
+				//semaphore.signal;
 				[masterTempoClock.beats, playBufQueues[bank].size, "STOPPED SAMPLE", drumStr++patternInd].postln;
 			});
 		},
