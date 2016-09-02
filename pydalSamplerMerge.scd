@@ -1,5 +1,5 @@
 (
-var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, metronomeFunc, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler;
+var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, metronomeFunc, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs;
 
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
@@ -16,9 +16,10 @@ things to set via python api
    set number of "count in" beats
    start/end points of loop (referenced by beat)
 */
+
 //quneo control variables
 noteToInd = {|x|
-	var row = 7 - (x / 16).asInt;
+	var row = (x / 16).floor;
 	var col = x % 16;
 	var retVal = -1;
 	if(col < 8, {retVal = row*10 + col});
@@ -26,14 +27,6 @@ noteToInd = {|x|
 	retVal
 }; //convert note to pad index
 
-indToNote = {|x|
-	var note = -1;
-	var col = x % 10;
-	var row = ((x - col)/10).asInt;
-	var midiRow = (7-row) * 16;
-	if((col < 8) && (row < 8), {note = midiRow + col});
-	note;
-};
 noteToXY = {|x| [noteToInd.(x)%16, 7 - (x / 16).asInt]}; //convert note to pad xy (bottom left 0,0)
 isPadNote = {|x| noteToInd.(x) != -1};
 record_BUTTON = 8;
@@ -72,18 +65,23 @@ Routine.run {
 	s.sync;
 
 	//create - buffs, recBufSynths, playBufSynths with newPause
-	buffers = Array.fill(64, {Buffer.alloc(s, s.sampleRate * 30.0, 2)});
-	recSynths = Array.fill(64, {|i| Synth.newPaused(\recBuf, [\bufnum, buffers[i]])});
-	playSynths = Array.fill(64, {|i| Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[i]])});
+	buffers = Array.fill(78, {Buffer.alloc(s, s.sampleRate * 30.0, 2)});
+	recSynths = Array.fill(78, {|i| Synth.newPaused(\recBuf, [\bufnum, buffers[i]])});
+	playSynths = Array.fill(78, {|i| Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[i]])});
+	playBufQueues = Dictionary.new();
+	(0..7).do({|c1| (0..7).do({|c2|
+		var ch = "abcdefgh";
+		playBufQueues[ch[c1]++ch[c2]] = List.fill(10, {Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[(c1*8)+c2]])});
+	})});
 };
 
-recordOnTimes = Array.fill(64, {0});
-loopDurTimes = Array.fill(64, {10});
-loopClocks = Array.fill(64, {TempoClock.new(1)});
+recordOnTimes = Array.fill(78, {0});
+loopDurTimes = Array.fill(78, {10});
+loopClocks = Array.fill(78, {TempoClock.new(1)});
 recordMode = false;
-isPlaying = List.fill(64, {false});
-isRecording = List.fill(64, {false});
-used = List.fill(64, {false});
+isPlaying = List.fill(78, {false});
+isRecording = List.fill(78, {false});
+used = List.fill(78, {false});
 isSynched = false;
 syncFlash = -1;
 
@@ -176,19 +174,24 @@ noteOnFunc = {|vel, note, chan, port|
 		var recordStartClick = false;
 		var adjustTime = 0;
 		var leadIn = 0;
+		[isSynched, "IS SYNCHED"].postln;
 		if(isSynched,
 			{
 				var funcToExecute, eventTime;
+				["A", frozenRecordMode, isRecording[padInd]].postln;
 				if(frozenRecordMode && isRecording[padInd], {funcToExecute = {stopRecording.(padInd, note)}});
+				"B".postln;
 				if(frozenRecordMode && isRecording[padInd].not, {
 					funcToExecute = {startRecording.(padInd, note)};
 					adjustTime = ~countIn;
 					recordStartClick = true;
 				});
+				"C".postln;
 				if(frozenRecordMode.not && isPlaying[padInd], {
 					funcToExecute = {stopPlaying.(padInd, note)};
 					adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
 				});
+				"D".postln;
 				if(frozenRecordMode.not && isPlaying[padInd].not, {
 					funcToExecute = {startPlaying.(padInd, note)};
 					adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
@@ -329,7 +332,7 @@ playStepGenerator = {|i|
 			var step = patList[ind];
 			var dur = step[0];
 
-			step[1].do({|samp| sendSample.(samp)});
+			step[1].do({|samp| sendSample.(samp, ind)});
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
@@ -424,30 +427,67 @@ timeListToDurationList = {|oldList|
 	pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
 	pList
 };
+"NEW SHIT".postln;
 
 //playBufQs - map{pad -> queue of playBufs]
 //usedBufs - map[string -> playBuf] (string is concat of sampleString + startTime
-sendSample = {|drumStr|
-	var drumInd, drumType;
-	drumInd = drumStr.split($:)[1];
-	drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
-	drumType = drumTypes[drumStr.split($:)[0]].asInteger;
 
-	//todo - send cc map stuff if applicable
-	Task({
-		midiOut.noteOn(midiChannel, drumType+drumInd); //maybe add velocity based on gain?
-		0.001.wait;
-		midiOut.noteOff(midiChannel, drumType+drumInd);
-	}).play;
+usedBufs = Dictionary.new();
 
-	//parse sampleString into sample, start, duration
-	//pull playBuf from appropriate queue
-	//add playBuf to usedBufs
-	//set start of playBuf
-	//play playBuf
-	//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
-	//"endPlay" stops play, playBuf from usedBuffs, adds it back to appropriate queue
+sendSample = {|drumStr, patternInd|
+	[drumStr, patternInd].postln;
+	if(drumStr.contains("_"),
+		{
+			//parse sampleString into sample, start, duration
+			var bank;
+			var start;
+			var duration;
+			var bufToUse;
+			["SAMPLE", drumStr.postln].postln;
+			bank = drumStr.asString.split($:)[0];
+			start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
+			duration = drumStr.asString.split($:)[1].split($_)[1].asFloat - start; //TODO - make sure duration < clip length
 
+			//pull playBuf from appropriate queue
+			bufToUse = playBufQueues[bank].pop();
+			["bank size for", bank, playBufQueues.size].postln;
+
+			//add playBuf to usedBufs
+			usedBufs[drumStr++patternInd] = bufToUse;
+
+			//set start of playBuf
+			Task({bufToUse.set(\trigger, -1); //this shouldn't be necessary
+				s.sync;
+				bufToUse.set(\trigger, 1);}).play;
+
+
+			//play playBuf
+			bufToUse.set(\startPos, ~inputLatency);
+			bufToUse.run(true);
+
+			//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
+			//"stopPlay" stops play, playBuf from usedBuffs, adds it back to appropriate queue
+			masterTempoClock.sched(duration, {
+				usedBufs[drumStr++patternInd].run(false);
+				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
+			});
+		},
+		{
+
+			var drumInd, drumType;
+			"DRUM".postln;
+			drumInd = drumStr.split($:)[1];
+			drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
+			drumType = drumTypes[drumStr.split($:)[0]].asInteger;
+
+			//todo - send cc map stuff if applicable
+			Task({
+				midiOut.noteOn(midiChannel, drumType+drumInd); //maybe add velocity based on gain?
+				0.001.wait;
+				midiOut.noteOff(midiChannel, drumType+drumInd);
+			}).play;
+		}
+	);
 };
 
 )
