@@ -1,5 +1,5 @@
 (
-var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs;
+var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs, semaphore;
 
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
@@ -58,7 +58,7 @@ Routine.run {
 	SynthDef(\playBuf, {|out = 0, bufnum|
 		var scaledRate, player;
 		scaledRate = BufRateScale.kr(bufnum);
-		player = PlayBuf.ar(2, bufnum, scaledRate, trigger: \trigger.kr(-1), loop: 1); //trigger control
+		player = PlayBuf.ar(2, bufnum, scaledRate, trigger: \trigger.kr(-1), loop: 0); //trigger control
 		Out.ar(out, player)
 	}).add;
 
@@ -73,6 +73,7 @@ Routine.run {
 		var ch = "abcdefgh";
 		playBufQueues[ch[c1]++ch[c2]] = List.fill(10, {Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[(c1*8)+c2]])});
 	})});
+	s.sync;
 };
 
 recordOnTimes = Array.fill(78, {0});
@@ -428,9 +429,10 @@ timeListToDurationList = {|oldList|
 };
 "NEW SHIT".postln;
 
+semaphore = Semaphore.new();
+
 //playBufQs - map{pad -> queue of playBufs]
 //usedBufs - map[string -> playBuf] (string is concat of sampleString + startTime
-
 usedBufs = Dictionary.new();
 
 sendSample = {|drumStr, patternInd|
@@ -448,7 +450,10 @@ sendSample = {|drumStr, patternInd|
 			duration = drumStr.asString.split($:)[1].split($_)[1].asFloat - start; //TODO - make sure duration < clip length
 
 			//pull playBuf from appropriate queue
+			semaphore.wait;
 			bufToUse = playBufQueues[bank].pop();
+			semaphore.signal;
+
 			//["bank size for", bank, playBufQueues[bank].size].postln;
 
 			//add playBuf to usedBufs
@@ -465,15 +470,18 @@ sendSample = {|drumStr, patternInd|
 
 				//play playBuf
 				bufToUse.run(true);
-				[masterTempoClock.beats, "START SAMPLE", drumStr++patternInd,  ~inputLatency + (start*(1/masterTempoClock.tempo))].postln;
+				[masterTempoClock.beats, playBufQueues[bank].size,
+					"START SAMPLE", drumStr++patternInd,  ~inputLatency + (start*(1/masterTempoClock.tempo))].postln;
 			}).play;
 
 			//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
 			//"stopPlay" stops play, playBuf from usedBuffs, adds it back to appropriate queue
 			masterTempoClock.sched(duration, {
 				usedBufs[drumStr++patternInd].run(false);
+				semaphore.wait;
 				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
-				[masterTempoClock.beats, "STOPPED SAMPLE", drumStr++patternInd].postln;
+				semaphore.signal;
+				[masterTempoClock.beats, playBufQueues[bank].size, "STOPPED SAMPLE", drumStr++patternInd].postln;
 			});
 		},
 		{
