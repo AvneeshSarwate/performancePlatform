@@ -459,6 +459,8 @@ sendSample = {|drumStr, patternInd|
 			//add playBuf to usedBufs
 			usedBufs[drumStr++patternInd] = bufToUse;
 
+			[masterTempoClock.beats, "START SAMPLE", drumStr+patternInd,  ~inputLatency + (start*(1/masterTempoClock.tempo)), duration].postln;
+
 			//set start of playBuf
 			Task({
 				bufToUse.set(\startPos, ~inputLatency + (start*(1/masterTempoClock.tempo)));
@@ -471,19 +473,8 @@ sendSample = {|drumStr, patternInd|
 				bufToUse.set(\trigger, 1);
 				s.sync;
 
-				[masterTempoClock.beats, playBufQueues[bank].size,
-					"START SAMPLE", drumStr++patternInd,  ~inputLatency + (start*(1/masterTempoClock.tempo))].postln;
-
-
-				duration.wait;
-
-				usedBufs[drumStr++patternInd].run(false);
-				//semaphore.wait;
-				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
-				//semaphore.signal;
-				[masterTempoClock.beats, playBufQueues[bank].size, "STOPPED SAMPLE", drumStr++patternInd].postln;
-
-
+				//[playBufQueues[bank].size].postln;
+				usedBufs[drumStr++patternInd].run(true);
 			}, masterTempoClock).play;
 
 			//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
@@ -493,7 +484,9 @@ sendSample = {|drumStr, patternInd|
 				//semaphore.wait;
 				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
 				//semaphore.signal;
-				[masterTempoClock.beats, playBufQueues[bank].size, "STOPPED SAMPLE", drumStr++patternInd].postln;
+				[masterTempoClock.beats,"STOPPED SAMPLE", drumStr++patternInd].postln;
+				//[playBufQueues[bank].size].postln;
+				nil;
 			});
 		},
 		{
