@@ -463,9 +463,9 @@ sendSample = {|drumStr, patternInd|
 			//set start of playBuf
 			Task({
 				//play playBuf
-				bufToUse.run(true);
+				bufToUse.set(\startPosition, startSecs * s.sampleRate);
 				s.sync;
-				bufToUse.set(\startPosition, startSecs);
+				bufToUse.run(true);
 				s.sync;
 				bufToUse.set(\trigger, -1); //this shouldn't be necessary
 				s.sync;
