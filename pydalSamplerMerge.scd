@@ -58,7 +58,7 @@ Routine.run {
 	SynthDef(\playBuf, {|out = 0, bufnum|
 		var scaledRate, player;
 		scaledRate = BufRateScale.kr(bufnum);
-		player = PlayBuf.ar(2, bufnum, scaledRate, trigger: \trigger.kr(-1), loop: 1); //trigger control
+		player = PlayBuf.ar(2, bufnum, scaledRate, trigger: \trigger.kr(-1), startPos: \startPosition.kr(1), loop: 1); //trigger control
 		Out.ar(out, player)
 	}).add;
 
@@ -444,6 +444,7 @@ sendSample = {|drumStr, patternInd|
 			var start;
 			var duration;
 			var bufToUse;
+			var startSecs;
 			//["SAMPLE", drumStr.postln].postln;
 			bank = drumStr.asString.split($:)[0];
 			start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
@@ -454,27 +455,25 @@ sendSample = {|drumStr, patternInd|
 			bufToUse = playBufQueues[bank].pop();
 			//semaphore.signal;
 
-			//["bank size for", bank, playBufQueues[bank].size].postln;
+			startSecs = ~inputLatency + (start*(1/masterTempoClock.tempo));
 
 			//add playBuf to usedBufs
 			usedBufs[drumStr++patternInd] = bufToUse;
 
-			[masterTempoClock.beats, "START SAMPLE", drumStr+patternInd,  ~inputLatency + (start*(1/masterTempoClock.tempo)), duration].postln;
-
 			//set start of playBuf
 			Task({
-				bufToUse.set(\startPos, ~inputLatency + (start*(1/masterTempoClock.tempo)));
-				s.sync;
 				//play playBuf
 				bufToUse.run(true);
+				s.sync;
+				bufToUse.set(\startPosition, startSecs);
 				s.sync;
 				bufToUse.set(\trigger, -1); //this shouldn't be necessary
 				s.sync;
 				bufToUse.set(\trigger, 1);
 				s.sync;
 
-				//[playBufQueues[bank].size].postln;
-				usedBufs[drumStr++patternInd].run(true);
+				[masterTempoClock.beats, "START SAMPLE", drumStr+patternInd,  startSecs, duration].postln;
+
 			}, masterTempoClock).play;
 
 			//sched "stopPlay" for duration away (endPlay has sampleString+startTime in closure)
