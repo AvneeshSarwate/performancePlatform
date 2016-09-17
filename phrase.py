@@ -486,6 +486,7 @@ modes["major"] = modes["ionian"]
 modes["minor"] = modes["aeolian"]
 modes["min5"] = [0, 3, 5, 7, 10]
 modes["maj5"] = [0, 2, 4, 7, 9]
+modes["hminor"] = [0, 2, 3, 5, 7, 8, 11]
 
 
 

@@ -1,5 +1,5 @@
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton;
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
@@ -111,6 +111,9 @@ quantizeButton = 97;
 quantizeColor = 8;
 quantized = false;
 
+buttonForwardingButton = 96;
+buttonForwarding = false;
+
 //---------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
 //newKeyboard stuff
@@ -156,7 +159,8 @@ newKeysSetPadLights = {|ctrlChanInd|
 
 //(note%12 - root%12)%12
 
-tempoalignTempoButton = 96;
+//TODO: this feature isn't triggerable
+tempoalignTempoButton = 100;
 alignTempo = false;
 
 arrowButtons = [91, 92, 93, 94];
@@ -215,7 +219,10 @@ a = {|vel, note, chan, port|
 					chan = padInfo[1];
 				}
 			);
-			midiOut.noteOn(chan, newNote, vel);
+			if(buttonForwarding && (controlChanInd == chan),
+				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "on")},
+				{midiOut.noteOn(chan, newNote, vel)}
+			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "on"])});
 		});
 	});
@@ -237,7 +244,11 @@ b = {|vel, note, chan, port|
 					chan = padInfo[1];
 				}
 			);
-			midiOut.noteOff(chan, newNote, vel);
+
+			if(buttonForwarding && (controlChanInd == chan),
+				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "off")},
+				{midiOut.noteOff(chan, newNote, vel)}
+			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "off"])});
 		});
 	});
@@ -526,6 +537,14 @@ controlHandler = {|vel, note, chan, port|
 			{launchpadOut.noteOn(0, tempoalignTempoButton, 81)},
 			{launchpadOut.noteOff(0, tempoalignTempoButton, 0)}
 		);
+	});
+	if((note == buttonForwardingButton) && (vel == 127), {
+		buttonForwarding = buttonForwarding.not;
+		if(buttonForwarding,
+			{launchpadOut.noteOn(0, buttonForwardingButton, 81)},
+			{launchpadOut.noteOff(0, buttonForwardingButton, 0)}
+		);
+
 	});
 	if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
 	if((note == recordButton) && (vel == 127), {

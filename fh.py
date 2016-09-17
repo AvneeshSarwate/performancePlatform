@@ -41,9 +41,20 @@ class FH:
 		self.superColliderServer.addMsgHandler("/playScene", self.playSceneHandler)
 		self.superColliderServer.addMsgHandler("/faderSettingSave", self.saveFaderSetting)
 		self.superColliderServer.addMsgHandler("/getCurrentFaderVals", self.recieveCurrentFaderVals)
+		self.superColliderServer.addMsgHandler("/buttonForwarding", self.buttonForwardingHandler)
 
 		self.channels = {} #key - int, val - (transFunc, rootMel)
 		self.savedStrings = []
+		self.buttonForwardingHandlers = [[] for i in range(n)]
+
+	def addForwardingHandler(self, chanInd, handler):
+		self.buttonForwardingHandlers[chanInd].append(handler)
+
+	#stuff = [chan, note, vel, on/off]
+	def buttonForwardingHandler(self, addr, tags, stuff, source):
+		for handler in self.buttonForwardingHandlers[stuff[0]]:
+			handler.handle(*stuff[1:])
+		
 
 	#stuff = [chanInd, bankNum, root, scale, loopString] 
 	def handleAlgRequest(self, addr, tags, stuff, source):
@@ -61,7 +72,6 @@ class FH:
 
 	#stuff = [chanInd, bankNum, root, scale, loopString] 	
 	def saveNewLaunchpadLoop(self, addr, tags, stuff, source):
-		print "LOOP SAVED"
 		self.savedStrings.append(stuff[4])
 		hitList, button, startBeat = self.stringToHitList(stuff[4])
 		chanInd, bankNum = stuff[:2]
@@ -160,7 +170,7 @@ class FH:
 		self.setCurrentScene(self.sceneStack.pop())
 		self.sendCurrentScene()
 
-	def loadSavedScenes(self, fileName):
+	def loadScenesFromFile(self, fileName):
 		self.sceneCollectionsStack.append(copy.deepcopy(self.scenes))
 		self.scenes = pickle.load(open(fileName))
 		nonNullScenes = [x for x in range(len(self.scenes)) if self.scenes[x] != 0] 
@@ -170,7 +180,7 @@ class FH:
 		msg.append(sceneIndexesString)
 		self.superColliderClient.send(msg)
 
-	def saveSceneToFile(self, fileName):
+	def saveScenesToFile(self, fileName):
 		pickle.dump(self.scenes, open(fileName, "w"))
 
 	def saveFaderSetting(self, addr, tags, stuff, source):
