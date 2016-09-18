@@ -50,11 +50,14 @@ def isPydalSymbol(s):
     return allIn(s, string.letters+string.digits+":"+"~") and s[0] != ":" and s[-1] != ":"
 def isSampleSymbol(s):
     return re.match('^[a-g][a-g]:[0-9](\.[0-9]+)?_[0-9](\.[0-9]+)?$', s) or s == "~"
+def isArpeggiatorSymbol(s):
+    return s.isdigit()
 
 
 symbolMatchers = {}
 symbolMatchers['pydal'] = isPydalSymbol
 symbolMatchers['sample'] = isSampleSymbol
+symbolMatchers['arp'] = isArpeggiatorSymbol
 
 
 def parse(inputStr, symbolKey = 'pydal'):

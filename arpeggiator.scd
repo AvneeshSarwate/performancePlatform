@@ -15,6 +15,7 @@ channelToMidiChannel = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
 
+//TODO: THIS (onNotes, onNotesList) WILL NOT WORK FOR MULTIPLE MIDI CHANNELS AT ONCE (the rest probably will, but check it)
 onNotes = Dictionary();
 onNotesList = List();
 
@@ -181,17 +182,14 @@ timeListToDurationList = {|oldList|
 	pList
 };
 
-sendSample = {|drumStr, midiChannel|
-	var drumInd, drumType;
-	drumInd = drumStr.split($:)[1];
-	drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
-	drumType = drumTypes[drumStr.split($:)[0]].asInteger;
-
+sendSample = {|noteStr, midiChannel|
+	var noteInd = noteStr.asInt;
+	var newNote = onNotesList[noteInd % onNotesList.size];
 	//todo - send cc map stuff if applicable
 	Task({
-		midiOut.noteOn(midiChannel, drumType+drumInd); //maybe add velocity based on gain?
+		midiOut.noteOn(midiChannel, newNote, onNotes[newNote]); //maybe add velocity based on gain?
 		0.001.wait;
-		midiOut.noteOff(midiChannel, drumType+drumInd);
+		midiOut.noteOff(midiChannel, newNote, onNotes[newNote]);
 	}).play;
 };
 
