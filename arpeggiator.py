@@ -1,13 +1,13 @@
-import PydalChannel
+import PydalChanel
 import OSC
 
 class Arpeggiator:
 
-	def __init__(self, midiChannel, pydal, pattern):
+	def __init__(self, midiChannel, pydalInstance, pattern):
 		self.onNotes = {}
 		self.midiChannel = midiChannel
-		self.pydalInstance = pydal 
-		self.channel = pydal.newArpeggiatorChannel(midiChannel)
+		self.pydalInstance = pydalInstance 
+		self.channel = pydalInstance.newArpeggiatorChannel(midiChannel)
 		self.pattern = pattern
 
 
@@ -15,23 +15,21 @@ class Arpeggiator:
 		if onOff == "on":
 			self.onNotes[note] = vel
 
-			self.sendNoteUpdate(note, vel onOff)
+			self.sendNoteUpdate(note, vel, onOff)
 
-			if len(self.onOntes) == 1:
+			if len(self.onNotes) == 1:
 				self.channel.play(self.pattern)
 		if onOff == "off" and note in self.onNotes:
 			del self.onNotes[note]
 			if len(self.onNotes) == 0:
 				self.channel.stop()
-			self.sendNoteUpdate(note, vel onOff)
+			self.sendNoteUpdate(note, vel, onOff)
 		print self.onNotes
 
-	def sendNoteUpdate(self, note, vel onOff):
+	def sendNoteUpdate(self, note, vel, onOff):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/forwardNotes")
 		msg.append(note)
 		msg.append(vel)
 		msg.append(onOff)
-		self.pydal.superColliderClient.sendMsg(msg)
-
-	def kill(self):
+		self.pydalInstance.superColliderClient.send(msg)

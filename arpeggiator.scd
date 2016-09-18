@@ -1,5 +1,5 @@
 (//tempoclock with beat set to 1 cycle length
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
@@ -21,20 +21,23 @@ onNotesList = List();
 
 //msg is [addr, note, vel, onOff]
 noteForwardHandler = {|msg, time, addr, recvPort|
+	["onOff message", msg].postln;
 	if(msg[3].asString == "on",
 		{
 			onNotes[msg[1].asInt] = msg[2].asInt;
 			onNotesList.add(msg[1].asInt);
 			onNotesList.sort();
+			["FWD ON", msg[1].asInt].postln;
 		},
 		{
-			onNotes.remove(msg[1].asInt);
+			onNotes.removeAt(msg[1].asInt);
 			onNotesList.remove(msg[1].asInt);
 			onNotesList.sort();
+			["FWD OFF", msg[1].asInt].postln;
 		}
 	);
 };
-OSCFunc(noteForwardHandler, "/forwadNotes");
+OSCFunc(noteForwardHandler, "/forwardNotes");
 
 
 //msg[1] is the pydal channel being played on
@@ -188,7 +191,7 @@ sendSample = {|noteStr, midiChannel|
 	//todo - send cc map stuff if applicable
 	Task({
 		midiOut.noteOn(midiChannel, newNote, onNotes[newNote]); //maybe add velocity based on gain?
-		0.001.wait;
+		0.25.wait;
 		midiOut.noteOff(midiChannel, newNote, onNotes[newNote]);
 	}).play;
 };
