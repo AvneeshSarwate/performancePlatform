@@ -15,12 +15,17 @@ class Pydal:
 		self.serverThread.daemon = False
 		self.serverThread.start()
 
+		self.numArpeggiatorChannels = 0
+
 	def end(self):
 		self.superColliderServer.close()
 
 	def newChannel(self, num):
 		#send message to superCollider to make new handler for channel
 		return PydalChannel(num, self.superColliderServer, self.superColliderClient)
+
+	def newArpeggiatorChannel(self, midiChannel):
+		return PydalChannel(self.numArpeggiatorChannels, self.superColliderServer, self.superColliderClient, midiChannel)
 
 	#num is the BPM
 	def setTempo(self, num):
@@ -124,6 +129,47 @@ class PydalChannel:
 		msg.setAddress("/pydalStop")
 		msg.append(self.num)
 		self.superColliderClient.send(msg)
+
+class ArpeggiatorChannel:
+
+	def __init__(self, num, server, client, midiChannel):
+		self.num = num
+		self.midiChannel = midiChannel
+		self.address = "pydalChannel-" + str(num)
+		self.pydalPattern = None
+		self.superColliderServer = server
+		self.superColliderClient = client
+		self.superColliderServer.addMsgHandler("/arpeggiatorGetUpdate-"+str(self.num), self._update)
+
+
+	def _update(self, *args):
+		renderList = self.pydalPattern.render()
+		renderStr = ";".join(str(t[0]) + "-" + ",".join(t[1]) for t in renderList)
+		msg = OSC.OSCMessage()
+		msg.setAddress("/arpeggiatorSendUpdate")
+		msg.append(self.num)
+		msg.append(renderStr)
+		msg.append(self.midiChannel)
+		self.superColliderClient.send(msg)
+
+	def play(self, pat):
+		self.pydalPattern = pat
+		renderList = self.pydalPattern.render()
+		renderStr = ";".join(str(t[0]) + "-" + ",".join(t[1]) for t in renderList)
+		msg = OSC.OSCMessage()
+		msg.setAddress("/arpeggiatorPlay")
+		msg.append(self.num)
+		msg.append(renderStr)
+		msg.append(self.midiChannel)
+		self.superColliderClient.send(msg)
+
+	def stop(self):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/arpeggiatorStop")
+		msg.append(self.num)
+		msg.append(self.midiChannel)
+		self.superColliderClient.send(msg)
+
 
 # TODO: probably want this implementation 
 # - To implement a functor, a user must override the 
