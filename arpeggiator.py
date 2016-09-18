@@ -15,12 +15,7 @@ class Arpeggiator:
 		if onOff == "on":
 			self.onNotes[note] = vel
 
-			msg = OSC.OSCMessage()
-			msg.setAddress("/forwardNotes")
-			msg.append(note)
-			msg.append(vel)
-			msg.append(onOff)
-			self.pydal.superColliderClient.sendMsg(msg)
+			self.sendNoteUpdate(note, vel onOff)
 
 			if len(self.onOntes) == 1:
 				self.channel.play(self.pattern)
@@ -28,7 +23,7 @@ class Arpeggiator:
 			del self.onNotes[note]
 			if len(self.onNotes) == 0:
 				self.channel.stop()
-			#send note
+			self.sendNoteUpdate(note, vel onOff)
 		print self.onNotes
 
 	def sendNoteUpdate(self, note, vel onOff):
