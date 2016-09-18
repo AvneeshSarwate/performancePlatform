@@ -1,5 +1,5 @@
 (//tempoclock with beat set to 1 cycle length
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelToMidiChannel;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
@@ -15,6 +15,25 @@ channelToMidiChannel = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
 
+onNotes = Dictionary();
+onNotesList = List();
+
+//msg is [addr, note, vel, onOff]
+noteForwardHandler = {|msg, time, addr, recvPort|
+	if(msg[3].asString == "on",
+		{
+			onNotes[msg[1].asInt] = msg[2].asInt;
+			onNotesList.add(msg[1].asInt);
+			onNotesList.sort();
+		},
+		{
+			onNotes.remove(msg[1].asInt);
+			onNotesList.remove(msg[1].asInt);
+			onNotesList.sort();
+		}
+	);
+};
+OSCFunc(noteForwardHandler, "/forwadNotes");
 
 
 //msg[1] is the pydal channel being played on
@@ -50,7 +69,8 @@ startPattern = {|msg, time, addr, recvPort|
 
 	channelInd[msg[1]] = 0;
 
-	loopStartFunctions[msg[1]] = {chanClock.sched(0, playStepGenerator.(msg[1]))};
+	//give it 1 milisecond to make sure the first note for onNotes has been recieved
+	chanClock.sched(0.001, playStepGenerator.(msg[1]));
 };
 OSCFunc(startPattern, "/arpeggiatorPlay");
 
