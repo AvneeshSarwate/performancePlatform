@@ -364,7 +364,7 @@ def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beat
 		e = len(hitList) if (end is None or end >= len(hitList) or end < s) else end
 		for n in noteList:
 			n[1] = scaleNotes[scaleNotes.index(n[1]) + random.randint(-1*down, up)]
-
+	
 	return noteListToHitList(noteList)
 
 def randBeatMove(hitList):

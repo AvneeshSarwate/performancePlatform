@@ -6,7 +6,7 @@ def main():
 	inc = lambda a: a+1	
 	inc = Counter()
 	tree = TreeBuilder(0, inc)
-	tree.execute('\/! \/! >! >! <  < >!')
+	tree.execute( '(\/! ^)*3 \/ ((\/! ^)*3 >)*3') # '\/! \/! >! >! <  < >!'
 	print [c.value for c in tree.root.children[0].children]
 	levels = tree.nodesByDepth()
 	for l in levels:
@@ -56,8 +56,8 @@ class TreeBuilder:
 	def moveDown(self, symbol):
 		ind = int(symbol.split(":")[1]) if ":" in symbol else 0
 		if len(self.currentNode.children) != 0:
-			self.siblingInd = ind%len(self.children)
-			self.currentNode = self.children[self.siblingInd]
+			self.siblingInd = ind%len(self.currentNode.children)
+			self.currentNode = self.currentNode.children[self.siblingInd]
 
 	#todo: include indexes for moving up? 
 	def moveUp(self, symbol):
@@ -79,9 +79,8 @@ class TreeBuilder:
 		newNode = Node(newVal, self.currentNode)
 		self.currentNode.children.append(newNode)
 		newNode.treePosition = self.currentNode.treePosition + "-" + str(len(self.currentNode.children)-1)
-		self.siblingInd = len(self.currentNode.children) - 1
+		newNode.siblingInd = len(self.currentNode.children) - 1
 		self.currentNode = newNode
-
 		#TODO: - hanlde creating new siblings for tree root
 
 	def newRight(self, symbol):
