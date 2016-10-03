@@ -89,7 +89,7 @@ playStepGenerator = {|i|
 			var step = patList[ind];
 			var dur = step[0];
 
-			step[1].do({|samp| sendSample.(samp, channelToMidiChannel[i])});
+			step[1].do({|samp| sendSample.(samp, channelToMidiChannel[i], ind)});
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
@@ -185,15 +185,20 @@ timeListToDurationList = {|oldList|
 	pList
 };
 
-sendSample = {|noteStr, midiChannel|
-	var noteInd = noteStr.asInt;
-	var newNote = onNotesList[noteInd % onNotesList.size];
-	//todo - send cc map stuff if applicable
-	Task({
-		midiOut.noteOn(midiChannel, newNote, onNotes[newNote]); //maybe add velocity based on gain?
-		0.25.wait;
-		midiOut.noteOff(midiChannel, newNote, onNotes[newNote]);
-	}).play;
+sendSample = {|noteStr, midiChannel, ind|
+	[noteStr, ind, noteStr.isNil].postln;
+	if(onNotesList.size > 0, {
+		var noteInd = noteStr.asInt;
+		var newNote = onNotesList[noteInd % onNotesList.size];
+		var newNoteVel = onNotes[newNote];
+
+		//todo - send cc map stuff if applicable
+		Task({
+			midiOut.noteOn(midiChannel, newNote, newNoteVel); //maybe add velocity based on gain?
+			0.25.wait;
+			midiOut.noteOff(midiChannel, newNote, newNoteVel);
+		}).play;
+	});
 };
 
 )

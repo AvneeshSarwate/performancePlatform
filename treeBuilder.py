@@ -6,7 +6,7 @@ def main():
 	inc = lambda a: a+1	
 	inc = Counter()
 	tree = TreeBuilder(0, inc)
-	tree.execute( '(\/! ^)*3 \/ ((\/! ^)*3 >)*3') # '\/! \/! >! >! <  < >!'
+	tree.execute( '(\/! ^)*3 \/ (\/! >!*3 ^ >)*3') # '\/! \/! >! >! <  < >!'
 	print [c.value for c in tree.root.children[0].children]
 	levels = tree.nodesByDepth()
 	for l in levels:
@@ -44,6 +44,7 @@ class TreeBuilder:
 		self.currentNode = self.root
 		self.transFunc = transformationFunc
 		self.siblingInd = 0
+		self.siblingIndStack = [0]
 		self.funcMap = {}
 		self.funcMap['\/'] = self.moveDown
 		self.funcMap['^'] = self.moveUp
@@ -56,18 +57,22 @@ class TreeBuilder:
 	def moveDown(self, symbol):
 		ind = int(symbol.split(":")[1]) if ":" in symbol else 0
 		if len(self.currentNode.children) != 0:
+			self.siblingIndStack.append(self.siblingInd)
 			self.siblingInd = ind%len(self.currentNode.children)
 			self.currentNode = self.currentNode.children[self.siblingInd]
 
 	#todo: include indexes for moving up? 
 	def moveUp(self, symbol):
 		if not self.currentNode.parent is None:
+			self.siblingInd = self.siblingIndStack.pop()
 			self.currentNode = self.currentNode.parent
 
 	def moveRight(self, symbol):
 		ind = int(symbol.split(":")[1]) if ":" in symbol else 1
+		#print self.currentNode.value, self.siblingInd , ind, len(self.currentNode.parent.children), "value", self.currentNode.value
 		self.siblingInd = (self.siblingInd + ind) % len(self.currentNode.parent.children)
 		self.currentNode = self.currentNode.parent.children[self.siblingInd]
+		#print self.currentNode.value
 
 	def moveLeft(self, symbol):
 		ind = int(symbol.split(":")[1]) if ":" in symbol else 1
@@ -79,7 +84,8 @@ class TreeBuilder:
 		newNode = Node(newVal, self.currentNode)
 		self.currentNode.children.append(newNode)
 		newNode.treePosition = self.currentNode.treePosition + "-" + str(len(self.currentNode.children)-1)
-		newNode.siblingInd = len(self.currentNode.children) - 1
+		self.siblingIndStack.append(self.siblingInd)
+		self.siblingInd = len(self.currentNode.children) - 1
 		self.currentNode = newNode
 		#TODO: - hanlde creating new siblings for tree root
 
