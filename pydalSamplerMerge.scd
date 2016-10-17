@@ -5,8 +5,12 @@ var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, r
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 miniOut.latency = 0;
 
-mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
-	&& (elem.device == "Launchpad Mini")})[0];
+// mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
+// && (elem.device == "Launchpad Mini")})[0];
+
+mini = MIDIClient.sources.select({|elem| (elem.name == "IAC Driver")
+	&& (elem.device == "Bus 5")})[0];
+
 /*
 TODO -
 continue to tweak latency
