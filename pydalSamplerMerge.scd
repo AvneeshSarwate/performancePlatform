@@ -158,6 +158,8 @@ stopRecording = {|padInd, note|
 	miniOut.noteOn(0, note, amber_LIGHT);
 	["RECORDING STOP", padInd, tempoClock.beats].postln;
 	isRecording[padInd] = false;
+	selectedBank= nil;
+	selectedBankColorStack.wrapAt(-1)[1] = amber_LIGHT;
 };
 
 stopPlaying = {|padInd, note|
@@ -206,7 +208,7 @@ miniProxyNoteOnFunc = {|vel, note, chan, port|
 			},
 			{
 				var stackPop = selectedBankColorStack.pop;
-				if(stackPop, {
+				if(stackPop.isNil.not, {
 					miniOut.noteOn(0, stackPop[0], stackPop[1]);
 				});
 				selectedBankColorStack.add([note, if(used[padInd], amber_LIGHT, 0)]);
@@ -225,7 +227,8 @@ miniNoteOnFunc = {|vel, note, chan, port|
 MIDIFunc.noteOn(miniNoteOnFunc, nil, nil, mini.uid);
 
 pedalNoteOnFunc = {|vel, pedalNote, chan, port|
-	if((pedalNote == 16) && (vel == 127), {
+	"PEDAL FUNC".postln;
+	if((pedalNote == 16) && (vel == 127) && recordMode && selectedBank.isNil.not, {
 		var note = selectedBank;
 		var padInd = noteToInd.(note);
 		var frozenRecordMode = recordMode;
@@ -261,7 +264,7 @@ pedalNoteOnFunc = {|vel, pedalNote, chan, port|
 		});
 	});
 };
-MIDIFunc.noteOn(pedalNoteOnFunc, nil, nil, pedal.uid);
+MIDIFunc.cc(pedalNoteOnFunc, nil, nil, pedal.uid);
 
 
 miniNoteOffFunc = {|vel, note, chan, port|
@@ -274,7 +277,7 @@ miniNoteOffFunc = {|vel, note, chan, port|
 			{miniOut.noteOn(0, record_BUTTON, red_LIGHT)},
 			{
 				var stackPop = selectedBankColorStack.pop;
-				if(stackPop, {
+				if(stackPop.isNil.not, {
 					miniOut.noteOn(0, stackPop[0], stackPop[1]);
 				});
 				miniOut.noteOn(0, record_BUTTON, green_LIGHT);

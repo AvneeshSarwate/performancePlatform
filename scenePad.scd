@@ -37,7 +37,7 @@ indToNote = {|x|
 };
 
 isPadNote = {|x| noteToInd.(x) != -1};
-isSceneNote = {|x| isPadNote.(x) && (indToNote.(x) >= 20)}; //bottom two rows are for samples
+isSceneNote = {|x| isPadNote.(x) && (noteToInd.(x) >= 20)}; //bottom two rows are for samples
 record_BUTTON = 8;
 green_LIGHT = 48;
 red_LIGHT = 3;
