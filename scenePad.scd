@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, midiFwdOut, isSceneNote;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote;
 
 
 
@@ -10,6 +10,7 @@
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 miniOut.latency = 0;
 miniFwdOut = MIDIOut.newByName("IAC Driver", "Bus 5");
+miniFwdOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 
 
@@ -22,7 +23,7 @@ noteToInd = {|x|
 	var col = x % 16;
 	var retVal = -1;
 	if(col < 8, {retVal = row*10 + col});
-	retVal.postln;
+	["note to ind", x, retVal].postln;
 	retVal
 }; //convert note to pad index
 
@@ -36,7 +37,7 @@ indToNote = {|x|
 };
 
 isPadNote = {|x| noteToInd.(x) != -1};
-isSceneNote = {|x| isPadNote.(x) && indToNote(x) >= 20}; //bottom two rows are for samples
+isSceneNote = {|x| isPadNote.(x) && (indToNote.(x) >= 20)}; //bottom two rows are for samples
 record_BUTTON = 8;
 green_LIGHT = 48;
 red_LIGHT = 3;
@@ -50,6 +51,7 @@ miniOut.noteOn(0, record_BUTTON, green_LIGHT);
 
 
 noteOnFunc = {|vel, note, chan, port|
+	["NOTE ON ENTERED", note].postln;
 	if(note == record_BUTTON,{
 		recording = recording.not;
 		miniOut.noteOn(0, record_BUTTON, if(recording, red_LIGHT, green_LIGHT));
@@ -66,14 +68,15 @@ noteOnFunc = {|vel, note, chan, port|
 			})
 		},
 		{
-			midiFwdOut.noteOn(0, note, vel);
+			["SCENE NOTE", note].postln;
+			miniFwdOut.noteOn(0, note, vel);
 		})
 	);
 };
 MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
 
 noteOffFunc = {|vel, note, chan, port|
-	if(isSceneNote.(note).not, {midiFwdOut.noteOff(0, note, vel);});
+	if(isSceneNote.(note).not, {miniFwdOut.noteOff(0, note, vel);});
 };
 MIDIFunc.noteOff(noteOffFunc, nil, nil, mini.uid);
 

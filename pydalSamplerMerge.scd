@@ -5,14 +5,15 @@ var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, r
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 miniOut.latency = 0;
 
-mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
-	&& (elem.device == "Launchpad Mini")})[0];
+mini = MIDIClient.sources.select({|elem| (elem.device == "Launchpad Mini")
+	&& (elem.name == "Launchpad Mini")})[0];
 
-miniProxy = MIDIClient.sources.select({|elem| (elem.name == "IAC Driver")
-	&& (elem.device == "Bus 5")})[0];
+miniProxy = MIDIClient.sources.select({|elem| (elem.device == "IAC Driver")
+	&& (elem.name == "Bus 5")})[0];
 
-pedal = MIDIClient.sources.select({|elem| (elem.name == "FBV Express Mk II")
-	&& (elem.device == "Port 1")})[0];
+pedal = MIDIClient.sources.select({|elem| (elem.device == "FBV Express Mk II")
+	&& (elem.name == "Port 1")})[0];
+[mini.uid, miniProxy.uid, pedal.uid].postln;
 
 /*
 TODO -
@@ -221,6 +222,7 @@ miniNoteOnFunc = {|vel, note, chan, port|
 	if(note == record_BUTTON, {recordMode = recordMode.not});
 	if(note == metronomeSync_BUTTON, {isSynched = isSynched.not});
 };
+MIDIFunc.noteOn(miniNoteOnFunc, nil, nil, mini.uid);
 
 pedalNoteOnFunc = {|vel, pedalNote, chan, port|
 	if((pedalNote == 16) && (vel == 127), {
@@ -279,7 +281,6 @@ miniNoteOffFunc = {|vel, note, chan, port|
 			}
 	)});
 };
-
 MIDIFunc.noteOff(miniNoteOffFunc, nil, nil, miniProxy.uid);
 
 
