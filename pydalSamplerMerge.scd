@@ -1,15 +1,18 @@
 (
-var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs, semaphore;
+var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs, semaphore, pedal, selectedBank, miniProxyNoteOnFunc, miniNoteOffFunc, pedalNoteOnFunc, pedalNoteOffFunc, selectedBankColorStack, miniProxy, miniNoteOnFunc;
 
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 miniOut.latency = 0;
 
-// mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
-// && (elem.device == "Launchpad Mini")})[0];
+mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
+	&& (elem.device == "Launchpad Mini")})[0];
 
-mini = MIDIClient.sources.select({|elem| (elem.name == "IAC Driver")
+miniProxy = MIDIClient.sources.select({|elem| (elem.name == "IAC Driver")
 	&& (elem.device == "Bus 5")})[0];
+
+pedal = MIDIClient.sources.select({|elem| (elem.name == "FBV Express Mk II")
+	&& (elem.device == "Port 1")})[0];
 
 /*
 TODO -
@@ -33,11 +36,12 @@ noteToInd = {|x|
 
 noteToXY = {|x| [noteToInd.(x)%16, 7 - (x / 16).asInt]}; //convert note to pad xy (bottom left 0,0)
 isPadNote = {|x| noteToInd.(x) != -1};
-record_BUTTON = 8;
-metronomeSync_BUTTON = 24;
+record_BUTTON = 104;
+metronomeSync_BUTTON = 120;
 green_LIGHT = 48;
 red_LIGHT = 3;
 amber_LIGHT = 51;
+selectedBankColorStack = List.new();
 
 ~abletonLatency = 0;//4.0 * 0.0354; //seconds
 ~inputLatency = 0;  //skipforward into buffer to counteract input latency
@@ -48,7 +52,8 @@ amber_LIGHT = 51;
 Routine.run {
 
 	//s.options.inDevice = "Blue Snowball";
-	s.options.inDevice = "Built-in Microph";
+	//s.options.inDevice = "Built-in Microph";
+	s.options.inDevice = "POD HD400";
 	s.options.outDevice = "Built-in Output";//"Soundflower (64ch)";
 
 	s.bootSync;
@@ -164,9 +169,62 @@ stopPlaying = {|padInd, note|
 	isPlaying[padInd] = false;
 };
 
-noteOnFunc = {|vel, note, chan, port|
+miniProxyNoteOnFunc = {|vel, note, chan, port|
 	[note, "NOTE ON"].postln;
 	if(isPadNote.(note), {
+		var padInd = noteToInd.(note);
+		var frozenRecordMode = recordMode;
+		var recordStartClick = false;
+		var adjustTime = 0;
+		var leadIn = 0;
+		[isSynched, "IS SYNCHED"].postln;
+		if(frozenRecordMode.not,
+			{
+				if(isSynched,
+					{
+						var funcToExecute, eventTime;
+						if(isPlaying[padInd], {
+							funcToExecute = {stopPlaying.(padInd, note)};
+							adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
+						});
+						if(isPlaying[padInd].not, {
+							funcToExecute = {startPlaying.(padInd, note)};
+							adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
+						});
+
+						eventTime = tempoClock.timeToNextBeat + adjustTime;
+						tempoClock.sched(eventTime, funcToExecute);
+
+						["LATENCY COMPENSATED", tempoClock.timeToNextBeat,
+							tempoClock.timeToNextBeat - (~abletonLatency*tempoClock.tempo),
+							tempoClock.beats].postln;
+						["SHOULD BE TRUE", (~duration > 0) && recordStartClick, ~duration].postln;
+					},
+					{startPlaying.(padInd, note)}
+				);
+			},
+			{
+				var stackPop = selectedBankColorStack.pop;
+				if(stackPop, {
+					miniOut.noteOn(0, stackPop[0], stackPop[1]);
+				});
+				selectedBankColorStack.add([note, if(used[padInd], amber_LIGHT, 0)]);
+				selectedBank = note;
+				miniOut.noteOn(0, note, green_LIGHT);
+			}
+		);
+	});
+};
+MIDIFunc.noteOn(miniProxyNoteOnFunc, nil, nil, miniProxy.uid);
+
+miniNoteOnFunc = {|vel, note, chan, port|
+	if(note == record_BUTTON, {recordMode = recordMode.not});
+	if(note == metronomeSync_BUTTON, {isSynched = isSynched.not});
+};
+
+pedalNoteOnFunc = {|vel, pedalNote, chan, port|
+	if((pedalNote == 16) && (vel == 127), {
+		var note = selectedBank;
 		var padInd = noteToInd.(note);
 		var frozenRecordMode = recordMode;
 		var recordStartClick = false;
@@ -184,61 +242,45 @@ noteOnFunc = {|vel, note, chan, port|
 					adjustTime = ~countIn;
 					recordStartClick = true;
 				});
-				"C".postln;
-				if(frozenRecordMode.not && isPlaying[padInd], {
-					funcToExecute = {stopPlaying.(padInd, note)};
-					adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
-				});
-				"D".postln;
-				if(frozenRecordMode.not && isPlaying[padInd].not, {
-					funcToExecute = {startPlaying.(padInd, note)};
-					adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
-				});
 
 				eventTime = tempoClock.timeToNextBeat + adjustTime;
 				tempoClock.sched(eventTime, funcToExecute);
 
-				["LATENCY COMPENSATED", tempoClock.timeToNextBeat,
-					tempoClock.timeToNextBeat - (~abletonLatency*tempoClock.tempo),
-					tempoClock.beats].postln;
-				["SHOULD BE TRUE", (~duration > 0) && recordStartClick, ~duration].postln;
-
-				if((~duration > 0) && recordStartClick, {"LATE STOP SCHED".postln; tempoClock.sched(eventTime+~duration, {
-					"LATE STOP".postln;
-					stopRecording.(padInd, note)
-				})});
+				if((~duration > 0) && recordStartClick, {
+					"LATE STOP SCHED".postln;
+					tempoClock.sched(eventTime+~duration, { stopRecording.(padInd, note); "LATE STOP".postln;});
+				});
 			},
 			{
 				if(frozenRecordMode,
 					{startRecording.(padInd, note)},
-					{startPlaying.(padInd, note)}
+					{stopRecording.(padInd, note)}
 				);
-			}
-		);
+		});
 	});
-
-	if(note == record_BUTTON, {recordMode = recordMode.not});
-	if(note == metronomeSync_BUTTON, {isSynched = isSynched.not});
 };
-MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
+MIDIFunc.noteOn(pedalNoteOnFunc, nil, nil, pedal.uid);
 
 
-noteOffFunc = {|vel, note, chan, port|
+miniNoteOffFunc = {|vel, note, chan, port|
 	if(isPadNote.(note) && isSynched.not, {
 		var padInd = noteToInd.(note);
-		if(recordMode,
-			{stopRecording.(padInd, note);},
-			{stopPlaying.(padInd, note);}
-		);
+		stopPlaying.(padInd, note);
 	});
 	if(note == record_BUTTON, {
 		if(recordMode,
 			{miniOut.noteOn(0, record_BUTTON, red_LIGHT)},
-			{miniOut.noteOn(0, record_BUTTON, green_LIGHT)}
+			{
+				var stackPop = selectedBankColorStack.pop;
+				if(stackPop, {
+					miniOut.noteOn(0, stackPop[0], stackPop[1]);
+				});
+				miniOut.noteOn(0, record_BUTTON, green_LIGHT);
+			}
 	)});
 };
 
-MIDIFunc.noteOff(noteOffFunc, nil, nil, mini.uid);
+MIDIFunc.noteOff(miniNoteOffFunc, nil, nil, miniProxy.uid);
 
 
 
