@@ -27,7 +27,7 @@ things to set via python api
 
 //quneo control variables
 noteToInd = {|x|
-	var row = (x / 16).floor;
+	var row = 7- (x / 16).asInt;
 	var col = x % 16;
 	var retVal = -1;
 	if(col < 8, {retVal = row*10 + col});
@@ -80,6 +80,7 @@ Routine.run {
 	playSynths = Array.fill(78, {|i| Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[i]])});
 	playBufQueues = Dictionary.new();
 	(0..7).do({|c1| (0..7).do({|c2|
+		//aa is 0, which is bottom left
 		var ch = "abcdefgh";
 		playBufQueues[ch[c1]++ch[c2]] = List.fill(10, {Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[(c1*8)+c2]])});
 	})});
@@ -559,8 +560,8 @@ sendSample = {|drumStr, patternInd|
 )
 
 
-~abletonLatency = 1.0 * 0.0354; //seconds
-~inputLatency = 0;  //skipforward into buffer to counteract input latency
+~abletonLatency = 1.0 * 0.0404; //seconds
+~inputLatency = ;  //skipforward into buffer to counteract input latency
 
 ~countIn = 0;  //number of count in metronome hits
 ~duration = 0;  //preset number of beats to record for
