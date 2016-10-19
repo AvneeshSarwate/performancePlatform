@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote;
 
 
 
@@ -9,14 +9,12 @@
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 miniOut.latency = 0;
-miniFwdOut = MIDIOut.newByName("IAC Driver", "Bus 5");
 pythonOSCport = NetAddr("localhost", 13371);
 
 
 mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
 	&& (elem.device == "Launchpad Mini")})[0];
 
-//bottom left is 00
 noteToInd = {|x|
 	var row = 7 - (x / 16).asInt;
 	var col = x % 16;
@@ -36,7 +34,6 @@ indToNote = {|x|
 };
 
 isPadNote = {|x| noteToInd.(x) != -1};
-isSceneNote = {|x| isPadNpte.(x) && indToNote(x) >= 20}; //bottom two rows are for samples
 record_BUTTON = 8;
 green_LIGHT = 48;
 red_LIGHT = 3;
@@ -54,27 +51,20 @@ noteOnFunc = {|vel, note, chan, port|
 		recording = recording.not;
 		miniOut.noteOn(0, record_BUTTON, if(recording, red_LIGHT, green_LIGHT));
 	});
-	if(isPadNote.(note),
-		if(isSceneNote.(note), {
-			if(recording, {
+	if(isPadNote.(note), {
+		if(recording,
+			{
 				pythonOSCport.sendMsg("/saveScene", noteToInd.(note));
 				miniOut.noteOn(0, note, amber_LIGHT);
 				savedScenes[note] = true;
 			},
 			{
 				if(savedScenes[note].isNil.not, {pythonOSCport.sendMsg("/playScene", noteToInd.(note));})
-			})
-		},
-		{
-			midiFwdOut.noteOn(0, note, vel);
-		})
-	);
+			}
+		)
+	});
 };
 MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
-
-noteOffFunc = {|vel, note, chan, port|
-	if(isSceneNote.(note).not, {midiFwdOut.noteOff(0, note, vel);});
-}
 
 loadSavedSceneLights = {|msg, time, addr, recvPort|
 	msg[1].asString.split($,)
