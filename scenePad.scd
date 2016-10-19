@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, midiFwdOut, isSceneNote;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc;
 
 
 
@@ -36,7 +36,7 @@ indToNote = {|x|
 };
 
 isPadNote = {|x| noteToInd.(x) != -1};
-isSceneNote = {|x| isPadNote.(x) && indToNote(x) >= 20}; //bottom two rows are for samples
+isSceneNote = {|x| isPadNpte.(x) && indToNote(x) >= 20}; //bottom two rows are for samples
 record_BUTTON = 8;
 green_LIGHT = 48;
 red_LIGHT = 3;
@@ -74,9 +74,7 @@ MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
 
 noteOffFunc = {|vel, note, chan, port|
 	if(isSceneNote.(note).not, {midiFwdOut.noteOff(0, note, vel);});
-};
-MIDIFunc.noteOff(noteOffFunc, nil, nil, mini.uid);
-
+}
 
 loadSavedSceneLights = {|msg, time, addr, recvPort|
 	msg[1].asString.split($,)
