@@ -387,6 +387,23 @@ def treeFunc(hitList, root, scale, p=0.3):
 		return randBeatMove(hitList)
 
 
+def warp(hitList, warpPoint, constant=.2, exponent=1):
+	noteList = hitListToNoteList(hitList)
+	def calcWarp(time, warpPoint, constant, exponent):
+		if(time == warpPoint): #todo - imlpement "event horizon check"
+			return 0
+		dist = constant/abs(warpPoint-time)**exponent
+		return dist if warpPoint > time else -1 * dist
+	warpList = map(lambda note: calcWarp(note[0], warpPoint, constant, exponent), noteList)
+	for i in range(len(noteList)):
+		noteList[i][0] += warpList[i]
+	return noteListToHitList(noteList)
+
+def main():
+	hl = warp(hitList, 3)
+	for h in hitListToNoteList(hl):
+		print h
+
 #TODO: print the strings of a few different buffers as test cases 
 
 hitString = '19 0.015517354926804,36,90,3,on-0.069313140281711,36,0,3,off-0.40111655031738,36,88,3,on-0.13826123650379,36,0,3,off-0.30373582635919,36,86,3,on-0.068988503365478,36,0,3,off-0.37323516937636,36,94,3,on-0.16584420671271,36,0,3,off-0.37435709074858,41,102,3,on-0.22119814726626,41,0,3,off-0.52463878235438,41,99,3,on-0.17918737393996,41,0,3,off-0.58129390059232,41,97,3,on-0.17996301558244,41,0,3,off-0.3181157736951,36,108,3,on-0.25061781998902,36,0,3,off-0.8401201725943,36,97,3,on-0.29228857541083,36,0,3,off-0.75886568925363,41,99,3,on-0.2358261358357,41,0,3,off-0.7734233730412,41,111,3,on-0.27621152805202,41,0,3,off-0.65788063380083,0,0,0,timeAfterLastHit 14'
@@ -395,6 +412,8 @@ hl1 = '59 0,67,115,1,on-0.35805304900001,67,0,1,off-0.099085806999994,68,114,1,o
 hl2 = '69 0,67,108,1,on-0.44206642100005,68,86,1,on-0.156972967,67,0,1,off-0.31932736300001,70,58,1,on-0.11475639299999,68,0,1,off-0.39217421299998,72,91,1,on-0.07848408000001,70,0,1,off-0.49621856299996,0,0,0,timeAfterLastHit 275'
 hl3 = '59 0.00026503200000061,67,116,1,on-0.109492002,67,0,1,off-0.114887669,67,97,1,on-0.083770298999999,67,0,1,off-0.150910389,67,113,1,on-0.094081841000001,67,0,1,off-0.162514201,67,114,1,on-0.083863190000001,67,0,1,off-0.177834871,67,117,1,on-0.083826460000001,67,0,1,off-0.156259629,67,106,1,on-0.073450127999999,67,0,1,off-0.188066174,67,110,1,on-0.083808517,67,0,1,off-0.173343166,67,107,1,on-0.073152808,67,0,1,off-0.182253786,67,112,1,on-0.073165353,67,0,1,off-0.167248956,67,97,1,on-0.068336707,67,0,1,off-0.198340459,67,97,1,on-0.062599650000001,67,0,1,off-0.188070831,67,105,1,on-0.083570547000001,67,0,1,off-0.172715621,68,118,1,on-0.078436826999999,68,0,1,off-0.151519889,68,111,1,on-0.072601442,68,0,1,off-0.172986674,68,107,1,on-0.062571509000001,68,0,1,off-0.193675872,68,117,1,on-0.083643336000002,68,0,1,off-0.178736165,0,0,0,timeAfterLastHit 4'
 # print FH.hitListToString(*FH.stringToHitList(hitString)) == hitString
+
+hitList = [[0, 60, 60, 1, "on"], [.75, 60, 60, 1, "off"], [.25, 61, 60, 1, "on"], [.75, 61, 60, 1, "off"], [.25, 62, 60, 1, "on"], [.75, 62, 60, 1, "off"], [.25, 63, 60, 1, "on"], [.75, 63, 60, 1, "off"], [.25, 0, 0, 1, "timeAfterLastHit"]]
 
 newHS = FH.stringToHitList(hl3)[0]
 noteList = hitListToNoteList(newHS)
@@ -423,4 +442,6 @@ codecHS = noteListToHitList(noteList)
 hl = randTranspose(newHS, 60, [0, 2, 3, 5, 7, 8, 10])
 #print hitListToNoteList(hl)
 
+if __name__ == '__main__':
+	main()
 
