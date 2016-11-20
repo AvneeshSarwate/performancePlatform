@@ -2,21 +2,24 @@
 
 
 abletonOut = MIDIOut.newByName("IAC Driver", "Bus 4");
-ipadPort = NetAddr("192.168.0.15", 9000);
+ipadPort = NetAddr("192.168.0.25", 9000);
 pythonPort = NetAddr("localhost", 13371);
 
 sliderVals = List.fill(4, {List.fill(12, {0})});
 savedBanks = List.fill(4, { List.fill(4, {List.fill(12, {0})}) });
 
 pushCurrentSliderVals = {
+	"FUNCTION pushCurrentSliderVals".postln;
 	(0..11).do({|i| (0..3).do({|bank|
 		abletonOut.control(0, (bank*12)+i, sliderVals[bank][i]);
-		("/faders/" ++ bank.asString ++ "/" ++ (i+1).asString).postln;
+		//("/faders/" ++ bank.asString ++ "/" ++ (i+1).asString).postln;
 		ipadPort.sendMsg("/faders/" ++ bank.asString ++ "/" ++ (i+1).asString, sliderVals[bank][i]);
 	})});
+	"pushCurrentSliderVals banks".postln;
 	(0..3).do({|bank| (0..3).do({|slot|
 		var bankOn;
 		if(savedBanks[bank][slot].sum > 0, {bankOn = 1}, {bankOn = 0});
+		"post check".postln;
 		ipadPort.sendMsg("/saveBank/" ++ bank.asString ++ "/1/" ++ (slot+1).asString, bankOn);
 	})});
 };
@@ -53,9 +56,10 @@ pushCurrentSliderVals = {
 		var bank = msg[0].asString.split($/)[2].asInt;
 		var slot = msg[0].asString.split($/)[4].asInt - 1;
 		var val = msg[1].asFloat.round;
+		["PLAYBANK", bank, slot, val, savedBanks[bank][slot].asList.class.name].postln;
 		if(val != 0, {
-			sliderVals[bank] = List.copyInstance(savedBanks[bank][slot]);
-			pushCurrentSliderVals.(bank);
+			sliderVals[bank] = List.copyInstance(savedBanks[bank][slot].asList);
+			pushCurrentSliderVals.();
 		});
 	}, "/playBank/" ++ i.asString ++ "/1/" ++ j.asString);
 })});
@@ -88,6 +92,7 @@ OSCFunc({|msg, time, addr, recvPort|
 	savedBanks = stringToSavedBanks.(msg[1].asString);
 	sliderVals = stringToSliderVals.(msg[2].asString);
 	pushCurrentSliderVals.();
+	"FADERS FROM SCENE LOADED".postln;
 }, "/loadSceneFaders");
 
 
