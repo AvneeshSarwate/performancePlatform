@@ -13,6 +13,9 @@ miniProxy = MIDIClient.sources.select({|elem| (elem.device == "IAC Driver")
 
 pedal = MIDIClient.sources.select({|elem| (elem.device == "FBV Express Mk II")
 	&& (elem.name == "Port 1")})[0];
+
+s.latency = 0.005;
+
 [mini.uid, miniProxy.uid, pedal.uid].postln;
 
 /*
@@ -380,7 +383,7 @@ playStepGenerator = {|i|
 			var dur = step[0];
 
 			step[1].do({|samp| sendSample.(samp, ind)});
-			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
+			["STEP", i, ind, tempoClockMap[i].beats, step, dur].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
 			if(ind == (patList.size-2), {pythonOSCport.sendMsg("/pydalGetUpdate-"++i)});
@@ -477,7 +480,8 @@ timeListToDurationList = {|oldList|
 			});
 
 	});
-	pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
+	//adding 0.0001 a hack to make sure lists with timestamps like [0, 1] get converted to durations of [1, 1]
+	pList.add([(oldList[oldList.size-1][0] + 0.00001).ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
 	pList
 };
 "NEW SHIT".postln;
@@ -536,7 +540,7 @@ sendSample = {|drumStr, patternInd|
 				//semaphore.wait;
 				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
 				//semaphore.signal;
-				[masterTempoClock.beats,"STOPPED SAMPLE", drumStr++patternInd].postln;
+				[masterTempoClock.beats,"STOPPED SAMPLE", drumStr, patternInd].postln;
 				//[playBufQueues[bank].size].postln;
 				nil;
 			});
