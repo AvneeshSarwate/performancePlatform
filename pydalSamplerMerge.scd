@@ -52,9 +52,9 @@ selectedBankColorStack = List.new();
 
 Routine.run {
 
-	//s.options.inDevice = "Blue Snowball";
+	s.options.inDevice = "Blue Snowball";
 	//s.options.inDevice = "Built-in Microph";
-	s.options.inDevice = "POD HD400";
+	//s.options.inDevice = "POD HD400";
 	s.options.outDevice = "Built-in Output";//"Soundflower (64ch)";
 
 	s.bootSync;
@@ -228,11 +228,11 @@ miniNoteOnFunc = {|vel, note, chan, port|
 MIDIFunc.noteOn(miniNoteOnFunc, nil, nil, mini.uid);
 
 pedalNoteOnFunc = {|vel, pedalNote, chan, port|
+	var note = selectedBank;
+	var padInd = noteToInd.(note);
+	var frozenRecordMode = recordMode;
 	"PEDAL FUNC".postln;
 	if((pedalNote == 16) && (vel == 127) && recordMode && selectedBank.isNil.not, {
-		var note = selectedBank;
-		var padInd = noteToInd.(note);
-		var frozenRecordMode = recordMode;
 		var recordStartClick = false;
 		var adjustTime = 0;
 		var leadIn = 0;
@@ -258,15 +258,17 @@ pedalNoteOnFunc = {|vel, pedalNote, chan, port|
 				});
 			},
 			{
-				if(frozenRecordMode,
-					{startRecording.(padInd, note)},
-					{stopRecording.(padInd, note)}
-				);
+				if(frozenRecordMode, startRecording.(padInd, note));
 		});
+	});
+	if((pedalNote == 16) && (vel == 0) && recordMode && selectedBank.isNil.not, {
+		if(isSynched.not, {stopRecording.(padInd, note)});
 	});
 };
 MIDIFunc.cc(pedalNoteOnFunc, nil, nil, pedal.uid);
 
+
+MIDIFunc.cc(pedalNoteOffFunc, nil, nil, pedal.uid);
 
 miniNoteOffFunc = {|vel, note, chan, port|
 	if(isPadNote.(note) && isSynched.not, {

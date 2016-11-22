@@ -17,6 +17,8 @@ class FH:
 		self.serverThread.daemon = False
 		self.serverThread.start()
 
+		self.topRowFunctions = [0]*8
+
 		n = 4
 
 		self.loops = [[0]*n for i in range(n)]
@@ -42,6 +44,7 @@ class FH:
 		self.superColliderServer.addMsgHandler("/faderSettingSave", self.saveFaderSetting)
 		self.superColliderServer.addMsgHandler("/getCurrentFaderVals", self.recieveCurrentFaderVals)
 		self.superColliderServer.addMsgHandler("/buttonForwarding", self.buttonForwardingHandler)
+		self.superColliderServer.addMsgHandler("/miniLaunchpadTopRow", self.topRowHandler)		
 
 		self.channels = {} #key - int, val - (transFunc, rootMel)
 		self.savedStrings = []
@@ -234,6 +237,10 @@ class FH:
 		msg.setAddress("/algStop")
 		msg.append(chanInd)
 		self.superColliderClient.send(msg)
+
+	def topRowHandler(self, addr, tags, stuff, source):
+		if stuff[1] == 127:
+			self.topRowFunctions[stuff[0]]()
 
 
 def oneHitShift(hitList):

@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote, ccFunc;
 
 
 
@@ -80,6 +80,12 @@ noteOffFunc = {|vel, note, chan, port|
 };
 MIDIFunc.noteOff(noteOffFunc, nil, nil, mini.uid);
 
+ccFunc = {|vel, note, chan, port|
+	var ccInd = note - 104;
+	["TOP ROW", ccInd, vel];
+	pythonOSCport.sendMsg("/miniLaunchpadTopRow", ccInd, vel);
+};
+MIDIFunc.cc(ccFunc, nil, nil, mini.uid);
 
 loadSavedSceneLights = {|msg, time, addr, recvPort|
 	msg[1].asString.split($,)
