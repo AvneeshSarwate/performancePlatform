@@ -24,7 +24,6 @@ class Arpeggiator:
 			if len(self.onNotes) == 0:
 				self.channel.stop()
 			self.sendNoteUpdate(note, vel, onOff)
-		print self.onNotes
 
 	def sendNoteUpdate(self, note, vel, onOff):
 		msg = OSC.OSCMessage()
