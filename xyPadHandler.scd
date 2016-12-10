@@ -5,8 +5,8 @@ abletonOut = MIDIOut.newByName("IAC Driver", "Bus 4");
 ipadPort = NetAddr("192.168.0.25", 9000);
 pythonPort = NetAddr("localhost", 13371);
 
-/*sliderVals = List.fill(4, {List.fill(12, {0})});
-savedBanks = List.fill(4, { List.fill(4, {List.fill(12, {0})}) });*/
+sliderVals = List.fill(4, {List.fill(12, {0})});
+savedBanks = List.fill(4, { List.fill(4, {List.fill(12, {0})}) });
 
 numSliders = 48;
 
@@ -31,11 +31,11 @@ numSliders = 48;
 	//slider hanlders msg[1] is val
 	OSCFunc.newMatching({|msg, time, addr, recvPort|
 		var bank = msg[0].asString.split($/)[2].asInt;
-		var copy = msg[0].asString.split($/)[3].asInt - 1;
-		var val = [(msg[1].asFloat*128).round, (msg[2].asFloat*128).round];
+		var copy = msg[0].asString.split($/)[3].asInt;
+		var val = [(msg[1].asFloat*127).round, (msg[2].asFloat*127).round];
 		var ccNum = numSliders + (((bank*4) + copy)*2);
-		sliderVals[bank][xopy] = val;
-		[msg[0]].postln;
+		val.postln;
+		sliderVals[bank][copy] = val;
 		abletonOut.control(0, ccNum, val[0]);
 		abletonOut.control(0, ccNum+1, val[1]);
 	}, "/space/" ++ i.asString ++ "/" ++ j.asString);
@@ -108,16 +108,16 @@ var twiddle = {|inst, padNum, xy|
 	var midiOut;
 	var ccNum = 48 + (((inst*4) + padNum)*2);
 
-	MIDIClient.init;
+
 	midiOut = MIDIOut.newByName("IAC Driver", "Bus 4");
 	midiOut.latency = 0;
 
 	Task({
-		midiOut.control(chan, ccNum+xy, 0);
+		midiOut.control(0, ccNum+xy, 0);
 		0.01.wait;
-		midiOut.control(chan, ccNum+xy, 127);
+		midiOut.control(0, ccNum+xy, 127);
 	}).play;
 };
-twiddle.value(0, 0, 0);
+twiddle.value(3, 2, 0);
 )
 

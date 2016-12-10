@@ -11,7 +11,7 @@ class Arpeggiator:
 		self.pattern = pattern
 
 
-	def handle(self, note, vel, onOff):
+	def handle(self, chan, note, vel, onOff):
 		if onOff == "on":
 			self.onNotes[note] = vel
 

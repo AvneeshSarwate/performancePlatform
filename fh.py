@@ -56,7 +56,7 @@ class FH:
 	#stuff = [chan, note, vel, on/off]
 	def buttonForwardingHandler(self, addr, tags, stuff, source):
 		for handler in self.buttonForwardingHandlers[stuff[0]]:
-			handler.handle(*stuff[1:])
+			handler.handle(*stuff)
 		
 
 	#stuff = [chanInd, bankNum, root, scale, loopString] 
@@ -405,6 +405,18 @@ def warp(hitList, warpPoint, constant=.2, exponent=1):
 	for i in range(len(noteList)):
 		noteList[i][0] += warpList[i]
 	return noteListToHitList(noteList)
+
+# noteSets is up to 3 sets of notes, each containing ints [0-11]
+# each set corresponds to a spatialization channel
+# if one of [0-11] is not specificied in a noteSet, it is played thru the normal channel 
+def spatialize(hitList, root, noteSets):
+	newNoteSets = map(lambda noteSet: map(lambda degree: (root+degree)%12, noteSet), noteSets)
+	newHitList = copy.deepcopy(hitList):
+	for hit in newHitList:
+		for i in range(len(noteSets)):
+			if hit[1] % 12 in newNoteSets[i]:
+				hit[3] = (i+1) * 4
+	return newHitList 
 
 def main():
 	hl = warp(hitList, 3)
