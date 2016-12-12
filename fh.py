@@ -411,7 +411,7 @@ def warp(hitList, warpPoint, constant=.2, exponent=1):
 # if one of [0-11] is not specificied in a noteSet, it is played thru the normal channel 
 def spatialize(hitList, root, noteSets):
 	newNoteSets = map(lambda noteSet: map(lambda degree: (root+degree)%12, noteSet), noteSets)
-	newHitList = copy.deepcopy(hitList):
+	newHitList = copy.deepcopy(hitList)
 	for hit in newHitList:
 		for i in range(len(noteSets)):
 			if hit[1] % 12 in newNoteSets[i]:
