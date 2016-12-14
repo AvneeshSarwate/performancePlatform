@@ -8,6 +8,7 @@ launchpadOut.latency = 0;
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 metronomeOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
+metronomeOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 masterClockOSCport = NetAddr("localhost", 57120);
 
