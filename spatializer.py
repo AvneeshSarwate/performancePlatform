@@ -2,7 +2,7 @@ import copy
 import OSC
 class Spatializer:
 
-	def __init__(root, noteSets):
+	def __init__(self, root, noteSets):
 		self.root = root
 		self.noteSets = noteSets
 		self.newNoteSets = map(lambda noteSet: map(lambda degree: (root+degree)%12, noteSet), noteSets)
@@ -16,16 +16,16 @@ class Spatializer:
 		msg.append(note)
 		msg.append(vel)
 		msg.append(onOff)
-		client.send(msg)
+		self.client.send(msg)
 
-	def getChan(note, channel):
+	def getChan(self, note, channel):
 		spatialChan = 0
-		for i in range(len(noteSets)):
+		for i in range(len(self.newNoteSets)):
 			if note % 12 in self.newNoteSets[i]:
-				spatialChan += 1
+				spatialChan = i+1
 		return channel + (spatialChan * 4)
 
 
-	def setNoteSets(noteSets):
+	def setNoteSets(self, noteSets):
 		self.noteSets = noteSets
 		self.newNoteSets = newNoteSets = map(lambda noteSet: map(lambda degree: (self.root+degree)%12, noteSet), noteSets)
