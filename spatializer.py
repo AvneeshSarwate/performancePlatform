@@ -1,5 +1,7 @@
 import copy
 import OSC
+import heapq
+
 class Spatializer:
 
 	def __init__(self, root, noteSets):
@@ -12,17 +14,26 @@ class Spatializer:
 		self.sustaining = True
 		self.onNotes = set()
 
+		#NOTE: using channelSeparation and spatialization on same instrument will cause undefined behavior
+		self.separateChannels = False  
+		self.noteToChanMap = {}
+		#talking all extra bass channels and all drum channels except 1, on top of 4 "inst 2" channels
+		self.openChannels = [1, 2, 5, 6, 7, 9, 10, 11, 13, 14, 15]  
+
 	def handle(self, channel, note, vel, keyOnOff):
 		onOff = self.resolveOnOff(note, keyOnOff)
 		if onOff is None:
 			return
-		newChannel = self.getChan(note, channel)
+		newChannel = self.getChan(note, channel, onOff)
 		msg = OSC.OSCMessage()
 		self.sendNote(newChannel, note, vel, onOff)
 
 	def heldNotesOff(self, chan):
 		for note in self.onNotes:
 			self.sendNote(chan, note, 0, "off")
+			if note in self.noteToChanMap:
+				self.sendNote(self.noteToChanMap[note], note, 0, "off")
+				del self.noteToChanMap[note]
 
 	def sendNote(self, channel, note, vel, onOff):
 		msg = OSC.OSCMessage()
@@ -46,15 +57,25 @@ class Spatializer:
 			if not note in self.onNotes:
 				return keyOnOff
 		
-	def getChan(self, note, channel):
-		if not self.spatialize:
-			return channel
-		else:
+	def getChan(self, note, channel, onOff):
+		if self.separateChannels:
+			if onOff == "on":
+				chan = heapq.heappop(self.openChannels)
+				self.noteToChanMap[note] = chan
+				return chan
+			else:
+				chan = self.noteToChanMap[note]
+				heapq.heappush(self.openChannels, chan)
+				del self.noteToChanMap[note]
+				return chan
+		if self.spatialize:
 			spatialChan = 0
 			for i in range(len(self.newNoteSets)):
 				if note % 12 in self.newNoteSets[i]:
 					spatialChan = i+1
 			return channel + (spatialChan * 4)
+
+		return channel
 
 
 	def setNoteSets(self, noteSets):
