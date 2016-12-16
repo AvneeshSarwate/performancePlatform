@@ -1,10 +1,11 @@
 import copy
 import OSC
 import heapq
+import pickle
 
 class Spatializer:
 
-	def __init__(self, root, noteSets):
+	def __init__(self, root, noteSets, fhInstance):
 		self.root = root
 		self.noteSets = noteSets
 		self.newNoteSets = map(lambda noteSet: map(lambda degree: (root+degree)%12, noteSet), noteSets)
@@ -14,11 +15,18 @@ class Spatializer:
 		self.sustaining = True
 		self.onNotes = {} #maps note to midi key
 
+		self.savedChords = [{} for i in range(100)]
+		self.fhInstance = fhInstance
+		self.fhInstance.superColliderServer.addMsgHandler("/saveChord", self.saveChordHandler)
+		self.fhInstance.superColliderServer.addMsgHandler("/playChord", self.playChordHandler)
+
 		#NOTE: using channelSeparation and spatialization on same instrument will cause undefined behavior
 		self.separateChannels = False  
 		self.noteToChanMap = {}
 		#talking all extra bass channels and all drum channels except 1, on top of 4 "inst 2" channels
 		self.openChannels = [1, 2, 5, 6, 7, 9, 10, 11, 13, 14, 15]  
+
+		self.chordSetStack = []
 
 	def handle(self, channel, note, vel, keyOnOff, launchpadKey):
 		onOff = self.resolveOnOff(note, keyOnOff, launchpadKey)
@@ -97,6 +105,27 @@ class Spatializer:
 
 		return channel
 
+	def playChordHandler(self, addr, tags, stuff, source):
+		self.playChord(self.savedChords[int(stuff[0])])
+
+	def saveChordHandler(self, addr, tags, stuff, source):
+		self.saveChord(int(stuff[0]))
+
+	def saveChord(self, ind):
+		self.savedChords[ind] = self.getChord()
+
+	def saveChordsToFile(self, filename):
+		pickle.dump(self.savedChords, open(filename, "w"))
+
+	def loadChordsFromFile(self, filename):
+		self.chordSetStack.push(self.savedChords)
+		self.savedChords = pickle.load(open(filename))
+		nonNullChords = [x for x in range(len(self.savedChords)) if len(self.savedChords[x]) != 0] 
+		chordIndexesString = ",".join(map(str, nonNullChords))
+		msg = OSC.OSCMessage()
+		msg.setAddress("/loadChords")
+		msg.append(chordIndexesString)
+		self.client.send(msg)
 
 	def setNoteSets(self, noteSets):
 		self.noteSets = noteSets
