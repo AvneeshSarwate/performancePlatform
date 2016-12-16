@@ -20,8 +20,8 @@ class Spatializer:
 		#talking all extra bass channels and all drum channels except 1, on top of 4 "inst 2" channels
 		self.openChannels = [1, 2, 5, 6, 7, 9, 10, 11, 13, 14, 15]  
 
-	def handle(self, channel, note, vel, keyOnOff):
-		onOff = self.resolveOnOff(note, keyOnOff)
+	def handle(self, channel, note, vel, keyOnOff, launchpadKey):
+		onOff = self.resolveOnOff(note, keyOnOff, launchpadKey)
 		if onOff is None:
 			return
 		newChannel = self.getChan(note, channel, onOff)
@@ -44,14 +44,23 @@ class Spatializer:
 		msg.append(onOff)
 		self.client.send(msg)
 
-	def resolveOnOff(self, note, keyOnOff):
+	def sendKeyColor(self, key, color):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/moduleLights")
+		msg.append(key)
+		msg.append(color)
+		self.client.send(msg)
+
+	def resolveOnOff(self, note, keyOnOff, launchpadKey):
 		if self.sustaining:
 			if keyOnOff == "on":
 				if note in self.onNotes:
 					self.onNotes.remove(note)
+					self.sendKeyColor(launchpadKey, -1)
 					return "off"
 				else:
 					self.onNotes.add(note)
+					self.sendKeyColor(launchpadKey, 21)
 					return "on"
 		else:
 			if not note in self.onNotes:

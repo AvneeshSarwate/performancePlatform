@@ -1,5 +1,5 @@
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights;
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
@@ -64,6 +64,8 @@ colorTR2 = 45;
 colorBL2 = 72;
 colorBR2 = 13;
 color2 = [colorTL2, colorTR2, colorBL2, colorBR2];
+
+padIndToColor = Dictionary.new();
 
 colorON = 13;
 
@@ -150,9 +152,18 @@ newKeysSetPadLights = {|ctrlChanInd|
 			var floorRoot = note - (((note%12) - (root%12)) % 12);
 			var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
 			["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
-			if(isInScale && isRoot.not, {launchpadOut.noteOn(0, ind, color1[ctrlChanInd])});
-			if(isRoot, {launchpadOut.noteOn(0, ind, color2[ctrlChanInd])});
-			if(isInScale.not, {launchpadOut.noteOff(0, ind, color2[ctrlChanInd])});
+			if(isInScale && isRoot.not, {
+				launchpadOut.noteOn(0, ind, color1[ctrlChanInd]);
+				padIndToColor[ind] = color1[ctrlChanInd];
+			});
+			if(isRoot, {
+				launchpadOut.noteOn(0, ind, color2[ctrlChanInd]);
+				padIndToColor[ind] = color2[ctrlChanInd];
+			});
+			if(isInScale.not, {
+				launchpadOut.noteOff(0, ind, color2[ctrlChanInd]);
+				padIndToColor[ind] = 0;
+			});
 		})
 	});
 };
@@ -194,6 +205,7 @@ setPadLights = {|padMIDIs, c1, c2, padInd|
 		var col;
 		if(((i+transposes[padInd]) % scales[padInd].size) == 0, {col = c2}, {col = c1});
 		launchpadOut.noteOn(0, padMIDIs[i], col);
+		padIndToColor[padMIDIs[i]] = col;
 	});
 };
 
@@ -222,7 +234,7 @@ a = {|vel, note, chan, port|
 				}
 			);
 			if(buttonForwarding && (controlChanInd == chan),
-				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "on")},
+				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "on", note)},
 				{midiOut.noteOn(chan, newNote, vel)}
 			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "on"])});
@@ -248,7 +260,7 @@ b = {|vel, note, chan, port|
 			);
 
 			if(buttonForwarding && (controlChanInd == chan),
-				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "off")},
+				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "off", note)},
 				{midiOut.noteOff(chan, newNote, vel)}
 			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "off"])});
@@ -952,6 +964,26 @@ metronomeFunc = {
 	1;
 };
 
+
+/*
+general idea - multiPadLooper can expose info about basic pad color state (eg, padToColorMap and
+padToNote/ChanMap),but module is responsible for managing its own color state. pad could push events
+(eg, keyboard scrolling, switching btw quad/extended keyboards, switching inst on extended)
+to let module recolor as necessary. Upon event occuring, keyboard will recolor first
+(thus updating padToColorMap), and then module will update lights afterwards.
+TODO - add event broadcasting for multiPadLooper color state change.
+*/
+// stuff [addr, padInd, color(-1 if revert to old), repeated]
+moduleLights = {|msg, time, addr, recvPort|
+	["MODULE LIGHTS", msg].postln;
+	(1,3..(msg.size-2)).do({|i|
+		if(msg[i+1] > 0,
+			{launchpadOut.noteOn(0, msg[i], msg[i+1])},
+			{launchpadOut.noteOn(0, msg[i], padIndToColor[msg[i]])}
+		);
+	})
+};
+OSCFunc(moduleLights, "/moduleLights");
 
 /*
 basic layout

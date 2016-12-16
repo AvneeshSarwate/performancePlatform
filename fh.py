@@ -53,7 +53,7 @@ class FH:
 	def addForwardingHandler(self, chanInd, handler):
 		self.buttonForwardingHandlers[chanInd].append(handler)
 
-	#stuff = [chan, note, vel, on/off]
+	#stuff = [chan, note, vel, on/off, launchpadKeyMidi]
 	def buttonForwardingHandler(self, addr, tags, stuff, source):
 		for handler in self.buttonForwardingHandlers[stuff[0]]:
 			handler.handle(*stuff)
