@@ -12,7 +12,7 @@ class Spatializer:
 		self.client = OSC.OSCClient()
 		self.client.connect( ('127.0.0.1', 57120) )
 		self.sustaining = True
-		self.onNotes = set()
+		self.onNotes = {} #maps note to midi key
 
 		#NOTE: using channelSeparation and spatialization on same instrument will cause undefined behavior
 		self.separateChannels = False  
@@ -55,17 +55,28 @@ class Spatializer:
 		if self.sustaining:
 			if keyOnOff == "on":
 				if note in self.onNotes:
-					self.onNotes.remove(note)
+					del self.onNotes[note]
 					self.sendKeyColor(launchpadKey, -1)
 					return "off"
 				else:
-					self.onNotes.add(note)
+					self.onNotes[note] = launchpadKey
 					self.sendKeyColor(launchpadKey, 21)
 					return "on"
 		else:
 			if not note in self.onNotes:
 				return keyOnOff
-		
+	
+	def getChord(self):
+		return copy.deepcopy(self.onNotes)
+
+	#chord is (midiNote -> launchpadKey) map
+	def playChord(self, chord, channel=1):
+		for note in copy.deepcopy(self.onNotes):
+			self.handle(channel, note, 64, "on", self.onNotes[note])
+		for note in chord:
+			self.handle(channel, note, 64, "on", chord[note])
+
+
 	def getChan(self, note, channel, onOff):
 		if self.separateChannels:
 			if onOff == "on":
