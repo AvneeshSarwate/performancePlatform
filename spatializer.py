@@ -118,7 +118,7 @@ class Spatializer:
 		pickle.dump(self.savedChords, open(filename, "w"))
 
 	def loadChordsFromFile(self, filename):
-		self.chordSetStack.push(self.savedChords)
+		self.chordSetStack.append(self.savedChords)
 		self.savedChords = pickle.load(open(filename))
 		nonNullChords = [x for x in range(len(self.savedChords)) if len(self.savedChords[x]) != 0] 
 		chordIndexesString = ",".join(map(str, nonNullChords))
