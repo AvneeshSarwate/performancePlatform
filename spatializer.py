@@ -93,7 +93,8 @@ class Spatializer:
 				return chan
 			else:
 				chan = self.noteToChanMap[note]
-				heapq.heappush(self.openChannels, chan)
+				if chan not in self.openChannels:
+					heapq.heappush(self.openChannels, chan)
 				del self.noteToChanMap[note]
 				return chan
 		if self.spatialize:
@@ -103,7 +104,15 @@ class Spatializer:
 					spatialChan = i+1
 			return channel + (spatialChan * 4)
 
-		return channel
+		if onOff == "on":
+			self.noteToChanMap[note] = channel
+			return channel
+		else:
+			chan = self.noteToChanMap[note]
+			if chan not in self.openChannels:
+				heapq.heappush(self.openChannels, chan)
+			del self.noteToChanMap[note]
+			return chan
 
 	def playChordHandler(self, addr, tags, stuff, source):
 		self.playChord(self.savedChords[int(stuff[0])])
