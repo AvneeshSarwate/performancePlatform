@@ -1,6 +1,7 @@
 import PydalChanel
 import OSC
 
+
 class Arpeggiator:
 
 	def __init__(self, midiChannel, pydalInstance, pattern):
