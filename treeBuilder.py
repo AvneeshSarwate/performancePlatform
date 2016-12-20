@@ -45,6 +45,10 @@ class TreeBuilder:
 		self.transFunc = transformationFunc
 		self.siblingInd = 0
 		self.siblingIndStack = [0]
+		self.traversalStack = []
+
+		self.nonTraversingSymbols = ["+"]
+
 		self.funcMap = {}
 		self.funcMap['\/'] = self.moveDown
 		self.funcMap['^'] = self.moveUp
@@ -53,6 +57,17 @@ class TreeBuilder:
 		self.funcMap['\/!'] = self.newDown
 		self.funcMap['<!'] = self.newLeft
 		self.funcMap['>!'] = self.newRight
+		self.funcMap["+"] = self.stackPush
+		self.funcMap["-"] = self.stackPop
+
+	def isNonTraversingSymbol(self, symbol):
+		return symbol in self.nonTraversingSymbols
+
+	def stackPush(self, symbol):
+		self.traversalStack.append(self.currentNode, self.siblingInd, copy.deepcopy(self.siblingIndStack))
+
+	def stackPop(self, symbol):
+		self.currentNode, self.siblingInd, self.siblingIndStack = stackVal
 
 	def moveDown(self, symbol):
 		ind = int(symbol.split(":")[1]) if ":" in symbol else 0
@@ -122,7 +137,7 @@ class TreeBuilder:
 		for a in actions:
 			actionType = a.split(":")[0].strip('@')
 			self.funcMap[actionType](a)
-			if "@" not in a:
+			if "@" not in a and not isNonTraversingSymbol(a):
 				traversedVariants.append(self.currentNode.value)
 		return traversedVariants
 		#todo: return the sequence of values corresponding to the sequence of nodes

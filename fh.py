@@ -374,6 +374,20 @@ def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beat
 	
 	return noteListToHitList(noteList)
 
+def vectorTranspose(hitList, root, scale, transVec):
+	hitList = copy.deepcopy(hitList)
+	noteList = hitListToNoteList(hitList)
+	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	beatList = notesByBeat(noteList)
+	for i in range(len(beatList)):
+		b = beatList[i]
+		for n in b:
+			transVal = transVec[i%len(transVec)]
+			n[1] = scaleNotes[scaleNotes.index(n[1]) + transVal]
+	noteList = flattenByBeat(beatList)
+	
+	return noteListToHitList(noteList)
+
 def randBeatMove(hitList):
 	beatList = notesByBeat(hitListToNoteList(hitList))
 	i = random.randint(0, len(beatList)-1)
@@ -423,6 +437,12 @@ def main():
 	for h in hitListToNoteList(hl):
 		print h
 
+def transformTranspositionVector(transVec, frac=0.25):
+	transformationCells = random.sample(range(len(transVec)), int(frac*len(transVec)))
+	newVec = copy.deepcopy(transVec)
+	for c in transformationCells:
+		newVec[c] += random.choice([-1, 1])
+	return newVec
 #TODO: print the strings of a few different buffers as test cases 
 
 hitString = '19 0.015517354926804,36,90,3,on-0.069313140281711,36,0,3,off-0.40111655031738,36,88,3,on-0.13826123650379,36,0,3,off-0.30373582635919,36,86,3,on-0.068988503365478,36,0,3,off-0.37323516937636,36,94,3,on-0.16584420671271,36,0,3,off-0.37435709074858,41,102,3,on-0.22119814726626,41,0,3,off-0.52463878235438,41,99,3,on-0.17918737393996,41,0,3,off-0.58129390059232,41,97,3,on-0.17996301558244,41,0,3,off-0.3181157736951,36,108,3,on-0.25061781998902,36,0,3,off-0.8401201725943,36,97,3,on-0.29228857541083,36,0,3,off-0.75886568925363,41,99,3,on-0.2358261358357,41,0,3,off-0.7734233730412,41,111,3,on-0.27621152805202,41,0,3,off-0.65788063380083,0,0,0,timeAfterLastHit 14'
