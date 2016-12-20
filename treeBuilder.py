@@ -1,5 +1,5 @@
 import treeLanguage as tl 
-
+import copy
 
 def main():
 
@@ -39,12 +39,14 @@ class TreeBuilder:
 	# Given a "flattened" token list, when trying to find what function matches
 	# what token, first split the token by ":" to get the "function key."
 	# This will allow you to use indexing for move[down, left, right]
-	def __init__(self, rootValue, transformationFunc):
+	def __init__(self, rootValue, transformationFunc, fullTreeDepth=0):
 		self.root = Node(rootValue)
 		self.currentNode = self.root
 		self.transFunc = transformationFunc
 		self.siblingInd = 0
-		self.siblingIndStack = [0]
+		# nodes do not know who their siblings are. this stack lets you properly 
+		# handle sibling state when traverse up and down the tree
+		self.siblingIndStack = [0] 
 		self.traversalStack = []
 
 		self.nonTraversingSymbols = ["+"]
@@ -60,14 +62,28 @@ class TreeBuilder:
 		self.funcMap["+"] = self.stackPush
 		self.funcMap["-"] = self.stackPop
 
+		if fullTreeDepth > 0:
+			self._buildTree(self.root, 0, fullTreeDepth, self.transFunc, lambda depth: 2)
+
+	def _buildTree(self, node, depth, maxDepth, transFunc, childNumFunc):
+		if depth == maxDepth:
+			return
+		else:
+			for i in range(childNumFunc(depth)):
+				newVal = transFunc(node.value)
+				newNode = Node(newVal, node)
+				node.children.append(newNode)
+				newNode.treePosition = node.treePosition + "-" + str(len(node.children)-1)
+				self._buildTree(newNode, depth+1, maxDepth, transFunc, childNumFunc)
+
 	def isNonTraversingSymbol(self, symbol):
 		return symbol in self.nonTraversingSymbols
 
 	def stackPush(self, symbol):
-		self.traversalStack.append(self.currentNode, self.siblingInd, copy.deepcopy(self.siblingIndStack))
+		self.traversalStack.append((self.currentNode, self.siblingInd, copy.deepcopy(self.siblingIndStack)))
 
 	def stackPop(self, symbol):
-		self.currentNode, self.siblingInd, self.siblingIndStack = stackVal
+		self.currentNode, self.siblingInd, self.siblingIndStack = self.traversalStack.pop()
 
 	def moveDown(self, symbol):
 		ind = int(symbol.split(":")[1]) if ":" in symbol else 0
@@ -137,7 +153,7 @@ class TreeBuilder:
 		for a in actions:
 			actionType = a.split(":")[0].strip('@')
 			self.funcMap[actionType](a)
-			if "@" not in a and not isNonTraversingSymbol(a):
+			if "@" not in a and not self.isNonTraversingSymbol(a):
 				traversedVariants.append(self.currentNode.value)
 		return traversedVariants
 		#todo: return the sequence of values corresponding to the sequence of nodes
