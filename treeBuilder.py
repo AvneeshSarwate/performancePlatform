@@ -39,15 +39,20 @@ class TreeBuilder:
 	# Given a "flattened" token list, when trying to find what function matches
 	# what token, first split the token by ":" to get the "function key."
 	# This will allow you to use indexing for move[down, left, right]
-	def __init__(self, rootValue, transformationFunc, fullTreeDepth=0):
+	def __init__(self, rootValue, transformationFunc, fullTreeDepth=0, childNumFunc=None):
 		self.root = Node(rootValue)
 		self.currentNode = self.root
 		self.transFunc = transformationFunc
 		self.siblingInd = 0
 		# nodes do not know who their siblings are. this stack lets you properly 
-		# handle sibling state when traverse up and down the tree
+		# handle sibling state when traversing up and down the tree
 		self.siblingIndStack = [0] 
 		self.traversalStack = []
+
+		#only used with executeStepwise()
+		self.traversalSteps = []
+		self.traversalInd = 0
+		self.traversalString = ""
 
 		self.nonTraversingSymbols = ["+"]
 
@@ -63,7 +68,9 @@ class TreeBuilder:
 		self.funcMap["-"] = self.stackPop
 
 		if fullTreeDepth > 0:
-			self._buildTree(self.root, 0, fullTreeDepth, self.transFunc, lambda depth: 2)
+			if childNumFunc is None:
+				childNumFunc = lambda depth: 2
+			self._buildTree(self.root, 0, fullTreeDepth, self.transFunc, childNumFunc)
 
 	def _buildTree(self, node, depth, maxDepth, transFunc, childNumFunc):
 		if depth == maxDepth:
@@ -160,6 +167,22 @@ class TreeBuilder:
 		#traversed by the commands. should there be a special character (eg the @ in '\/@'')
 		#that indicates whether you want the result of that command included in the 
 		#values list returned?
+
+	def executeStepwise(self, treeString):
+		parsedString = tl.parse(treeString)
+		if self.traversalString != parsedString:
+			self.traversalString = parsedString
+			self.traversalSteps = self.execute(treeString)
+			self.traversalInd = 1
+			return self.traversalSteps[0]
+		else:
+			if self.traversalInd == len(self.traversalSteps):
+				self.traversalSteps = self.execute(treeString)
+				self.traversalInd = 1
+				return self.traversalSteps[0]
+			else: 
+				self.traversalInd += 1
+				return self.traversalSteps[self.traversalInd-1]
 
 	def nodesByDepth(self, returnValues=True):
 		nodes = [[self.root]]
