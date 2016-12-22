@@ -66,6 +66,7 @@ class TreeBuilder:
 		self.funcMap['>!'] = self.newRight
 		self.funcMap["+"] = self.stackPush
 		self.funcMap["-"] = self.stackPop
+		self.funcMap["_"] = lambda symbol: None
 
 		if fullTreeDepth > 0:
 			if childNumFunc is None:
@@ -162,7 +163,7 @@ class TreeBuilder:
 			self.funcMap[actionType](a)
 			if "@" not in a and not self.isNonTraversingSymbol(a):
 				traversedVariants.append(self.currentNode.value)
-		return traversedVariants
+		return copy.deepcopy(traversedVariants)
 		#todo: return the sequence of values corresponding to the sequence of nodes
 		#traversed by the commands. should there be a special character (eg the @ in '\/@'')
 		#that indicates whether you want the result of that command included in the 
