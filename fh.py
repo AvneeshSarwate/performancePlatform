@@ -4,6 +4,7 @@ import random
 import copy
 import phrase
 import pickle
+import itertools
 
 #functionHanlder
 class FH:
@@ -374,6 +375,14 @@ def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beat
 	
 	return noteListToHitList(noteList)
 
+def scaleTranspose(hitList, root, scale, amount):
+	hitList = copy.deepcopy(hitList)
+	noteList = hitListToNoteList(hitList)
+	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	for n in noteList:
+			n[1] = scaleNotes[scaleNotes.index(n[1]) + amount]
+	return noteListToHitList(noteList)
+
 def vectorTranspose(hitList, root, scale, transVec):
 	hitList = copy.deepcopy(hitList)
 	noteList = hitListToNoteList(hitList)
@@ -381,6 +390,20 @@ def vectorTranspose(hitList, root, scale, transVec):
 	beatList = notesByBeat(noteList)
 	for i in range(len(beatList)):
 		b = beatList[i]
+		for n in b:
+			transVal = transVec[i%len(transVec)]
+			n[1] = scaleNotes[scaleNotes.index(n[1]) + transVal]
+	noteList = flattenByBeat(beatList)
+	
+	return noteListToHitList(noteList)
+
+def shiftTranspose(hitList, root, scale, transVec):
+	hitList = copy.deepcopy(hitList)
+	noteList = hitListToNoteList(hitList)
+	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	beatList = notesByBeat(noteList)
+	for i in range(len(beatList)):
+		b = itertools.chain(*beatList[i:])
 		for n in b:
 			transVal = transVec[i%len(transVec)]
 			n[1] = scaleNotes[scaleNotes.index(n[1]) + transVal]
