@@ -60,7 +60,8 @@ def parseExpression(tokenList, ind, depth, debug = False):
 			parenOrMultNode, newInd = parseParenBlock(tokenList, ind+1, depth+1, debug)
 			node.children.append(parenOrMultNode)
 		else:
-			raise StopIteration("can only start expressions with symbols or open paren: ") 
+			print tokenList
+			raise StopIteration("can only start expressions with symbols or open paren: " + tokenList[ind] + " " + str(ind)) 
 
 		ind = newInd
 
