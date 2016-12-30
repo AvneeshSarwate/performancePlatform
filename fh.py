@@ -268,7 +268,6 @@ def flattenByBeat(byBeat):
 	return flattened
 
 
-
 #converts to a list of (timeStamp, midiNote, velocity, channel, duration)
 #TODO: fix assumtion that we start with note on, and that
 #there is strict alternation of note on/off per midiNote
@@ -420,6 +419,12 @@ def randBeatMove(hitList):
 	else :
 		beatList.insert(k-1, beatList.pop(i))
 	return noteListToHitList(flattenByBeat(beatList))
+
+#todo - this only works if vector and numBeats is the same
+def vectorBeatPermute(hitList, vector):
+	beatList = notesByBeat(hitListToNoteList(hitList))
+	newBeatList = [beatList[i] for i in vector]
+	return noteListToHitList(flattenByBeat(newBeatList))
 
 
 def treeFunc(hitList, root, scale, p=0.3):
