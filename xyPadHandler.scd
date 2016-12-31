@@ -1,14 +1,31 @@
-(var abletonOut, sliderVals, paramsToString, stringToParams, savedBanks, ipadPort, pushCurrentSliderVals, sliderValsToString, stringToSliderVals, pythonPort, savedBanksToString, stringToSavedBanks, numSliders;
+(var abletonOut, sliderVals, paramsToString, stringToParams, savedBanks, ipadPort, pushCurrentSliderVals, sliderValsToString, stringToSliderVals, pythonPort, savedBanksToString, stringToSavedBanks, numSliders, followHandler, tempoClock;
 
 
 abletonOut = MIDIOut.newByName("IAC Driver", "Bus 4");
 ipadPort = NetAddr("192.168.0.25", 9000);
 pythonPort = NetAddr("localhost", 13371);
+tempoClock = TempoClock(1);
 
 sliderVals = List.fill(4, {List.fill(12, {0})});
 savedBanks = List.fill(4, { List.fill(4, {List.fill(12, {0})}) });
 
 numSliders = 48;
+
+//msg[1] is the new BEAT DURATION (not tempo)
+//msg[2] is whether the beat is being realigned
+masterClockTempoHandler = {|msg, time, addr, recvPort|
+	tempoClock.tempo = 1/msg[1].asFloat;
+	if(msg[2].asBoolean, {tempoClock.beats = tempoClock.beats.floor + 1});
+};
+OSCFunc(masterClockTempoHandler, "/masterClockTempo");
+//TODO: move variable instations to near the functions that use them
+OSCFunc({|msg, time, addr, recvPort|
+	//msg[1] is the new BEAT DURATION (not tempo)
+	tempoClock = TempoClock.new(1/msg[1], 0);
+	t = tempoClock;
+	tempoClock.schedAbs(1, metronomeFunc);
+	"MULTILOOP ONE SHOT".postln;
+}, "/masterClockBeat").oneShot;
 
 /*pushCurrentSliderVals = {
 	"FUNCTION pushCurrentSliderVals".postln;
@@ -38,6 +55,8 @@ numSliders = 48;
 		sliderVals[bank][copy] = val;
 		abletonOut.control(0, ccNum, val[0]);
 		abletonOut.control(0, ccNum+1, val[1]);
+        //forward (padXY(0-11), xVal, yVal) to python
+        pythonPort.sendMsg("/xyToPython", ((bank*4) + copy), val[0], val[1]);
 	}, "/space/" ++ i.asString ++ "/" ++ j.asString);
 
 	/*OSCFunc.newMatching({|msg, time, addr, recvPort|
@@ -66,6 +85,16 @@ numSliders = 48;
 		});
 	}, "/playBank/" ++ i.asString ++ "/1/" ++ j.asString);*/
 })});
+
+//msg is padXY, xVal, yVal, delay
+followHandler = {|msg, time, addr, recvPort|
+    tempoClock.sched(msg[4].asFloat, {
+        var ccNum = numSliders + (msg[1].asInt*2);
+        abletonOut.control(0, ccNum, msg[2]);
+		abletonOut.control(0, ccNum+1, msg[3]);
+        ipadPort.sendMsg("/space/" ++ (msg[1].asInt/4).floor ++ "/" ++ (msg[1].asInt/4)%4, msg[2]/127, msg[3]/127);
+    });
+};
 
 //msg[1] is string encoding of params
 /*OSCFunc({|msg, time, addr, recvPort|
