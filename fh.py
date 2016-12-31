@@ -353,7 +353,7 @@ def scaleNotesCalc(root, scale, n):
 def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beatIndexed=True, intraBeatRandom=False):
 	hitList = copy.deepcopy(hitList)
 	noteList = hitListToNoteList(hitList)
-	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
 	if beatIndexed:
 		beatList = notesByBeat(noteList)
 		s = 0 if (start is None or start in range(len(beatList))) else start
@@ -377,7 +377,7 @@ def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beat
 def scaleTranspose(hitList, root, scale, amount):
 	hitList = copy.deepcopy(hitList)
 	noteList = hitListToNoteList(hitList)
-	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
 	for n in noteList:
 			n[1] = scaleNotes[scaleNotes.index(n[1]) + amount]
 	return noteListToHitList(noteList)
@@ -385,7 +385,7 @@ def scaleTranspose(hitList, root, scale, amount):
 def vectorTranspose(hitList, root, scale, transVec):
 	hitList = copy.deepcopy(hitList)
 	noteList = hitListToNoteList(hitList)
-	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
 	beatList = notesByBeat(noteList)
 	for i in range(len(beatList)):
 		b = beatList[i]
@@ -399,7 +399,7 @@ def vectorTranspose(hitList, root, scale, transVec):
 def shiftTranspose(hitList, root, scale, transVec):
 	hitList = copy.deepcopy(hitList)
 	noteList = hitListToNoteList(hitList)
-	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
 	beatList = notesByBeat(noteList)
 	for i in range(len(beatList)):
 		b = itertools.chain(*beatList[i:])
