@@ -51,6 +51,10 @@ class FH:
 		self.savedStrings = []
 		self.buttonForwardingHandlers = [[] for i in range(n)]
 
+		# leaderPadInd -> [(padIndex, delayFromLeader)]
+		self.delays = {}
+		self.superColliderServer.addMsgHandler("/xyToPython", self.padFollowerHandler)
+
 	def addForwardingHandler(self, chanInd, handler):
 		self.buttonForwardingHandlers[chanInd].append(handler)
 
@@ -243,6 +247,20 @@ class FH:
 		if stuff[1] == 127:
 			self.topRowFunctions[stuff[0]]()
 
+	# followerPadDelay is [(padIndex, delayFromLeader)]
+	def setFollowers(self, leaderPad, *followerPadDelay):
+	    self.delays[leaderPad] = followerPadDelay
+
+	#stuff - [padInd, xVal, yVal]
+	def padFollowerHandler(self, addr, tags, stuff, source):    
+	    for padDelay in self.delays[stuff[0]]:
+	        msg = OSC.OSCMessage()
+	        msg.setAddress("/xyFollowing")
+	        msg.append(padDelay[0])
+	        msg.append(stuff[1])
+	        msg.append(stuff[2])
+	        msg.append(padDelay[1])
+	        self.superColliderClient.send(msg)
 
 def oneHitShift(hitList):
 	i1 = random.randint(0, len(hitList)-1)

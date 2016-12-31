@@ -1,8 +1,8 @@
-(var abletonOut, sliderVals, paramsToString, stringToParams, savedBanks, ipadPort, pushCurrentSliderVals, sliderValsToString, stringToSliderVals, pythonPort, savedBanksToString, stringToSavedBanks, numSliders, followHandler, tempoClock;
+(var abletonOut, sliderVals, paramsToString, stringToParams, savedBanks, ipadPort, pushCurrentSliderVals, sliderValsToString, stringToSliderVals, pythonPort, savedBanksToString, stringToSavedBanks, numSliders, followHandler, tempoClock, masterClockTempoHandler;
 
 
 abletonOut = MIDIOut.newByName("IAC Driver", "Bus 4");
-ipadPort = NetAddr("192.168.0.25", 9000);
+ipadPort = NetAddr("192.168.0.7", 9000);
 pythonPort = NetAddr("localhost", 13371);
 tempoClock = TempoClock(1);
 
@@ -23,8 +23,7 @@ OSCFunc({|msg, time, addr, recvPort|
 	//msg[1] is the new BEAT DURATION (not tempo)
 	tempoClock = TempoClock.new(1/msg[1], 0);
 	t = tempoClock;
-	tempoClock.schedAbs(1, metronomeFunc);
-	"MULTILOOP ONE SHOT".postln;
+	"xyPadHandler ONE SHOT".postln;
 }, "/masterClockBeat").oneShot;
 
 /*pushCurrentSliderVals = {
@@ -50,13 +49,13 @@ OSCFunc({|msg, time, addr, recvPort|
 		var bank = msg[0].asString.split($/)[2].asInt;
 		var copy = msg[0].asString.split($/)[3].asInt;
 		var val = [(msg[1].asFloat*127).round, (msg[2].asFloat*127).round];
-		var ccNum = numSliders + (((bank*4) + copy)*2);
-		val.postln;
+		var ccNum = numSliders + (((bank*3) + copy)*2);
+        [((bank*3) + copy),val].postln;
 		sliderVals[bank][copy] = val;
 		abletonOut.control(0, ccNum, val[0]);
 		abletonOut.control(0, ccNum+1, val[1]);
         //forward (padXY(0-11), xVal, yVal) to python
-        pythonPort.sendMsg("/xyToPython", ((bank*4) + copy), val[0], val[1]);
+        pythonPort.sendMsg("/xyToPython", ((bank*3) + copy), val[0], val[1]);
 	}, "/space/" ++ i.asString ++ "/" ++ j.asString);
 
 	/*OSCFunc.newMatching({|msg, time, addr, recvPort|
@@ -88,13 +87,16 @@ OSCFunc({|msg, time, addr, recvPort|
 
 //msg is padXY, xVal, yVal, delay
 followHandler = {|msg, time, addr, recvPort|
+    msg.postln;
     tempoClock.sched(msg[4].asFloat, {
         var ccNum = numSliders + (msg[1].asInt*2);
         abletonOut.control(0, ccNum, msg[2]);
 		abletonOut.control(0, ccNum+1, msg[3]);
-        ipadPort.sendMsg("/space/" ++ (msg[1].asInt/4).floor ++ "/" ++ (msg[1].asInt/4)%4, msg[2]/127, msg[3]/127);
+        ["SENT", "/space/" ++ (msg[1].asInt/3).floor ++ "/" ++ ((msg[1].asInt)%3), msg[2]/127, msg[3]/127].postln;
+        ipadPort.sendMsg("/space/" ++ (msg[1].asInt/3).floor ++ "/" ++ (msg[1].asInt%3), msg[2]/127, msg[3]/127);
     });
 };
+OSCFunc(followHandler, "/xyFollowing");
 
 //msg[1] is string encoding of params
 /*OSCFunc({|msg, time, addr, recvPort|
@@ -135,7 +137,7 @@ stringToSliderVals = {|bankStr| bankStr.split($.).collect({|faderStr| faderStr.s
 // 0 for X, 1 for Y in third arg
 var twiddle = {|inst, padNum, xy|
 	var midiOut;
-	var ccNum = 48 + (((inst*4) + padNum)*2);
+	var ccNum = 48 + (((inst*3) + padNum)*2);
 
 
 	midiOut = MIDIOut.newByName("IAC Driver", "Bus 4");
