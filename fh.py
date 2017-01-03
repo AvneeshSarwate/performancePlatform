@@ -105,7 +105,8 @@ class FH:
 
 	@staticmethod
 	def hitListToString(hitList, button, startBeat, playing=0):
-		return str(button) + " " + "-".join(map(lambda h: ",".join(map(str, h)), hitList)) + " " + str(startBeat) + " " + str(playing)
+		hitToStringList = lambda h: ['%f' % h[0]] + map(str, h[1:])
+		return str(button) + " " + "-".join(map(lambda h: ",".join(hitToStringList(h)), hitList)) + " " + str(startBeat) + " " + str(playing)
 
 
 	def sceneToString(self, loops, loopInfo):
@@ -442,7 +443,7 @@ def randBeatMove(hitList):
 #todo - this only works if vector and numBeats is the same
 def vectorBeatPermute(hitList, vector):
 	beatList = notesByBeat(hitListToNoteList(hitList))
-	newBeatList = [beatList[i] for i in vector]
+	newBeatList = [beatList[i%len(beatList)] for i in vector]
 	return noteListToHitList(flattenByBeat(newBeatList))
 
 
