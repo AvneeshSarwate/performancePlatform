@@ -252,15 +252,16 @@ class FH:
 	    self.delays[leaderPad] = followerPadDelay
 
 	#stuff - [padInd, xVal, yVal]
-	def padFollowerHandler(self, addr, tags, stuff, source):    
-	    for padDelay in self.delays[stuff[0]]:
-	        msg = OSC.OSCMessage()
-	        msg.setAddress("/xyFollowing")
-	        msg.append(padDelay[0])
-	        msg.append(stuff[1])
-	        msg.append(stuff[2])
-	        msg.append(padDelay[1])
-	        self.superColliderClient.send(msg)
+	def padFollowerHandler(self, addr, tags, stuff, source):
+		if stuff[0] in self.delays:    
+		    for padDelay in self.delays[stuff[0]]:
+		        msg = OSC.OSCMessage()
+		        msg.setAddress("/xyFollowing")
+		        msg.append(padDelay[0])
+		        msg.append(stuff[1])
+		        msg.append(stuff[2])
+		        msg.append(padDelay[1])
+		        self.superColliderClient.send(msg)
 
 def oneHitShift(hitList):
 	i1 = random.randint(0, len(hitList)-1)
