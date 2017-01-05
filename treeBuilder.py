@@ -28,9 +28,9 @@ def toDotFile(fileName, tree):
 class Counter:
 
 	def __init__(self):
-		self.count = 0
+		self.count = -1
 
-	def __call__(self, arg):
+	def __call__(self):
 		self.count += 1
 		return self.count 
 
@@ -40,7 +40,8 @@ class TreeBuilder:
 	# what token, first split the token by ":" to get the "function key."
 	# This will allow you to use indexing for move[down, left, right]
 	def __init__(self, rootValue, transformationFunc, fullTreeDepth=0, childNumFunc=None):
-		self.root = Node(rootValue)
+		self.counter = Counter()
+		self.root = Node(self.counter, rootValue, None)
 		self.currentNode = self.root
 		self.transFunc = transformationFunc
 		self.siblingInd = 0
@@ -85,7 +86,7 @@ class TreeBuilder:
 		else:
 			for i in range(childNumFunc(depth)):
 				newVal = transFunc(node.value)
-				newNode = Node(newVal, node)
+				newNode = Node(self.counter, newVal, node)
 				node.children.append(newNode)
 				newNode.treePosition = node.treePosition + "-" + str(len(node.children)-1)
 				self._buildTree(newNode, depth+1, maxDepth, transFunc, childNumFunc)
@@ -126,7 +127,7 @@ class TreeBuilder:
 
 	def newDown(self, symbol):
 		newVal = self.transFunc(self.currentNode.value)
-		newNode = Node(newVal, self.currentNode)
+		newNode = Node(self.counter, newVal, self.currentNode)
 		self.currentNode.children.append(newNode)
 		newNode.treePosition = self.currentNode.treePosition + "-" + str(len(self.currentNode.children)-1)
 		self.siblingIndStack.append(self.siblingInd)
@@ -136,7 +137,7 @@ class TreeBuilder:
 
 	def newRight(self, symbol):
 		newVal = self.transFunc(self.currentNode.value)
-		newNode = Node(newVal, self.currentNode.parent)
+		newNode = Node(self.counter, newVal, self.currentNode.parent)
 		self.currentNode.parent.children.insert(self.siblingInd+1, newNode)
 		newNode.treePosition = self.currentNode.parent.treePosition + "-" + str(self.siblingInd+1)
 		#TODO: modify sibling ind of all subsequent silings
@@ -150,7 +151,7 @@ class TreeBuilder:
 
 	def newLeft(self, symbol):
 		newVal = self.transFunc(self.currentNode.value)
-		newNode = Node(newVal, self.currentNode.parent)
+		newNode = Node(self.counter, newVal, self.currentNode.parent)
 		self.currentNode.parent.children.insert(self.siblingInd - 1, newNode)
 		newNode.treePosition = self.currentNode.parent.treePosition + "-" + str(max(self.siblingInd - 1, 0))
 		#TODO: modify sibling ind of all subsequent silings
@@ -202,13 +203,23 @@ class TreeBuilder:
 
 		return vals if returnValues else nodes
 
+	def toDotFile(fileName, tree):
+		el = []
+		def addEdges(node, edgeList):
+			for c in node.children:
+				edgeList.append(str(node.ind) + "->" + str(c.ind))
+				addEdges(c, edgeList)
+		addEdges(tree, el)
+		return "digraph " + fileName + " { \n" + "\n".join(el) + "\n}"
+
 class Node:
 
-	def __init__(self, value = None, parent = None):
+	def __init__(self, counter, value = None, parent = None):
 		self.children = []
 		self.value = value
 		self.parent = parent
 		self.treePosition = "0"
+		self.ind = counter()
 
 
 
