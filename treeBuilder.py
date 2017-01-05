@@ -42,12 +42,13 @@ class TreeBuilder:
 	def __init__(self, rootValue, transformationFunc, fullTreeDepth=0, childNumFunc=None):
 		self.counter = Counter()
 		self.root = Node(self.counter, rootValue, None)
+		self.root.depth = 0
 		self.currentNode = self.root
 		self.transFunc = transformationFunc
 		self.siblingInd = 0
 		# nodes do not know who their siblings are. this stack lets you properly 
 		# handle sibling state when traversing up and down the tree
-		self.siblingIndStack = [0] 
+		self.siblingIndStack = [] 
 		self.traversalStack = []
 
 		#only used with executeStepwise()
@@ -220,6 +221,7 @@ class Node:
 		self.parent = parent
 		self.treePosition = "0"
 		self.ind = counter()
+		self.depth = parent.depth + 1 if parent is not None else None
 
 
 
