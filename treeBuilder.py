@@ -79,7 +79,7 @@ class TreeBuilder:
 		return (self.currentNode, self.siblingInd, copy.deepcopy(self.siblingIndStack))
 
 	def setTraversalState(self, node, siblingInd, siblingIndStack):
-		self.currentNode, self.siblingInd, self.siblingIndStack = (node, siblingInd, siblingIndStack)
+		self.currentNode, self.siblingInd, self.siblingIndStack = (node, siblingInd, copy.deepcopy(siblingIndStack))
 
 	def _buildTree(self, node, depth, maxDepth, transFunc, childNumFunc):
 		if depth == maxDepth:
