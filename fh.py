@@ -45,7 +45,11 @@ class FH:
 		self.superColliderServer.addMsgHandler("/faderSettingSave", self.saveFaderSetting)
 		self.superColliderServer.addMsgHandler("/getCurrentFaderVals", self.recieveCurrentFaderVals)
 		self.superColliderServer.addMsgHandler("/buttonForwarding", self.buttonForwardingHandler)
-		self.superColliderServer.addMsgHandler("/miniLaunchpadTopRow", self.topRowHandler)		
+		self.superColliderServer.addMsgHandler("/miniLaunchpadTopRow", self.topRowHandler)
+		self.superColliderServer.addMsgHandler("/pedalButton", self.pedalButtonHandler)		
+
+
+		self.pedalButtonFunc = lambda: 0
 
 		self.channels = {} #key - int, val - (transFunc, rootMel)
 		self.savedStrings = []
@@ -62,7 +66,9 @@ class FH:
 	def buttonForwardingHandler(self, addr, tags, stuff, source):
 		for handler in self.buttonForwardingHandlers[stuff[0]]:
 			handler.handle(*stuff)
-		
+	
+	def pedalButtonHandler(self, addr, tags, stuff, source):
+		return self.pedalButtonFunc()
 
 	#stuff = [chanInd, bankNum, root, scale, loopString] 
 	def handleAlgRequest(self, addr, tags, stuff, source):
