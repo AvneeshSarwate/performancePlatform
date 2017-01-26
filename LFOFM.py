@@ -1,17 +1,9 @@
-# sin cos sqr tri saw
-# sn  cs  sq  tr  sw
-# s   c   q   t   w 
+# SIMPLE EXAMPLES
+# t = Tri()
+# sw = Saw(5)
+# s1 = t + (Tri(3)*Sin(freq=sw)) / 3.0
+# s2 = (Tri(3)*Saw(5))
 
-
-# s( q(b) + 4 ) * b 
-
-
-
-
-# s = Sin(freq, phase, amp, shift)
-# s2 = s*3 + 60
-# tr1 = Tri(1, s2, 10, 30)
-#sin(theta*t+phi)*x + y
 
 class Wave(object):
 
@@ -28,10 +20,8 @@ class Wave(object):
 
 	def __mul__(self, other):
 		if type(other) is int or type(other) is float or issubclass(type(other),  Wave):
-			print str(other), self.amp, self.shift
-			self.amp = 0 if other == 0 or self.amp == 0else self.amp * other
+			self.amp = 0 if other == 0 or self.amp == 0 else self.amp * other
 			self.shift = 0 if other == 0 or self.shift == 0 else self.shift * other
-			print str(other), self.amp, self.shift
 			return self
 		else:
 			raise NotImplementedError
@@ -104,3 +94,10 @@ class Saw(Wave):
 	def __init__(self, freq=1, phase=1, amp=1, shift=0):
 		super(Saw, self).__init__(freq, phase, amp, shift)
 		self.waveName = "sawwav"
+
+# renaming ideas
+# sin cos sqr tri saw
+# sn  cs  sq  tr  sw
+# s   c   q   t   w 
+# freq, phase, amp, shift -> freq, amp, shift, phase : anticipated most common use order
+# freq, phase, amp, shift -> f, p, a, s : to make code more readable?
