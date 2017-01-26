@@ -7,7 +7,7 @@
 
 class Wave(object):
 
-	def __init__(self, freq=1, phase=1, amp=1, shift=0):
+	def __init__(self, freq=1, phase=0, amp=1, shift=0):
 		self.freq = freq
 		self.phase = phase
 		self.amp = amp
@@ -16,7 +16,7 @@ class Wave(object):
 
 	def __str__(self):
 		valArgs = [self.freq, self.phase, self.amp, self.shift]
-		return self.waveName + ".(" + ",".join(map(str, valArgs)) + ")"
+		return self.waveName + ".(" + ",".join(map(str, valArgs) + ["time"]) + ")"
 
 	def __mul__(self, other):
 		if type(other) is int or type(other) is float or issubclass(type(other),  Wave):
@@ -67,31 +67,31 @@ class Wave(object):
 
 
 class Sin(Wave):
-	def __init__(self, freq=1, phase=1, amp=1, shift=0):
+	def __init__(self, freq=1, phase=0, amp=1, shift=0):
 		super(Sin, self).__init__(freq, phase, amp, shift)
 		self.waveName = "sinwav"
 
 
 class Cos(Wave):
-	def __init__(self, freq=1, phase=1, amp=1, shift=0):
+	def __init__(self, freq=1, phase=0, amp=1, shift=0):
 		super(Cos, self).__init__(freq, phase, amp, shift)
 		self.waveName = "coswav"
 
 
 class Tri(Wave):
-	def __init__(self, freq=1, phase=1, amp=1, shift=0):
+	def __init__(self, freq=1, phase=0, amp=1, shift=0):
 		super(Tri, self).__init__(freq, phase, amp, shift)
 		self.waveName = "triwav"
 
 
 class Sqr(Wave):
-	def __init__(self, freq=1, phase=1, amp=1, shift=0):
+	def __init__(self, freq=1, phase=0, amp=1, shift=0):
 		super(Sqr, self).__init__(freq, phase, amp, shift)
 		self.waveName = "sqrwav"
 
 
 class Saw(Wave):
-	def __init__(self, freq=1, phase=1, amp=1, shift=0):
+	def __init__(self, freq=1, phase=0, amp=1, shift=0):
 		super(Saw, self).__init__(freq, phase, amp, shift)
 		self.waveName = "sawwav"
 
