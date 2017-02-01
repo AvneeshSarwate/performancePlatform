@@ -9,7 +9,7 @@ var sqrwav = {|fr,ph,am,sh, time| (sqr.((fr*time)+ph)*am)+sh};
 var saw = {|time| var tm = time%2; tm-1};
 var sawwav = {|fr,ph,am,sh, time| (saw.((fr*time)+ph)*am)+sh};
 
-var tri = {|time| var tm = time%2; case {tm<0.5} {1-(2*tm)} {tm<1.5} {2-(2*tm)} {tm>=1.5} {2*tm-4}};
+var tri = {|time| var tm = time%2; case {tm<0.5} {2*tm} {tm<1.5} {2-(2*tm)} {tm>=1.5} {2*tm-4}};
 var triwav = {|fr,ph,am,sh, time| (tri.((fr*time)+ph)*am)+sh};
 
 var calcStr = "triwav.(1,0,1,triwav.(3,0,sinwav.(sawwav.(5,0,1,0,time),0,0.333333333333,0.0,time),0.0,time),time)";
@@ -33,7 +33,7 @@ OSCFunc({|msg, time, addr, recvPort|
 
 //cc ind -> waveTask
 channelMap = Dictionary.new;
-
+~chanDebugMap = Dictionary.new;
 //msg[1] is cc ind, msg[2] is calcString
 startWave = {|msg, time, addr, recvPort|
     var waveTask = Task({
@@ -56,6 +56,7 @@ startWave = {|msg, time, addr, recvPort|
         channelMap[msg[1]].free;
     });
     channelMap[msg[1]] = waveTask;
+    ~chanDebugMap[msg[1]] = [createCalcFunc.(msg[2].asString), msg[2].asString];
 };
 startWaveHandler = OSCFunc(startWave, "/startWave");
 
@@ -72,7 +73,9 @@ stopWaveHandler = OSCFunc(stopWave, "/stopWave");
 
 )
 
-(0..99).collect({|i| ~debugf.(i*0.02)}).plot;
+(0..500).collect({|i| ~debugf.(i*0.02)}).plot;
+(3500..5000).collect({|i| ~debugf.(i*0.02)}).plot;
+[1,2,3].maxItem
 (
 var midiOut, channelMap, startWaveHandler, stopWaveHandler, startWave, stopWave, masterTempoClock;
 var sinwav = {|fr,ph,am,sh, time| (sin((pi*fr*time)+ph)*am)+sh};
@@ -84,17 +87,22 @@ var sqrwav = {|fr,ph,am,sh, time| (sqr.((fr*time)+ph)*am)+sh};
 var saw = {|time| var tm = time%2; tm-1};
 var sawwav = {|fr,ph,am,sh, time| (saw.((fr*time)+ph)*am)+sh};
 
-var tri = {|time| var tm = time%2; case {tm<0.5} {1-(2*tm)} {tm<1.5} {2-(2*tm)} {tm>=1.5} {2*tm-4}};
+var tri = {|time| var tm = time%2; case {tm<0.5} {2*tm} {tm<1.5} {2-(2*tm)} {tm>=1.5} {2*tm-4}};
 var triwav = {|fr,ph,am,sh, time| (tri.((fr*time)+ph)*am)+sh};
 
-var calcStr = "triwav.(1,0,1,triwav.(3,0,sinwav.(sawwav.(5,0,1,0,time),0,0.333333333333,0.0,time),0.0,time),time)";
+var calcStr = "sawwav.(0.3,0,0.1,sinwav.(1.5,0,0.0333333333333,0.0,time),time)";
+
 var createCalcFunc = {|calcString|
     var prepFunc = ("{|sinwav, coswav, sqrwav, sawwav, triwav| {|time|" + calcString + "}};").interpret;
     prepFunc.(sinwav, coswav, sqrwav, sawwav, triwav);
 };
 
 var func = createCalcFunc.(calcStr);
-(0..99).collect({|i| func.(i*0.02)}).plot;
+var early = (0..500).collect({|i| func.(i*0.02)});
+var late = (3000..3500).collect({|i| func.(i*0.02)});
+[early == late, early.mean, late.mean, early.maxItem, late.maxItem, early.minItem, late.minItem].postln;
+early.collect({|i| func.(i*0.02)}).plot;
+late.collect({|i| func.(i*0.02)}).plot;
 func.(0.5);
 
 )
