@@ -1,8 +1,33 @@
+import OSC
 # SIMPLE EXAMPLES
 # t = Tri()
 # sw = Saw(5)
 # s1 = t + (Tri(3)*Sin(freq=sw)) / 3.0
 # s2 = (Tri(3)*Saw(5))
+# waveplayer.startWave(1, s1)
+
+#Foxdot - python/SC language 
+
+class WavePlayer:
+
+	def __init__(self):
+		self.superColliderClient = OSC.OSCClient()
+		self.superColliderClient.connect( ('127.0.0.1', 57120) ) 
+
+
+	def startWave(self, ccNum, wave):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/startWave")
+		msg.append(ccNum)
+		msg.append(str(wave))
+		self.superColliderClient.send(msg)
+
+	def stopWave(self, ccNum):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/stopWave")
+		msg.append(ccNum)
+		self.superColliderClient.send(msg)
+
 
 
 class Wave(object):
