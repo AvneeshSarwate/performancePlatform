@@ -31,6 +31,7 @@ noteToInd = {|x|
 	retVal
 }; //convert note to pad index
 
+
 indToNote = {|x|
 	var note = -1;
 	var col = x % 10;
@@ -40,6 +41,7 @@ indToNote = {|x|
 	note;
 };
 isPadNote = {|x| noteToInd.(x) != -1};
+bankSet = (0..100).select({|i| isPadNote.(i)});
 
 //OPTIONS
 preRecordLength = 0;
@@ -103,8 +105,8 @@ blBanks = [10, 20, 30, 40];
 brBanks = [19, 29, 39, 49];
 banks = [tlBanks, trBanks, blBanks, brBanks];
 k = banks;
-bankSet = Set.new();
-bankSet.addAll(banks.flatten(1));
+// bankSet = Set.new();
+// bankSet.addAll(banks.flatten(1));
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
 bankMap = Dictionary.new();
 (0..3).do({|i| (0..3).do({|j|
@@ -244,8 +246,8 @@ setPadLights.(padBR, colorBR1, colorBR2, 3);
 
 keyBoard = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
-launchPad = MIDIClient.sources.select({|elem| (elem.name == "Launchpad S")
-	&& (elem.device == "Launchpad S")})[0];
+launchPad = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
+	&& (elem.device == "Launchpad Mini")})[0];
 [launchPad, MIDIClient.sources[2]].postln;
 a = {|vel, note, chan, port|
 	if(chan == 0, {
@@ -551,7 +553,7 @@ OSCFunc(masterClockBeatHandler, "/masterClockBeat");
 // tapTempoSetButton = 5;
 // tapTempoToggle = 6;
 // recordButton = 7;
-recordColor = 5;
+recordColor = red_LIGHT;
 launchpadOut.control(0, recordButton, recordColor);
 launchpadOut.noteOff(0, quantizeButton, quantizeColor);
 lastTap = TempoClock.beats;
@@ -564,32 +566,32 @@ recordingState = 0;
 bankToSaveTo = 0;
 bankToRecording = Dictionary.new();
 controlHandler = {|vel, note, chan, port|
-	if(interruptLoopButtons.includes(note), {
+	/*if(interruptLoopButtons.includes(note), {
 		var chan = note - interruptLoopButtons[0];
 		if((vel == 127), {midiOut.allNotesOff(chan)});
 		interruptLooping[chan] = vel == 127;
-	});
+	});*/
 	if((note == tapTempoSetButton) && (vel == 127), {
 		var now = TempoClock.beats;
 		if((now - lastTap) < 2, {masterClockOSCport.sendMsg("/uploadTempo", now - lastTap, alignTempo)});
 		lastTap = now;
 		//TODO - send tap info to master clock
 	});
-	if((note == tempoalignTempoButton) && (vel == 127), {
+	/*if((note == tempoalignTempoButton) && (vel == 127), {
 		alignTempo = alignTempo.not;
 		if(alignTempo,
 			{launchpadOut.noteOn(0, tempoalignTempoButton, 81)},
 			{launchpadOut.noteOff(0, tempoalignTempoButton, 0)}
 		);
-	});
-	if((note == buttonForwardingButton) && (vel == 127), {
+	});*/
+	/*if((note == buttonForwardingButton) && (vel == 127), {
 		buttonForwarding = buttonForwarding.not;
 		if(buttonForwarding,
 			{launchpadOut.noteOn(0, buttonForwardingButton, 81)},
 			{launchpadOut.noteOff(0, buttonForwardingButton, 0)}
 		);
 
-	});
+	});*/
 	if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
 	if((note == recordButton) && (vel == 127), {
 		//TODO = case statement
@@ -706,7 +708,7 @@ controlHandler = {|vel, note, chan, port|
 		if(playingNewKeys, {newKeysSetPadLights.(controlChanInd)});
 		//todo - turn off note if swapping between different channels on newKeys or to/from newKeys to old
 	});
-	if((note == newKeyButton) && (vel == 127), {
+	/*if((note == newKeyButton) && (vel == 127), {
 		//Todo newKeys - activate lighting wrt to the chan specified by controlChanButton
 		if(playingNewKeys,
 			{
@@ -721,15 +723,15 @@ controlHandler = {|vel, note, chan, port|
 				newKeysSetPadLights.(controlChanInd);
 			}
 		);
-	});
-	if((note == quantizeButton) && (vel == 127), {
+	});*/
+	/*if((note == quantizeButton) && (vel == 127), {
 		quantized = quantized.not;
 		if(quantized,
 			{launchpadOut.noteOn(0, quantizeButton, quantizeColor)},
 			{launchpadOut.noteOff(0, quantizeButton, quantizeColor)}
 		);
-	});
-	if(arrowButtons.includes(note) && (vel == 127), {
+	});*/
+	/*if(arrowButtons.includes(note) && (vel == 127), {
 		//todo: note off all for that instrument
 		//Todo newKeys - lighting shift
 		if(playingNewKeys,
@@ -750,18 +752,18 @@ controlHandler = {|vel, note, chan, port|
 				setPadLights.(padsByChannel[ind], color1[ind], color2[ind], ind);
 			}
 		);
-	});
+	});*/
 	//MULTIPLE ALG BUTTONS CAN BE HELD DOWN
 	//THEIR ORDER WILL SPECIFY A "pipeline" of transformations
 	//if alg button, add/remove from list depending on button up/down
-	if(algButtons.includes(note), {
+	/*if(algButtons.includes(note), {
 		if(vel == 127,
 			{algOrderList.add(note-95)},
 			{algOrderList.remove(algOrderList.indexOf(note-95))}
 		);
-	});
+	});*/
 };
-MIDIFunc.cc(controlHandler, nil, nil, launchPad.uid);
+MIDIFunc.noteOn(controlHandler, nil, nil, launchPad.uid);
 
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
 setBankMelody = {|button, hitString, startBeat, playing|
@@ -953,8 +955,8 @@ resetRecordingState = {
 
 metronomeFlashTask = Task({
 	if(recordingMetronome || (tempLoopTask != nil),
-		{launchpadOut.control(0, recordButton, (recordingState==2).if(17,recordColor))});
-	playingBanks.do({|bNote| launchpadOut.control(0, bNote, color1[bankMap[bNote][1]])});
+		{launchpadOut.control(0, recordButton, (recordingState==2).if(green_LIGHT,recordColor))});
+	playingBanks.do({|bNote| launchpadOut.control(0, bNote, amber_LIGHT)});
 	(tempoClock.beatDur/2).wait;
 	if(recordingMetronome || (tempLoopTask != nil), {launchpadOut.control(0, recordButton, 0)});
 	playingBanks.do({|bNote| launchpadOut.control(0, bNote, 0)});
