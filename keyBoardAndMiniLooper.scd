@@ -3,7 +3,7 @@ var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colo
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
-launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port");
+launchpadOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 launchpadOut.latency = 0;
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 metronomeOut = MIDIOut.newByName("IAC Driver", "Bus 3");
@@ -121,7 +121,7 @@ k = banks;
 //     bankMap.put(banks[i][j], [j, i, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
 // })});
 z = bankMap;
-bankSet.do({|i| launchpadOut.control(0, i, 0)});
+bankSet.do({|i| launchpadOut.noteOn(0, i, 0)});
 playingBanks = Set.new();
 algBanks = List.new();
 
@@ -178,32 +178,32 @@ newKeysPadIndToNote = {|padInd, ctrlChanInd|
 	note;
 };
 
-newKeysSetPadLights = {|ctrlChanInd|
-	var root = roots[ctrlChanInd];
-	var scale = scales[ctrlChanInd];
-	(1..8).do({|i|
-		(1..8).do({|j|
-			var ind = i*10 + j;
-			var note = newKeysPadIndToNote.(ind, ctrlChanInd);
-			var isRoot = (note%12) == (root%12);
-			var floorRoot = note - (((note%12) - (root%12)) % 12);
-			var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
-			["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
-			if(isInScale && isRoot.not, {
-				launchpadOut.noteOn(0, ind, color1[ctrlChanInd]);
-				padIndToColor[ind] = color1[ctrlChanInd];
-			});
-			if(isRoot, {
-				launchpadOut.noteOn(0, ind, color2[ctrlChanInd]);
-				padIndToColor[ind] = color2[ctrlChanInd];
-			});
-			if(isInScale.not, {
-				launchpadOut.noteOff(0, ind, color2[ctrlChanInd]);
-				padIndToColor[ind] = 0;
-			});
-		})
-	});
-};
+// newKeysSetPadLights = {|ctrlChanInd|
+//     var root = roots[ctrlChanInd];
+//     var scale = scales[ctrlChanInd];
+//     (1..8).do({|i|
+//         (1..8).do({|j|
+//             var ind = i*10 + j;
+//             var note = newKeysPadIndToNote.(ind, ctrlChanInd);
+//             var isRoot = (note%12) == (root%12);
+//             var floorRoot = note - (((note%12) - (root%12)) % 12);
+//             var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
+//             ["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
+//             if(isInScale && isRoot.not, {
+//                 launchpadOut.noteOn(0, ind, color1[ctrlChanInd]);
+//                 padIndToColor[ind] = color1[ctrlChanInd];
+//             });
+//             if(isRoot, {
+//                 launchpadOut.noteOn(0, ind, color2[ctrlChanInd]);
+//                 padIndToColor[ind] = color2[ctrlChanInd];
+//             });
+//             if(isInScale.not, {
+//                 launchpadOut.noteOff(0, ind, color2[ctrlChanInd]);
+//                 padIndToColor[ind] = 0;
+//             });
+//         })
+//     });
+// };
 //---------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
 
@@ -221,14 +221,14 @@ left = 94;
 
 interruptLoopButtons = [1, 2, 3, 4];
 interruptLooping = [false, false, false, false, false];
-launchpadOut.control(0, 1, colorTL1);
+/*launchpadOut.control(0, 1, colorTL1);
 launchpadOut.control(0, 2, colorTR1);
 launchpadOut.control(0, 3, colorBL1);
-launchpadOut.control(0, 4, colorBR1);
+launchpadOut.control(0, 4, colorBR1);*/
 
 controlChanInd = 0;
 controlChanButton = 8;
-launchpadOut.control(0, controlChanButton, color1[controlChanInd]);
+// launchpadOut.control(0, controlChanButton, color1[controlChanInd]);
 
 onDeckBuffers = List.fill(16, {nil;});
 
@@ -237,19 +237,19 @@ algChannelsInfo = List.fill(16, {[nil, nil];});
 
 
 //define setPadLights method
-setPadLights = {|padMIDIs, c1, c2, padInd|
-	(0..15).do({|i|
-		var col;
-		if(((i+transposes[padInd]) % scales[padInd].size) == 0, {col = c2}, {col = c1});
-		launchpadOut.noteOn(0, padMIDIs[i], col);
-		padIndToColor[padMIDIs[i]] = col;
-	});
-};
-
-setPadLights.(padTL, colorTL1, colorTL2, 0);
-setPadLights.(padTR, colorTR1, colorTR2, 1);
-setPadLights.(padBL, colorBL1, colorBL2, 2);
-setPadLights.(padBR, colorBR1, colorBR2, 3);
+// setPadLights = {|padMIDIs, c1, c2, padInd|
+//     (0..15).do({|i|
+//         var col;
+//         if(((i+transposes[padInd]) % scales[padInd].size) == 0, {col = c2}, {col = c1});
+//         launchpadOut.noteOn(0, padMIDIs[i], col);
+//         padIndToColor[padMIDIs[i]] = col;
+//     });
+// };
+//
+// setPadLights.(padTL, colorTL1, colorTL2, 0);
+// setPadLights.(padTR, colorTR1, colorTR2, 1);
+// setPadLights.(padBL, colorBL1, colorBL2, 2);
+// setPadLights.(padBR, colorBR1, colorBR2, 3);
 
 keyBoard = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
@@ -565,7 +565,7 @@ OSCFunc(masterClockBeatHandler, "/masterClockBeat");
 // tapTempoToggle = 6;
 // recordButton = 7;
 recordColor = red_LIGHT;
-launchpadOut.control(0, recordButton, recordColor);
+launchpadOut.noteOn(0, recordButton, recordColor);
 launchpadOut.noteOff(0, quantizeButton, quantizeColor);
 lastTap = TempoClock.beats;
 playMetronome = false;
@@ -680,7 +680,7 @@ controlHandler = {|vel, note, chan, port|
 											var elem = bankMap[bNote];
 											elem[3].stop;
 											elem[2] = false; //TODO: refactor to make bank on/off functions
-											Task({0.001.wait; launchpadOut.control(0, bNote, color1[elem[1]]);}).play;
+											Task({0.001.wait; launchpadOut.noteOn(0, bNote, amber_LIGHT);}).play;
 											playingBanks.remove(bNote);
 									})
 								});});
@@ -702,7 +702,7 @@ controlHandler = {|vel, note, chan, port|
 								thisBank[5] = nil;
 								thisBank[6] = nil;
 								thisBank[2] = false;
-								launchpadOut.control(0, note, color1[thisBank[1]]);
+								launchpadOut.noteOn(0, note, amber_LIGHT);
 								playingBanks.remove(note);
 								pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], false); //mark python loop-info as stopped
 						});
@@ -715,9 +715,10 @@ controlHandler = {|vel, note, chan, port|
 	});
     if((channelIndButtons.includes(note)) && (vel == 127), {
         controlChanInd = channelIndButtons.indexOf(note);
-		launchpadOut.control(0, controlChanButton, color1[controlChanInd]);
+        channelIndButtons.do({|i| launchpadOut.noteOn(0, i, 0)});
+		launchpadOut.noteOn(0, note, amber_LIGHT);
 		newKeysChan = controlChanInd;
-		if(playingNewKeys, {newKeysSetPadLights.(controlChanInd)});
+		//if(playingNewKeys, {newKeysSetPadLights.(controlChanInd)});
 		//todo - turn off note if swapping between different channels on newKeys or to/from newKeys to old
 	});
 	/*if((note == newKeyButton) && (vel == 127), {
@@ -959,7 +960,7 @@ class AlgResponder:
 resetRecordingState = {
 	recordingMetronome = false;
 	recordingState = 0;
-	launchpadOut.control(0, recordButton, recordColor);
+	launchpadOut.noteOn(0, recordButton, recordColor);
 	recordBuffer.clear();
 	tempLoopTask = nil;
 	tempLoopString = nil;
@@ -967,11 +968,11 @@ resetRecordingState = {
 
 metronomeFlashTask = Task({
 	if(recordingMetronome || (tempLoopTask != nil),
-		{launchpadOut.control(0, recordButton, (recordingState==2).if(green_LIGHT,recordColor))});
-	playingBanks.do({|bNote| launchpadOut.control(0, bNote, amber_LIGHT)});
+		{launchpadOut.noteOn(0, recordButton, (recordingState==2).if(green_LIGHT,recordColor))});
+	playingBanks.do({|bNote| launchpadOut.noteOn(0, bNote, amber_LIGHT)});
 	(tempoClock.beatDur/2).wait;
-	if(recordingMetronome || (tempLoopTask != nil), {launchpadOut.control(0, recordButton, 0)});
-	playingBanks.do({|bNote| launchpadOut.control(0, bNote, 0)});
+	if(recordingMetronome || (tempLoopTask != nil), {launchpadOut.noteOn(0, recordButton, 0)});
+	playingBanks.do({|bNote| launchpadOut.noteOn(0, bNote, 0)});
 });
 
 metronomeFunc = {
@@ -1087,7 +1088,7 @@ file.close;
 var file = File.open("~/testFilename4.txt".standardizePath, "rb");
 var fileStr = file.readAllString;
 var fileSplit = fileStr.split($\n);
-var launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port");
+var launchpadOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 fileSplit.size.postln;
 fileSplit.do({|line|
 	var lineSplit = line.split($ );
