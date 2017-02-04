@@ -1,5 +1,5 @@
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, keyboard;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, keyBoard, amber_LIGHT, red_LIGHT, green_LIGHT, isPadNote, noteToInd, channelIndButtons;
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
@@ -11,7 +11,7 @@ midiOut.latency = 0;
 metronomeOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 masterClockOSCport = NetAddr("localhost", 57120);
-
+channelIndButtons = [72, 88, 104, 120];
 
 
 //LAUNCHPAD S/MINI button controls and variables
@@ -30,6 +30,13 @@ noteToInd = {|x|
 	["note to ind", x, retVal].postln;
 	retVal
 }; //convert note to pad index
+//midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
+bankMap = Dictionary.new();
+(0..100).do({|i|
+    //launchpadOut.control(0, j, color1[i]);
+    bankMap.put(i, [i, nil, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
+});
+
 
 
 indToNote = {|x|
@@ -108,11 +115,11 @@ k = banks;
 // bankSet = Set.new();
 // bankSet.addAll(banks.flatten(1));
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
-bankMap = Dictionary.new();
-(0..3).do({|i| (0..3).do({|j|
-	//launchpadOut.control(0, j, color1[i]);
-	bankMap.put(banks[i][j], [j, i, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
-})});
+// bankMap = Dictionary.new();
+// (0..3).do({|i| (0..3).do({|j|
+//     //launchpadOut.control(0, j, color1[i]);
+//     bankMap.put(banks[i][j], [j, i, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
+// })});
 z = bankMap;
 bankSet.do({|i| launchpadOut.control(0, i, 0)});
 playingBanks = Set.new();
@@ -250,7 +257,7 @@ launchPad = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
 	&& (elem.device == "Launchpad Mini")})[0];
 [launchPad, MIDIClient.sources[2]].postln;
 a = {|vel, note, chan, port|
-	if(chan == 0, {
+	/*if(chan == 0, {
 		if(pads.includes(note), {
 			//TODO newKeys - new note map, new channel
 			var chan, newNote;
@@ -271,12 +278,14 @@ a = {|vel, note, chan, port|
 			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "on"])});
 		});
-	});
+	});*/
+    midiOut.noteOn(controlChanInd, note, vel);
+    if(recordingMetronome, {recordBuffer.add([tempoClock.beats, note, vel, controlChanInd, "on"])});
 };
 padOn = MIDIFunc.noteOn(a, nil, nil, keyBoard.uid);
 
 b = {|vel, note, chan, port|
-	if(chan == 0, {
+	/*if(chan == 0, {
 		if(pads.includes(note), {
 			var chan, newNote;
 			if(playingNewKeys,
@@ -297,7 +306,9 @@ b = {|vel, note, chan, port|
 			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "off"])});
 		});
-	});
+	});*/
+    midiOut.noteOff(controlChanInd, note, vel);
+    if(recordingMetronome, {recordBuffer.add([tempoClock.beats, note, vel, controlChanInd, "off"])});
 };
 padOff = MIDIFunc.noteOff(b, nil, nil, keyBoard.uid);
 x = 0;
@@ -637,6 +648,7 @@ controlHandler = {|vel, note, chan, port|
 					thisBank[3].stop;
 					thisBank[3].free;
 				});
+                thisBank[1] = controlChanInd;
 				thisBank[2] = true;
 				thisBank[3] = tempLoopTask;
 				thisBank[4] = note + tempLoopString + recordingStartBeat;
@@ -701,8 +713,8 @@ controlHandler = {|vel, note, chan, port|
 				});
 		});
 	});
-	if((note == controlChanButton) && (vel == 127), {
-		controlChanInd = (controlChanInd+1) % 4;
+    if((channelIndButtons.includes(note)) && (vel == 127), {
+        controlChanInd = channelIndButtons.indexOf(note);
 		launchpadOut.control(0, controlChanButton, color1[controlChanInd]);
 		newKeysChan = controlChanInd;
 		if(playingNewKeys, {newKeysSetPadLights.(controlChanInd)});
