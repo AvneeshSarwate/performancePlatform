@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote, ccFunc;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote, ccFunc, utilityButtons;
 
 
 
@@ -13,6 +13,7 @@ miniFwdOut = MIDIOut.newByName("IAC Driver", "Bus 5");
 miniFwdOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 
+utilityButtons = (24,40..120);
 
 mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
 	&& (elem.device == "Launchpad Mini")})[0];
@@ -72,6 +73,10 @@ noteOnFunc = {|vel, note, chan, port|
 			miniFwdOut.noteOn(0, note, vel);
 		})
 	);
+    if(utilityButtons.includes(note), {
+        pythonOSCport.sendMsg("/utilityButton", utilityButtons.indexOf(note), if(recording, 1, 0));
+        if(recording, {miniOut.noteOn(0, note, amber_LIGHT)});
+    });
 };
 MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
 
