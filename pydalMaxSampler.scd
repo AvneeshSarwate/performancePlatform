@@ -1,5 +1,5 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort, heldHitTasks;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
@@ -14,6 +14,7 @@ chanBackupPatMap = Dictionary();
 channelInd = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
+heldHitTasks = Dictionary();
 
 //TODO - parametrize this
 midiChannel = 0;
@@ -160,13 +161,10 @@ timeListToDurationList = {|oldList|
 	pList
 };
 
+
+
 sendSample = {|drumStr|
-    var bank;
-    var start;
-    var end;
-    var duration;
-    var bufToUse;
-    var startSecs;
+    var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
     //["SAMPLE", drumStr.postln].postln;
     bank = "abcd".indexOf(drumStr.asString.split($:)[0]) + 1;
     start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
@@ -174,15 +172,30 @@ sendSample = {|drumStr|
     duration = if(end.isNil.not && (end > start), end.asFloat - start, nil);
 
     //turn of other buffers (all buffers if end < start, otherwise start buffer)
-    if(end < start,
-        {(1..4).do({|i| maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStart", 0, 0)})},
-        {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", 0, 0)}
-    );
-
-
     //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
+    banksToTurnOff = if(end < start, (1..4), [bank]);
+    banksToTurnOff.do({|i|
+        maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStart", 0, 0);
+        if(heldHitTasks[i].isNil.not, {
+            heldHitTasks[i].stop;
+            heldHitTasks[i].free;
+            heldHitTasks[i] = nil;
+        });
+    });
+
     //play this buffer
+    // 1/(beats/sec) * beats * ms/s
+    bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
+    //TODO max - will having speed=1 conflict with LFO-set speed?
+    maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", 1, bufferOffset);
+
     //schedule turn off if needed
+    if(duration.isNil.not, {
+        heldHitTasks[bank] = Task({
+            duration.wait;
+            maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", 0, 0);
+        }, masterTempoClock).play;
+    });
 
 };
 
