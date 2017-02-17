@@ -20,12 +20,21 @@ class WavePlayer:
 		msg.setAddress("/startWave")
 		msg.append(ccNum)
 		msg.append(str(wave))
+		msg.append("midi")
 		self.superColliderClient.send(msg)
 
-	def stopWave(self, ccNum):
+	def startWaveOSC(slef, waveAddr, wave):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/startWaveOSC")
+		msg.append(waveAddr)
+		msg.append(str(wave))
+		msg.append("osc")
+		self.superColliderClient.send(msg)
+
+	def stopWave(self, ccNumOrWaveAddr):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/stopWave")
-		msg.append(ccNum)
+		msg.append(ccNumOrWaveAddr)
 		self.superColliderClient.send(msg)
 
 
