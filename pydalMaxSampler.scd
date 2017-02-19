@@ -5,7 +5,7 @@
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
-maxOSCport = NetAddr("localhost", 5432);
+maxPort = NetAddr("localhost", 5432);
 
 //TODO: implement tempoclock per channel (with synched beats)
 //masterTempoClock = TempoClock.new(1);
@@ -162,18 +162,19 @@ timeListToDurationList = {|oldList|
 };
 
 
-
 sendSample = {|drumStr|
     var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
-    //["SAMPLE", drumStr.postln].postln;
-    bank = "abcd".indexOf(drumStr.asString.split($:)[0]) + 1;
+
+    bank = ['a', 'b', 'c', 'd'].indexOf(drumStr.split($:)[0].asSymbol) + 1;
     start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
     end = drumStr.asString.split($:)[1].split($_)[1];
-    duration = if(end.isNil.not && (end > start), end.asFloat - start, nil);
+
+    duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
+    [drumStr, duration].postln;
 
     //turn of other buffers (all buffers if end < start, otherwise start buffer)
     //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
-    banksToTurnOff = if(end < start, (1..4), [bank]);
+    banksToTurnOff = if(end.isNil.not and: {(end < start)}, {(1..4)}, {[bank]});
     banksToTurnOff.do({|i|
         maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStart", 0, 0);
         if(heldHitTasks[i].isNil.not, {
@@ -194,14 +195,27 @@ sendSample = {|drumStr|
         heldHitTasks[bank] = Task({
             duration.wait;
             maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", 0, 0);
+            ["SEND END", bank].postln;
         }, masterTempoClock).play;
     });
-
 };
 
 )
 //===========================================================================
 //scratch code below
+
+
+(
+var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
+var drumStr="a:4_4.25";
+bank = ['a', 'b', 'c', 'd'].indexOf(drumStr.split($:)[0].asSymbol) + 1;
+start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
+end = drumStr.asString.split($:)[1].split($_)[1];
+end.postln;
+duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
+[drumStr, duration].postln;
+)
+
 (
 d = Dictionary.new;
 d.includes(5);
