@@ -42,7 +42,7 @@ startWave = {|msg, time, addr, recvPort|
         var func = createCalcFunc.(msg[2].asString);
         var ccIndOrWaveAddr = msg[1];
         ~debugf = func;
-        "WAVE TASK STARTED".postln;
+        ["WAVE TASK STARTED", msg[3].asString].postln;
         {
             if(msg[3].asString == "midi",
                 {
@@ -53,6 +53,7 @@ startWave = {|msg, time, addr, recvPort|
                 },
                 //else its "osc"
                 {
+                    [ccIndOrWaveAddr.asString, func.(masterTempoClock.beats)].postln;
                     maxOSCport.sendMsg(ccIndOrWaveAddr.asString, func.(masterTempoClock.beats))
                 }
             );

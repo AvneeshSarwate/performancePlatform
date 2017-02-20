@@ -14,7 +14,7 @@ OSCFunc({|msg, time, addr, recvPort|
     var newTempo = msg[1].asFloat;
 	if(tempo.isNil, {tempo = newTempo});
 	broadcastOSCport.sendMsg("/masterClockBeat", 60.0/tempo);
-	["max LINK BEAT", newTempo].postln;
+	//["max LINK BEAT", newTempo].postln;
 
 	//should this go before or after the /masterClockBeat message? probably doesn't matter
 	if(newTempo != tempo, {

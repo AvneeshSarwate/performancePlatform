@@ -170,7 +170,7 @@ sendSample = {|drumStr|
     end = drumStr.asString.split($:)[1].split($_)[1];
 
     duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
-    [drumStr, duration].postln;
+    //[drumStr, duration].postln;
 
     //turn of other buffers (all buffers if end < start, otherwise start buffer)
     //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
