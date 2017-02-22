@@ -14,14 +14,14 @@ launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
 onPads = Dictionary.new;
 maxPort = NetAddr("localhost", 5432);
-
+(0..100).do({|i| launchpadOut.noteOn(0, i, 0);});
 
 a = {|vel, note, chan, port|
     ["ON", note, onPads[note].isNil];
     if(onPads[note].isNil,
         {
             onPads[note] = true;
-            maxPort.sendMsg("buttons", note, 255);
+            maxPort.sendMsg("/buttons", note, 255);
             launchpadOut.noteOn(0, note, 17);
         },
         {
