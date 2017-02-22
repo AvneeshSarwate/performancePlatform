@@ -1,5 +1,5 @@
 (
-NetAddr("localhost", 5432).sendMsg("/buttons", 11, 22, 33, 44, 55, 66, 77, 88)
+NetAddr("localhost", 5432).sendRaw(["/listtest", 11, 22, 33, 44, 55, 66, 77, 88].asRawOSC)
 )
 
 (
