@@ -15,6 +15,21 @@ class WavePlayer:
 		self.superColliderClient.connect( ('127.0.0.1', 57120) ) 
 
 
+	#utility func to make succint keyword methods 
+	def keyWordWaveAdress(self, keyWord, bufferNum, wave):
+		if wave == 0:
+			self.stopWave("/sampLoop/"+str(bufferNum)+"/"+keyWord)
+		else:
+			self.startWaveOSC("/sampLoop/"+str(bufferNum)+"/"+keyWord, wave)
+
+	def shift(self, bufferNum, wave):
+		self.keyWordWaveAdress("shift", bufferNum, wave)
+
+
+	def speed(self, bufferNum, wave):
+		self.keyWordWaveAdress("speed", bufferNum, wave)
+
+
 	def startWave(self, ccNum, wave):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/startWave")

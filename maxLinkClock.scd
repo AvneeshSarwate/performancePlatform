@@ -19,6 +19,7 @@ OSCFunc({|msg, time, addr, recvPort|
 	//should this go before or after the /masterClockBeat message? probably doesn't matter
 	if(newTempo != tempo, {
 		tempo = newTempo;
+        masterTempoClock.tempo = tempo;
 		broadcastOSCport.sendMsg("/masterClockTempo", 60.0/tempo, false); //don't worry about beat alignment for now
 	});
 }, "/maxLink");
