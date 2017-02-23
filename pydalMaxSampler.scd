@@ -176,7 +176,7 @@ sendSample = {|drumStr|
     //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
     banksToTurnOff = if(end.isNil.not and: {(end < start)}, {(1..4)}, {[bank]});
     banksToTurnOff.do({|i|
-        maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStart", 0, 0);
+        maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
         if(heldHitTasks[i].isNil.not, {
             heldHitTasks[i].stop;
             heldHitTasks[i].free;
@@ -188,13 +188,13 @@ sendSample = {|drumStr|
     // 1/(beats/sec) * beats * ms/s
     bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
     //TODO max - will having speed=1 conflict with LFO-set speed?
-    maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", 1, bufferOffset);
+    maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
 
     //schedule turn off if needed
     if(duration.isNil.not, {
         heldHitTasks[bank] = Task({
             duration.wait;
-            maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", 0, 0);
+            maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
             ["SEND END", bank].postln;
         }, masterTempoClock).play;
     });
