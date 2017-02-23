@@ -22,12 +22,12 @@ NetAddr("localhost", 5432).sendMsg("/matrixswitch0", 1);
 ~runGameOfLife = false
 
 (
-var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, onPads, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap;
+var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, onPads, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler;
 
 MIDIClient.init;
 MIDIIn.connectAll;
 
-~runGameOfLife = true;
+~runGameOfLife = false;
 
 lock = Semaphore(1);
 updateCounter = 0;
@@ -70,6 +70,13 @@ a = {|vel, note, chan, port|
 };
 padOn = MIDIFunc.noteOn(a, nil, nil, launchPad.uid);
 
+c = {|vel, note, chan, port|
+    if((note == 98) && (vel != 0), {
+       ~runGameOfLife = ~runGameOfLife.not;
+        launchpadOut.control(0, note, if(~runGameOfLife, 79, 0));
+    });
+};
+ccHandler = MIDIFunc.cc(c, nil, nil, launchPad.uid);
 
 sendButtonMap = {
     var msgList = List.new;
