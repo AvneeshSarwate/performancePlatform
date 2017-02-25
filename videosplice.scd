@@ -22,7 +22,7 @@ NetAddr("localhost", 5432).sendMsg("/matrixswitch0", 1);
 ~runGameOfLife = false
 
 (
-var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, onPads, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler;
+var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, onPads, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler, miniPadOn, savedMatricies;
 
 MIDIClient.init;
 MIDIIn.connectAll;
@@ -32,7 +32,7 @@ MIDIIn.connectAll;
 lock = Semaphore(1);
 updateCounter = 0;
 
-launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port");
+launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port"); //MIDIOut.new(8);
 launchpadOut.latency = 0;
 launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
@@ -40,6 +40,8 @@ padMap = Dictionary.new;
 changedPads = Set.new;
 onPads = Set.new;
 maxPort = NetAddr("localhost", 5432);
+savedMatricies = Dictionary.new;
+
 (0..100).do({|i| launchpadOut.noteOn(0, i, 0);});
 
 (0..100).do({|i| padMap[i] = 0});
@@ -90,13 +92,34 @@ sendButtonMap = {
     maxPort.sendRaw(msgList.asArray.asRawOSC);
 };
 
+//msg[1] saved matrix index
+OSCFunc({|msg, time, addr, recvPort|
+    savedMatricies[msg[1]] = padMap.deepCopy;
+    "SAVED".postln;
+}, "/saveMatrix");
+
+//msg[1] saved matrix index
+OSCFunc({|msg, time, addr, recvPort|
+    lock.wait;
+    padMap = savedMatricies[msg[1]].deepCopy;
+    (8..1).do({|i|
+        (1..8).do({|j|
+            var note = (i*10)+j;
+            if(padMap[note]==0, {turnOffPad.(note)}, {turnOnPad.(note)});
+        });
+    });
+    changes = true;
+    "PLAYED".postln;
+    lock.signal;
+}, "/playMatrix");
+
 updateTask = Task({
     {
         var calculateGameOfLifeStep;
-        0.1.wait;
+        0.05.wait;
         updateCounter = updateCounter + 1;
 
-        calculateGameOfLifeStep = ~runGameOfLife && ((updateCounter%10) == 0);
+        calculateGameOfLifeStep = ~runGameOfLife && ((updateCounter%3) == 0);
 
         if(changes || calculateGameOfLifeStep, {
 
@@ -144,7 +167,7 @@ gameOfLife = {|oldG|
     (0..7).do({|i|
         (0..7).do({|j|
             var c = neighborCount.(oldG, i, j);
-            if((c < 2) || (c > 3), {newG[i][j] = 0});
+            if((c < 2) || (c > 4), {newG[i][j] = 0});
             if([2,3].includes(c), {newG[i][j] = oldG[i][j]});
             if(c == 3, {newG[i][j] = 255});
         });

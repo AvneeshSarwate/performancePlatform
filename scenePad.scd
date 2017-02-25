@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote, ccFunc;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote, ccFunc, scPort;
 
 
 
@@ -12,6 +12,7 @@ miniOut.latency = 0;
 miniFwdOut = MIDIOut.newByName("IAC Driver", "Bus 5");
 miniFwdOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
+scPort = NetAddr("localhost", 57120);
 
 
 mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
@@ -60,13 +61,17 @@ noteOnFunc = {|vel, note, chan, port|
 		if(isSceneNote.(note), {
 			if(recording, {
 				pythonOSCport.sendMsg("/saveScene", noteToInd.(note));
-				miniOut.noteOn(0, note, amber_LIGHT);
-				savedScenes[note] = true;
-			},
-			{
-				if(savedScenes[note].isNil.not, {pythonOSCport.sendMsg("/playScene", noteToInd.(note));})
-			})
-		},
+                scPort.sendMsg("/saveMatrix", noteToInd.(note));
+                miniOut.noteOn(0, note, amber_LIGHT);
+                savedScenes[note] = true;
+            },
+            {
+				if(savedScenes[note].isNil.not, {
+                    pythonOSCport.sendMsg("/playScene", noteToInd.(note));
+                    scPort.sendMsg("/playMatrix", noteToInd.(note));
+                });
+            })
+        },
 		{
 			["SCENE NOTE", note].postln;
 			miniFwdOut.noteOn(0, note, vel);
