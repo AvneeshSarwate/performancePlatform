@@ -244,9 +244,9 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 233.5, 85.5, 111.0, 21.0 ],
+					"patching_rect" : [ 233.5, 85.5, 132.0, 21.0 ],
 					"style" : "",
-					"text" : "OSC-route /buttons3"
+					"text" : "OSC-route /filterMatrix88"
 				}
 
 			}

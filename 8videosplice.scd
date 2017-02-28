@@ -22,7 +22,7 @@ NetAddr("localhost", 5432).sendMsg("/matrixswitch0", 1);
 ~runGameOfLife = false
 
 (
-var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, onPads, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler, miniPadOn, savedMatricies, gameOfLife_BUTTON, videoSelectorButtons, videoSelectorColors, videoInd, liveNeighborMajority;
+var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, onPads, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler, miniPadOn, savedMatricies, gameOfLife_BUTTON, videoSelectorButtons, videoSelectorColors, videoInd, liveNeighborMajority, videoSelectorFlashTask, getNewSelectorFlashTask;
 
 MIDIClient.init;
 MIDIIn.connectAll;
@@ -49,21 +49,22 @@ videoSelectorColors = [6, 9, 13, 109, 18, 32, 67, 116];
 videoInd = 0;
 videoSelectorFlashTask = Task({});
 
-
 (0..100).do({|i| launchpadOut.noteOn(0, i, 0);});
-
 (0..100).do({|i| padMap[i] = 0});
+
+(0..7).do({|i| launchpadOut.noteOn(0, videoSelectorButtons[i], videoSelectorColors[i])});
 
 keys = List.new;
 
 
 changes = false;
 
-turnOnPad = {|note|
-    padMap[note] = videoInd+1; //matrix is 1 indexed with 0 being no video
+turnOnPad = {|note, vidInd|
+    padMap[note] = vidInd+1; //matrix is 1 indexed with 0 being no video
     onPads.add(note);
-    launchpadOut.noteOn(0, note, videoSelectorColors[videoInd]);
+    launchpadOut.noteOn(0, note, videoSelectorColors[vidInd]);
 };
+
 turnOffPad = {|note|
     padMap[note] = 0;
     onPads.remove(note);
@@ -73,12 +74,28 @@ turnOffPad = {|note|
 a = {|vel, note, chan, port|
     lock.wait;
     ["ON", note, padMap[note]];
-    if(padMap[note] == videoInd, {turnOffPad.(note)}, {turnOnPad.(note)});
+    if(padMap[note] == (videoInd+1), {turnOffPad.(note)}, {turnOnPad.(note, videoInd)});
     changedPads.add(note);
     changes = true;
     lock.signal;
 };
+
 padOn = MIDIFunc.noteOn(a, nil, nil, launchPad.uid);
+
+getNewSelectorFlashTask = {
+    Task({
+        var on = false;
+        var selectorNote = videoSelectorButtons[videoInd];
+        {
+            0.24.wait;
+            launchpadOut.noteOn(0, selectorNote, if(on, videoSelectorColors[videoInd], 0));
+            on = on.not;
+        }.loop;
+    });
+};
+
+videoSelectorFlashTask = getNewSelectorFlashTask.();
+videoSelectorFlashTask.start;
 
 c = {|vel, note, chan, port|
     if((note == gameOfLife_BUTTON) && (vel != 0), {
@@ -87,25 +104,19 @@ c = {|vel, note, chan, port|
     });
     if(videoSelectorButtons.includes(note) && (vel != 0), {
         videoInd = videoSelectorButtons.indexOf(note);
+        ["VIDEO IND", videoInd].postln;
         videoSelectorFlashTask.stop;
         videoSelectorFlashTask.free;
-        (0..7).do({|i| launchpadOut.noteOn(0, 91+i, videoSelectorColors[i])});
-        videoSelectorFlashTask = Task({
-            var on = false;
-            var selectorNote = note;
-            {
-                0.24.wait;
-                launchpadOut.noteOn(0, selectorNote, if(on, videoSelectorColors[videoInd], 0));
-            }.loop;
-        });
+        (0..7).do({|i| launchpadOut.noteOn(0, videoSelectorButtons[i], videoSelectorColors[i])});
+        videoSelectorFlashTask = getNewSelectorFlashTask.();
+        videoSelectorFlashTask.start;
     });
-    videoSelectorFlashTask.start;
 };
 ccHandler = MIDIFunc.cc(c, nil, nil, launchPad.uid);
 
 sendButtonMap = {
     var msgList = List.new;
-    msgList.add("/buttons3");
+    msgList.add("/filterMatrix88");
     (8..1).do({|i|
         (1..8).do({|j|
             msgList.add(padMap[(i*10)+j]);
@@ -128,7 +139,7 @@ OSCFunc({|msg, time, addr, recvPort|
     (8..1).do({|i|
         (1..8).do({|j|
             var note = (i*10)+j;
-            if(padMap[note]==0, {turnOffPad.(note)}, {turnOnPad.(note)});
+            if(padMap[note]==0, {turnOffPad.(note)}, {turnOnPad.(note, padMap[note]-1)});
         });
     });
     changes = true;
@@ -171,7 +182,6 @@ updateTask = Task({
 
 neighborCount = {|grid, ix, jy|
     var count = 0;
-    //"COUNT START".postln;
     (-1..1).do({|m|
         (-1..1).do({|n|
             if((m.abs+n.abs) != 0, {
@@ -188,7 +198,6 @@ neighborCount = {|grid, ix, jy|
 liveNeighborMajority = {|grid, ix, jy|
     var neighborCount = Array.fill(9, {0});
     var maxInd = -1;
-    //"COUNT START".postln;
     (-1..1).do({|m|
         (-1..1).do({|n|
             if((m.abs+n.abs) != 0, {
@@ -210,7 +219,7 @@ gameOfLife = {|oldG|
             var c = neighborCount.(oldG, i, j);
             if((c < 2) || (c > 4), {newG[i][j] = 0});
             if([2,3].includes(c), {newG[i][j] = oldG[i][j]});
-            if(c == 3, {newG[i][j] = liveNeighborMajority.(oldG, i, j});
+            if(c == 3, {newG[i][j] = liveNeighborMajority.(oldG, i, j)});
         });
     });
     newG;
