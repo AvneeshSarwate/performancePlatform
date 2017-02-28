@@ -1,28 +1,5 @@
 (
-var netAddr = NetAddr("localhost", 5432);
-Task({
-    var switch = 0.1;
-    var diff = 0;
-    (0..10).do({
-        netAddr.sendMsg("/matrixswitch0", 1);
-        (switch-diff).wait;
-        netAddr.sendMsg("/matrixswitch1", 1);
-        (switch+diff).wait;
-        "yo".postln;
-    });
-}).play
-
-)
-
-
-(
-NetAddr("localhost", 5432).sendMsg("/matrixswitch0", 1);
-)
-
-~runGameOfLife = false
-
-(
-var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, onPads, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler, miniPadOn, savedMatricies, gameOfLife_BUTTON, videoSelectorButtons, videoSelectorColors, videoInd, liveNeighborMajority, videoSelectorFlashTask, getNewSelectorFlashTask;
+var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler, miniPadOn, savedMatricies, gameOfLife_BUTTON, videoSelectorButtons, videoSelectorColors, videoInd, liveNeighborMajority, videoSelectorFlashTask, getNewSelectorFlashTask, arrowButtons, gridRotate, up_BUTTON, down_BUTTON, left_BUTTON, right_BUTTON, lightUpButtonMap;
 
 MIDIClient.init;
 MIDIIn.connectAll;
@@ -39,7 +16,6 @@ launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
 padMap = Dictionary.new;
 changedPads = Set.new;
-onPads = Set.new;
 maxPort = NetAddr("localhost", 5432);
 savedMatricies = Dictionary.new;
 gameOfLife_BUTTON = 89;
@@ -48,6 +24,10 @@ videoSelectorColors = [6, 9, 13, 109, 18, 32, 67, 116];
 //red, orange, yellow, YG, green, turqoise, blue, purple
 videoInd = 0;
 videoSelectorFlashTask = Task({});
+up_BUTTON = 91;
+down_BUTTON = 92;
+left_BUTTON = 93;
+right_BUTTON = 94;
 
 (0..100).do({|i| launchpadOut.noteOn(0, i, 0);});
 (0..100).do({|i| padMap[i] = 0});
@@ -61,13 +41,11 @@ changes = false;
 
 turnOnPad = {|note, vidInd|
     padMap[note] = vidInd+1; //matrix is 1 indexed with 0 being no video
-    onPads.add(note);
     launchpadOut.noteOn(0, note, videoSelectorColors[vidInd]);
 };
 
 turnOffPad = {|note|
     padMap[note] = 0;
-    onPads.remove(note);
     launchpadOut.noteOn(0, note, 0);
 };
 
@@ -111,6 +89,17 @@ c = {|vel, note, chan, port|
         videoSelectorFlashTask = getNewSelectorFlashTask.();
         videoSelectorFlashTask.start;
     });
+
+    if([up_BUTTON, down_BUTTON, left_BUTTON, right_BUTTON].includes(note) && (vel !=0), {
+        if(note == up_BUTTON, {gridRotate.(padMap, 1, 0)});
+        if(note == down_BUTTON, {gridRotate.(padMap, -1, 0)});
+        if(note == left_BUTTON, {gridRotate.(padMap, 0, -1)});
+        if(note == right_BUTTON, {gridRotate.(padMap, 0, 1)});
+        lightUpButtonMap.(padMap);
+        changes = true;
+    });
+
+
 };
 ccHandler = MIDIFunc.cc(c, nil, nil, launchPad.uid);
 
@@ -124,6 +113,18 @@ sendButtonMap = {
     });
     ["CHANGES", msgList].postln;
     maxPort.sendRaw(msgList.asArray.asRawOSC);
+};
+
+
+//TODO - refactor to use this more and make all functions more pure
+lightUpButtonMap = {|buttonMap|
+    (8..1).do({|i|
+        (1..8).do({|j|
+            var note = (i*10)+j;
+            var vidval = buttonMap[note];
+            launchpadOut.noteOn(0, note, if(vidval == 0, 0, videoSelectorColors[vidval-1]));
+        });
+    });
 };
 
 //msg[1] saved matrix index
@@ -240,10 +241,46 @@ setButtonMapFromGrid = {|grid, buttonMap|
         (1..8).do({|j|
             var note = (i*10)+j;
             buttonMap[note] = grid[i-1][j-1];
-            if(buttonMap[note]==0, {turnOffPad.(note)}, {turnOnPad.(note)});
+            if(buttonMap[note]==0, {turnOffPad.(note)}, {turnOnPad.(note, buttonMap[note]-1)});
         });
     });
 };
 
+gridRotate = {|buttonMap, vertRotate, horRotate|
+    var grid = buttonMapToGrid.(buttonMap);
+    if(vertRotate != 0, {grid = grid.rotate(vertRotate)});
+    if(horRotate != 0, {(0..7).do({|i| grid[i] = grid[i].rotate(horRotate)})});
+    setButtonMapFromGrid.(grid, buttonMap);
+};
+
 )
+
+(
+a = List[1, 2, 3, 4, 5];
+a.rotate(1);
+a
+)
+
+(
+var netAddr = NetAddr("localhost", 5432);
+Task({
+    var switch = 0.1;
+    var diff = 0;
+    (0..10).do({
+        netAddr.sendMsg("/matrixswitch0", 1);
+        (switch-diff).wait;
+        netAddr.sendMsg("/matrixswitch1", 1);
+        (switch+diff).wait;
+        "yo".postln;
+    });
+}).play
+
+)
+
+
+(
+NetAddr("localhost", 5432).sendMsg("/matrixswitch0", 1);
+)
+
+~runGameOfLife = false
 
