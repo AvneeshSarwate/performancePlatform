@@ -756,7 +756,7 @@
 					"outlettype" : [ "jit_matrix", "jit_matrix", "jit_matrix", "jit_matrix", "jit_matrix", "jit_matrix", "jit_matrix", "jit_matrix" ],
 					"patching_rect" : [ 911.0, 170.0, 111.0, 22.0 ],
 					"style" : "",
-					"text" : "filtersplit 2 320 240"
+					"text" : "filtersplit 8 320 240"
 				}
 
 			}
