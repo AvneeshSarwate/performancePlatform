@@ -89,8 +89,8 @@ OSCFunc({|msg, time, addr, recvPort|
 
     if(newTempo != tempo, {
         tempo = newTempo;
-        masterTempoClock.tempo = tempo;
-        tempoClockMap.values.do({|clock| clock.tempo = tempo});
+        masterTempoClock.tempo = tempo/60;
+        tempoClockMap.values.do({|clock| clock.tempo = tempo/60});
     });
 
 }, "/maxLink");
