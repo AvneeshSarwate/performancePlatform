@@ -1,5 +1,5 @@
 (
-var launchpadOut, launchPad, padOn, padMap, changedPads, maxPort, updateTask, changes, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler, miniPadOn, savedMatricies, gameOfLife_BUTTON, videoSelectorButtons, videoSelectorColors, videoInd, liveNeighborMajority, videoSelectorFlashTask, getNewSelectorFlashTask, arrowButtons, gridRotate, up_BUTTON, down_BUTTON, left_BUTTON, right_BUTTON, lightUpButtonMap, swapMode, swapMode_BUTTON, swapCount, swapVidInds, padMapSwapInds;
+var launchpadOut, launchPad, padOn, padMap, maxPort, updateTask, changes, turnOnPad, turnOffPad, keys, neighborCount, gameOfLife, lock, updateCounter, buttonMapToGrid, setButtonMapFromGrid, sendButtonMap, ccHandler, miniPadOn, savedMatricies, gameOfLife_BUTTON, videoSelectorButtons, videoSelectorColors, videoInd, liveNeighborMajority, videoSelectorFlashTask, getNewSelectorFlashTask, arrowButtons, gridRotate, up_BUTTON, down_BUTTON, left_BUTTON, right_BUTTON, lightUpButtonMap, swapMode, swapMode_BUTTON, swapCount, swapVidInds, padMapSwapInds;
 
 MIDIClient.init;
 MIDIIn.connectAll;
@@ -15,7 +15,6 @@ launchpadOut.latency = 0;
 launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
 padMap = Dictionary.new;
-changedPads = Set.new;
 maxPort = NetAddr("localhost", 5432);
 savedMatricies = Dictionary.new;
 gameOfLife_BUTTON = 89;
@@ -57,8 +56,8 @@ a = {|vel, note, chan, port|
     lock.wait;
     ["ON", note, padMap[note]];
     if(padMap[note] == (videoInd+1), {turnOffPad.(note)}, {turnOnPad.(note, videoInd)});
-    changedPads.add(note);
     changes = true;
+    ~pMap = padMap;
     lock.signal;
 };
 
@@ -189,18 +188,19 @@ OSCFunc({|msg, time, addr, recvPort|
     lock.signal;
 }, "/playMatrix");
 
+~gameOfLifeStepDuration = 5;
+
 updateTask = Task({
     {
         var calculateGameOfLifeStep;
         0.05.wait;
         updateCounter = updateCounter + 1;
 
-        calculateGameOfLifeStep = ~runGameOfLife && ((updateCounter%3) == 0);
+        calculateGameOfLifeStep = ~runGameOfLife && ((updateCounter%~gameOfLifeStepDuration) == 0);
 
         if(changes || calculateGameOfLifeStep, {
 
             changes = false;
-            changedPads.clear;
 
             lock.wait;
             //modify padMap via gameOfLife here
@@ -243,8 +243,11 @@ liveNeighborMajority = {|grid, ix, jy|
     (-1..1).do({|m|
         (-1..1).do({|n|
             if((m.abs+n.abs) != 0, {
-                if(~deadSet.includes(grid[(ix+m)%grid.size][(jy+n)%grid.size]).not, {
-                    neighborCount[grid[ix][jy]] = neighborCount[grid[ix][jy]] + 1;
+                var newX = (ix+m)%grid.size;
+                var newY = (jy+n)%grid.size;
+                if(~deadSet.includes(grid[newX][newY]).not, {
+                    neighborCount[grid[newX][newY]] = neighborCount[grid[newX][newY]] + 1;
+                    //[newX, newY, grid[ix][jy], neighborCount[grid[newX][newY]]].postln;
                 });
             })
         });
@@ -253,6 +256,9 @@ liveNeighborMajority = {|grid, ix, jy|
     neighborCount.do({|val, ind| maxInd = if(val > maxInd, ind, maxInd) });
     maxInd;
 };
+
+
+~liveMaj = liveNeighborMajority;
 
 gameOfLife = {|oldG|
     var newG = List.fill(8, {List.fill(8, 0)});
@@ -267,6 +273,8 @@ gameOfLife = {|oldG|
     newG;
 };
 
+~gOfL = gameOfLife;
+
 buttonMapToGrid = {|buttonMap|
     var newG = List.fill(8, {List.fill(8, 0)});
     (8..1).do({|i|
@@ -276,6 +284,8 @@ buttonMapToGrid = {|buttonMap|
     });
     newG;
 };
+
+~mToG = buttonMapToGrid;
 
 setButtonMapFromGrid = {|grid, buttonMap|
     (8..1).do({|i|
@@ -295,12 +305,40 @@ gridRotate = {|buttonMap, vertRotate, horRotate|
 };
 
 )
+(
+~liveMaj2 = {|grid, ix, jy|
+    var neighborCount = Array.fill(9, {0});
+    var maxInd = -1;
+    (-1..1).do({|m|
+        (-1..1).do({|n|
+            if((m.abs+n.abs) != 0, {
+                var newX = (ix+m)%grid.size;
+                var newY = (jy+n)%grid.size;
+                if(~deadSet.includes(grid[newX][newY]).not, {
+                    neighborCount[grid[newX][newY]] = neighborCount[grid[newX][newY]] + 1;
+                    [newX, newY, grid[ix][jy], neighborCount[grid[newX][newY]]].postln;
+                });
+            })
+        });
+    });
+    //"COUNT DONE".postln;
+    neighborCount.do({|val, ind| maxInd = if(val > maxInd, ind, maxInd) });
+    maxInd;
+};
+)
 
 (
-a = List[1, 2, 3, 4, 5];
-a.rotate(1);
-a
+~oldG = ~mToG.(~pMap);
+~newG = ~gOfL.(~mToG.(~pMap));
+//.do({|l| l.postln})
+~visP = {|gr| (7..0).do({|row| gr[row].postln})};
+~visP.(~oldG);
+"BREAK".postln;
+~visP.(~newG);
 )
+
+~newG[6][1]
+~liveMaj2.(~oldG, 7, 0)
 
 (
 var netAddr = NetAddr("localhost", 5432);
