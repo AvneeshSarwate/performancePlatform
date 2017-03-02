@@ -295,18 +295,11 @@ sendSample = {|drumStr|
                 });
             });
 
-            if(~max, {
-                //play this buffer
-                // 1/(beats/sec) * beats * ms/s
-                bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
-                maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
-            });
-
-            0.008.wait;
+            0.001.wait;
 
             //["SENTSAMP", ~sentCount, masterTempoClock.beats].postln;
             ~sentCount = ~sentCount+1;
-            maxMidiOut.noteOn(0, bank, 60);
+            maxMidiOut.noteOn(0, 60, 60);
 
             if(~ableton, {
                 Task({
@@ -316,6 +309,13 @@ sendSample = {|drumStr|
                 }).play;
             });
 
+
+            if(~max, {
+                //play this buffer
+                // 1/(beats/sec) * beats * ms/s
+                bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
+                maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
+            });
         }).play;
 
         //schedule turn off if needed
