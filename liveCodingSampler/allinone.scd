@@ -1,5 +1,5 @@
 (
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort, heldHitTasks;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort, heldHitTasks;
 var broadcastOSCport, tempo, maxBeatFunc, lastMasterBeat, linkDrift;
 
 var channelMap, startWaveHandler, stopWaveHandler, startWave, stopWave;
@@ -110,13 +110,11 @@ OSCFunc({|msg, time, addr, recvPort|
 
 
 
-//MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
 maxPort = NetAddr("localhost", 5432);
 
-//TODO: implement tempoclock per channel (with synched beats)
 //masterTempoClock = TempoClock.new(1);
 channelPatternMap = Dictionary();
 chanBackupPatMap = Dictionary();
@@ -125,8 +123,11 @@ tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
 heldHitTasks = Dictionary();
 
-//TODO - parametrize this
-midiChannel = 0;
+//LATENCYFIX - latencyCompMap - a map chanInd -> preDelay
+//because sendSample is delaying MIDI noteOn by x ms, we need to start the sequence x ms early
+//however, if there is < x ms before the next metronome hit when we start a sequence,
+//we use whatever predelay k we can, and then save the leftovers (x-k) to use before the next sequence
+
 
 //msg[1] is the channel being played on
 //msg[2] is the string pattern getting played
@@ -186,9 +187,10 @@ playStepGenerator = {|i|
                 channelPatternMap[i] = chanBackupPatMap[i]
             });
 
-            //update indexes appropriately
+            //update indexes appropriately TODO: should the index always be set to zero here?
             channelInd[i] = (ind+1)%patList.size;
 
+            //LATENCYFIX - adjust this number by latencyCompMap and save the leftover latency
             //return (d) - i.e. schedule next step on channel
             retVal = dur;
             //["RETVAL1", retVal].postln;
@@ -229,6 +231,8 @@ masterClockBeat = {|msg, time, addr, recvPort|
         })
     });
     //["PYDAL BEAT", masterTempoClock.beats].postln;
+
+    //LATENCYFIX - adjust this number by latencyCompMap and save the leftover latency
     1
 };
 masterTempoClock.sched(masterTempoClock.timeToNextBeat, masterClockBeat);
@@ -257,7 +261,9 @@ timeListToDurationList = {|oldList|
     pList
 };
 
-
+~ableton = false;
+~max = true;
+//LATENCYFIX - this method contains a task that sends start-pos OSC, then noteOn midi x ms later
 sendSample = {|drumStr|
     var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
 
@@ -280,11 +286,21 @@ sendSample = {|drumStr|
         });
     });
 
-    //play this buffer
-    // 1/(beats/sec) * beats * ms/s
-    bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
-    //TODO max - will having speed=1 conflict with LFO-set speed?
-    maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
+    if(~ableton, {
+        Task({
+            midiOut.noteOn(0, 60, 60);
+            0.1.wait;
+            midiOut.noteOff(0, 60, 60);
+        }).play;
+    });
+
+
+    if(~max, {
+        //play this buffer
+        // 1/(beats/sec) * beats * ms/s
+        bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
+        maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
+    });
 
     //schedule turn off if needed
     if(duration.isNil.not, {
@@ -297,3 +313,6 @@ sendSample = {|drumStr|
 };
 
 )
+
+~max=true
+~ableton=false
