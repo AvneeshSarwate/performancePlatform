@@ -1,5 +1,5 @@
 (
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort, heldHitTasks;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort, heldHitTasks, maxMidiOut;
 var broadcastOSCport, tempo, maxBeatFunc, lastMasterBeat, linkDrift;
 
 var channelMap, startWaveHandler, stopWaveHandler, startWave, stopWave;
@@ -112,6 +112,8 @@ OSCFunc({|msg, time, addr, recvPort|
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
+maxMidiOut = MIDIOut.newByName("to Max 1", "to Max 1");
+maxMidiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
 maxPort = NetAddr("localhost", 5432);
 
@@ -175,7 +177,9 @@ playStepGenerator = {|i|
             var step = patList[ind];
             var dur = step[0];
 
+            //["PLAYSTEP", ~sentCount, masterTempoClock.beats, step[1]].postln;
             step[1].do({|samp| sendSample.(samp)});
+
             //["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
             //if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
@@ -193,9 +197,9 @@ playStepGenerator = {|i|
             //LATENCYFIX - adjust this number by latencyCompMap and save the leftover latency
             //return (d) - i.e. schedule next step on channel
             retVal = dur;
-            //["RETVAL1", retVal].postln;
+            //["RETVAL  ", retVal, ind].postln;
         });
-        //["RETVAL2", retVal].postln;
+        //["RETVAL  ", retVal].postln;
         retVal
     };
     playStep
@@ -248,6 +252,8 @@ patternRead = {|patternStr|
     patternList
 };
 
+//TODO - this breaks for patterns like read("a a", 4) - renders to [(0, {"a"}, (2.0, {"a"})]
+//and causes double triggering and weird osc latency issues
 timeListToDurationList = {|oldList|
     var pList = List.new;
     if(oldList.size > 1,
@@ -263,52 +269,63 @@ timeListToDurationList = {|oldList|
 
 ~ableton = false;
 ~max = true;
+~sentCount = 0;
 //LATENCYFIX - this method contains a task that sends start-pos OSC, then noteOn midi x ms later
 sendSample = {|drumStr|
-    var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
+    if(drumStr.asString != "~", {
+        var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
 
-    bank = ['a', 'b', 'c', 'd'].indexOf(drumStr.split($:)[0].asSymbol) + 1;
-    start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
-    end = drumStr.asString.split($:)[1].split($_)[1];
+        bank = ['a', 'b', 'c', 'd'].indexOf(drumStr.split($:)[0].asSymbol) + 1;
+        start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
+        end = drumStr.asString.split($:)[1].split($_)[1];
 
-    duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
-    //[drumStr, duration].postln;
+        duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
+        //[drumStr, duration].postln;
 
-    //turn of other buffers (all buffers if end < start, otherwise start buffer)
-    //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
-    banksToTurnOff = if(end.isNil.not and: {(end < start)}, {(1..4)}, {[bank]});
-    banksToTurnOff.do({|i|
-        maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
-        if(heldHitTasks[i].isNil.not, {
-            heldHitTasks[i].stop;
-            heldHitTasks[i].free;
-            heldHitTasks[i] = nil;
-        });
-    });
-
-    if(~ableton, {
         Task({
-            midiOut.noteOn(0, 60, 60);
-            0.1.wait;
-            midiOut.noteOff(0, 60, 60);
+            //turn of other buffers (all buffers if end < start, otherwise start buffer)
+            //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
+            banksToTurnOff = if(end.isNil.not and: {(end < start)}, {Set.newFrom((1..4)).remove(bank)}, {[]});
+            banksToTurnOff.do({|i|
+                maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
+                if(heldHitTasks[i].isNil.not, {
+                    heldHitTasks[i].stop;
+                    heldHitTasks[i].free;
+                    heldHitTasks[i] = nil;
+                });
+            });
+
+            0.001.wait;
+
+            //["SENTSAMP", ~sentCount, masterTempoClock.beats].postln;
+            ~sentCount = ~sentCount+1;
+            maxMidiOut.noteOn(0, 60, 60);
+
+            if(~ableton, {
+                Task({
+                    midiOut.noteOn(0, 60, 60);
+                    0.1.wait;
+                    midiOut.noteOff(0, 60, 60);
+                }).play;
+            });
+
+
+            if(~max, {
+                //play this buffer
+                // 1/(beats/sec) * beats * ms/s
+                bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
+                maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
+            });
         }).play;
-    });
 
-
-    if(~max, {
-        //play this buffer
-        // 1/(beats/sec) * beats * ms/s
-        bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
-        maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
-    });
-
-    //schedule turn off if needed
-    if(duration.isNil.not, {
-        heldHitTasks[bank] = Task({
-            duration.wait;
-            maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
-            ["SEND END", bank].postln;
-        }, masterTempoClock).play;
+        //schedule turn off if needed
+        if(duration.isNil.not, {
+            heldHitTasks[bank] = Task({
+                duration.wait;
+                maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
+                ["SEND END", bank].postln;
+            }, masterTempoClock).play;
+        });
     });
 };
 
