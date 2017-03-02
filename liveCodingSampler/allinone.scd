@@ -1,6 +1,6 @@
 (
 var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort, heldHitTasks;
-var broadcastOSCport, tempo;
+var broadcastOSCport, tempo, maxBeatFunc, lastMasterBeat, linkDrift;
 
 var channelMap, startWaveHandler, stopWaveHandler, startWave, stopWave;
 var sinwav = {|fr,ph,am,sh, time| (sin((pi*fr*time)+ph)*am)+sh};
@@ -78,22 +78,36 @@ MIDIClient.init;
 MIDIIn.connectAll;
 
 masterTempoClock = TempoClock.new(1);
+lastMasterBeat = 0;
+linkDrift = 0;
 broadcastOSCport = NetAddr("localhost", 57120);
 
 
-//msg[1] is the new tempo
-OSCFunc({|msg, time, addr, recvPort|
+//msg[1] is the new tempo in beats per MINUTE (tempo clock is bpSEC)
+maxBeatFunc = {|msg, time, addr, recvPort|
     var newTempo = msg[1].asFloat;
-    if(tempo.isNil, {tempo = newTempo});
     //["max LINK BEAT", newTempo].postln;
+
+    var beat = masterTempoClock.beats;
+    linkDrift = linkDrift + (1 - (beat - lastMasterBeat));
+    //["BEATS", beat-lastMasterBeat, linkDrift, beat].postln;
+    lastMasterBeat = beat;
 
     if(newTempo != tempo, {
         tempo = newTempo;
         masterTempoClock.tempo = tempo/60;
         tempoClockMap.values.do({|clock| clock.tempo = tempo/60});
     });
+};
 
-}, "/maxLink");
+
+//msg[1] is the new tempo in beats per MINUTE (tempo clock is bpSEC)
+OSCFunc({|msg, time, addr, recvPort|
+    tempo = msg[1].asFloat;
+    masterTempoClock = TempoClock.new(tempo/60);
+    OSCFunc(maxBeatFunc, "/maxLink");
+}, "/maxLink").oneShot;
+
 
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
