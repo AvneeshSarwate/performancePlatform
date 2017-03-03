@@ -51,7 +51,7 @@ def isPydalSymbol(s):
 def isSampleSymbol(s):
     return re.match('^[a-g][a-g]:[0-9](\.[0-9]+)?_[0-9](\.[0-9]+)?$', s) or s == "~"
 def isMaxSymbol(s):
-    return re.match('^[a-d]:[0-9](\.[0-9]+)?(_[0-9](\.[0-9]+)?)?$', s) or s == "~"
+    return re.match('^[a-d](:[0-9](\.[0-9]+)?(_[0-9](\.[0-9]+)?)?)?$', s) or s == "~"
 def isArpeggiatorSymbol(s):
     return s.isdigit()
 

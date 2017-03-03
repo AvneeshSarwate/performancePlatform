@@ -133,6 +133,7 @@ heldHitTasks = Dictionary();
 
 //msg[1] is the channel being played on
 //msg[2] is the string pattern getting played
+//msg[3] is the total length in beats of the pattern
 startPattern = {|msg, time, addr, recvPort|
     //parse string to pattern
     var patternList, loopFrac, ind, startDelay, chanClock;
@@ -140,7 +141,7 @@ startPattern = {|msg, time, addr, recvPort|
     patternList = patternRead.(msg[2].asString);
 
     //save pattern to map
-    channelPatternMap[msg[1]] = timeListToDurationList.(patternList);
+    channelPatternMap[msg[1]] = timeListToDurationList.(patternList, msg[3].asFloat);
     chanBackupPatMap[msg[1]] = [];
 
     //create channel tempo clock if needed
@@ -171,6 +172,13 @@ playStepGenerator = {|i|
     var playStep = {
         //if list len == 0, exit
         var retVal = nil;
+
+        //if last step (or < 20 ms from end?), set backupPat to actual pattern
+        if((channelInd[i] == (channelPatternMap[i].size-1)) && (chanBackupPatMap[i].size > 0), {
+            //"DID BACKUP".postln;
+            channelPatternMap[i] = chanBackupPatMap[i]
+        });
+
         if(channelPatternMap[i].size != 0, {
             var ind = channelInd[i];
             var patList = channelPatternMap[i];
@@ -183,15 +191,13 @@ playStepGenerator = {|i|
             //["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
             //if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
-            if(ind == (patList.size-2), {pythonOSCport.sendMsg("/pydalGetUpdate-"++i)});
-
-            //if last step (or < 20 ms from end?), set backupPat to actual pattern
             if(ind == (patList.size-1), {
-                //"DID BACKUP".postln;
-                channelPatternMap[i] = chanBackupPatMap[i]
+                "REQUEST UPDATE".postln;
+                pythonOSCport.sendMsg("/pydalGetUpdate-"++i)
             });
 
-            //update indexes appropriately TODO: should the index always be set to zero here?
+
+            //update indexes appropriately
             channelInd[i] = (ind+1)%patList.size;
 
             //LATENCYFIX - adjust this number by latencyCompMap and save the leftover latency
@@ -208,10 +214,11 @@ playStepGenerator = {|i|
 
 //msg[1] is the channel being played on
 //msg[2] is the backup pattern
+//msg[3] is the total length in beats of the pattern
 recieveBackupPattern = {|msg, time, addr, recvPort|
     //parse string and save it to backupmap
     //["GOT BACKUP", msg[2]].postln;
-    chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString));
+    chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString), msg[3].asFloat);
 };
 OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 
@@ -254,7 +261,7 @@ patternRead = {|patternStr|
 
 //TODO - this breaks for patterns like read("a a", 4) - renders to [(0, {"a"}, (2.0, {"a"})]
 //and causes double triggering and weird osc latency issues
-timeListToDurationList = {|oldList|
+timeListToDurationList = {|oldList, totalLength|
     var pList = List.new;
     if(oldList.size > 1,
         {
@@ -263,7 +270,7 @@ timeListToDurationList = {|oldList|
             });
 
     });
-    pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
+    pList.add([totalLength - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
     pList
 };
 
@@ -276,8 +283,16 @@ sendSample = {|drumStr|
         var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
 
         bank = ['a', 'b', 'c', 'd'].indexOf(drumStr.split($:)[0].asSymbol) + 1;
-        start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
-        end = drumStr.asString.split($:)[1].split($_)[1];
+        if(drumStr.split($:)[1].isNil,
+            {
+                start = 0;
+                end = 0.25;
+            },
+            {
+                start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
+                end = drumStr.asString.split($:)[1].split($_)[1];
+            }
+        );
 
         duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
         //[drumStr, duration].postln;

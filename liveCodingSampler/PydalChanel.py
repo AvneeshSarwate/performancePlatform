@@ -113,6 +113,7 @@ class PydalChannel:
 		msg.setAddress("/pydalSendUpdate")
 		msg.append(self.num)
 		msg.append(renderStr)
+		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
 	def play(self, pat):
@@ -124,6 +125,7 @@ class PydalChannel:
 		msg.setAddress("/pydalPlay")
 		msg.append(self.num)
 		msg.append(renderStr)
+		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
 	def stop(self):
