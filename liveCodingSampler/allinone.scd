@@ -174,8 +174,8 @@ playStepGenerator = {|i|
         var retVal = nil;
 
         //if last step (or < 20 ms from end?), set backupPat to actual pattern
-        if((channelInd[i] == (channelPatternMap[i].size-1)) && (chanBackupPatMap[i].size > 0), {
-            //"DID BACKUP".postln;
+        if((channelInd[i] == 0) && (chanBackupPatMap[i].size > 0), {
+            "LOADED BACKUP".postln;
             channelPatternMap[i] = chanBackupPatMap[i]
         });
 
@@ -192,7 +192,7 @@ playStepGenerator = {|i|
 
             //if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
             if(ind == (patList.size-1), {
-                "REQUEST UPDATE".postln;
+                ["REQUEST UPDATE", masterTempoClock.beats].postln;
                 pythonOSCport.sendMsg("/pydalGetUpdate-"++i)
             });
 
@@ -217,8 +217,9 @@ playStepGenerator = {|i|
 //msg[3] is the total length in beats of the pattern
 recieveBackupPattern = {|msg, time, addr, recvPort|
     //parse string and save it to backupmap
-    //["GOT BACKUP", msg[2]].postln;
+    ["GOT BACKUP", msg[2]].postln;
     chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString), msg[3].asFloat);
+    chanBackupPatMap[msg[1]].postln;
 };
 OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 
@@ -297,6 +298,8 @@ sendSample = {|drumStr|
         duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
         //[drumStr, duration].postln;
 
+        [drumStr, masterTempoClock.beats].postln;
+
         Task({
             //turn of other buffers (all buffers if end < start, otherwise start buffer)
             //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
@@ -318,9 +321,9 @@ sendSample = {|drumStr|
 
             if(~ableton, {
                 Task({
-                    midiOut.noteOn(0, 60, 60);
+                    midiOut.noteOn(0, 60+bank, 60);
                     0.1.wait;
-                    midiOut.noteOff(0, 60, 60);
+                    midiOut.noteOff(0, 60+bank, 60);
                 }).play;
             });
 
@@ -338,7 +341,7 @@ sendSample = {|drumStr|
             heldHitTasks[bank] = Task({
                 duration.wait;
                 maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
-                ["SEND END", bank].postln;
+                //["SEND END", bank].postln;
             }, masterTempoClock).play;
         });
     });
