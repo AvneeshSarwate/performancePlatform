@@ -228,6 +228,7 @@ OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 stopPattern = {|msg, time, addr, recvPort|
     if(channelPatternMap.keys.includes(msg[1]), {channelPatternMap[msg[1]] = []});
     maxPort.sendMsg("/sampLoop/stopAll", 1);
+    loopStartFunctions[msg[1]] = {tempoClockMap[msg[1]].clear};
     ["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
 };
 OSCFunc(stopPattern, "/pydalStop");
@@ -349,5 +350,5 @@ sendSample = {|drumStr|
 
 )
 
-~max=true
+~max=true;
 ~ableton=false
