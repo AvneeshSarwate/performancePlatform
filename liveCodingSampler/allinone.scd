@@ -94,6 +94,7 @@ maxBeatFunc = {|msg, time, addr, recvPort|
     lastMasterBeat = beat;
 
     if(newTempo != tempo, {
+        ["TEMPO CHANGE", tempo, newTempo].postln;
         tempo = newTempo;
         masterTempoClock.tempo = tempo/60;
         tempoClockMap.values.do({|clock| clock.tempo = tempo/60});
@@ -104,8 +105,23 @@ maxBeatFunc = {|msg, time, addr, recvPort|
 //msg[1] is the new tempo in beats per MINUTE (tempo clock is bpSEC)
 OSCFunc({|msg, time, addr, recvPort|
     tempo = msg[1].asFloat;
-    masterTempoClock = TempoClock.new(tempo/60);
+    masterTempoClock = TempoClock.new(tempo/60, 0);
     OSCFunc(maxBeatFunc, "/maxLink");
+    //msg[1] is the new BEAT DURATION (not tempo)
+    masterClockBeat = {|msg, time, addr, recvPort|
+        loopStartFunctions.keys.do({|key|
+            if(loopStartFunctions[key] != nil, {
+                ["START", masterTempoClock.beats].postln;
+                loopStartFunctions[key].();
+                loopStartFunctions[key] = nil;
+            })
+        });
+        ["PYDAL BEAT", masterTempoClock.beats].postln;
+
+        //LATENCYFIX - adjust this number by latencyCompMap and save the leftover latency
+        1
+    };
+    masterTempoClock.sched(masterTempoClock.timeToNextBeat, masterClockBeat);
 }, "/maxLink").oneShot;
 
 
@@ -137,7 +153,7 @@ heldHitTasks = Dictionary();
 startPattern = {|msg, time, addr, recvPort|
     //parse string to pattern
     var patternList, loopFrac, ind, startDelay, chanClock;
-    ["PLAY START", msg[2]].postln;
+    ["PLAY START", msg[2], masterTempoClock.beats].postln;
     patternList = patternRead.(msg[2].asString);
 
     //save pattern to map
@@ -175,7 +191,7 @@ playStepGenerator = {|i|
 
         //if last step (or < 20 ms from end?), set backupPat to actual pattern
         if((channelInd[i] == 0) && (chanBackupPatMap[i].size > 0), {
-            "LOADED BACKUP".postln;
+            //"LOADED BACKUP".postln;
             channelPatternMap[i] = chanBackupPatMap[i]
         });
 
@@ -192,7 +208,7 @@ playStepGenerator = {|i|
 
             //if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
             if(ind == (patList.size-1), {
-                ["REQUEST UPDATE", masterTempoClock.beats].postln;
+                //["REQUEST UPDATE", masterTempoClock.beats].postln;
                 pythonOSCport.sendMsg("/pydalGetUpdate-"++i)
             });
 
@@ -217,9 +233,9 @@ playStepGenerator = {|i|
 //msg[3] is the total length in beats of the pattern
 recieveBackupPattern = {|msg, time, addr, recvPort|
     //parse string and save it to backupmap
-    ["GOT BACKUP", msg[2]].postln;
+    //["GOT BACKUP", msg[2]].postln;
     chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString), msg[3].asFloat);
-    chanBackupPatMap[msg[1]].postln;
+    //chanBackupPatMap[msg[1]].postln;
 };
 OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 
@@ -233,22 +249,6 @@ stopPattern = {|msg, time, addr, recvPort|
 };
 OSCFunc(stopPattern, "/pydalStop");
 
-
-//msg[1] is the new BEAT DURATION (not tempo)
-masterClockBeat = {|msg, time, addr, recvPort|
-    loopStartFunctions.keys.do({|key|
-        if(loopStartFunctions[key] != nil, {
-            ["START", masterTempoClock.beats].postln;
-            loopStartFunctions[key].();
-            loopStartFunctions[key] = nil;
-        })
-    });
-    //["PYDAL BEAT", masterTempoClock.beats].postln;
-
-    //LATENCYFIX - adjust this number by latencyCompMap and save the leftover latency
-    1
-};
-masterTempoClock.sched(masterTempoClock.timeToNextBeat, masterClockBeat);
 
 patternRead = {|patternStr|
     var patternList = List.new;
@@ -299,7 +299,7 @@ sendSample = {|drumStr|
         duration = if(end.isNil.not and: {(end.asFloat > start)}, {end.asFloat - start}, {nil});
         //[drumStr, duration].postln;
 
-        [drumStr, masterTempoClock.beats].postln;
+        //[drumStr, masterTempoClock.beats].postln;
 
         Task({
             //turn of other buffers (all buffers if end < start, otherwise start buffer)

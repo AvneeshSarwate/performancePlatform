@@ -1358,7 +1358,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1199.0, 597.0, 50.0, 35.0 ],
 					"style" : "",
-					"text" : "/maxLink 120."
+					"text" : "/maxLink 160."
 				}
 
 			}
@@ -2349,7 +2349,7 @@
 					"destination" : [ "obj-43", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
-					"order" : 2,
+					"order" : 3,
 					"source" : [ "obj-36", 1 ]
 				}
 
@@ -2359,7 +2359,7 @@
 					"destination" : [ "obj-45", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
-					"order" : 6,
+					"order" : 7,
 					"source" : [ "obj-36", 1 ]
 				}
 
@@ -2369,7 +2369,7 @@
 					"destination" : [ "obj-46", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
-					"order" : 5,
+					"order" : 6,
 					"source" : [ "obj-36", 1 ]
 				}
 
@@ -2379,7 +2379,7 @@
 					"destination" : [ "obj-47", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
-					"order" : 4,
+					"order" : 5,
 					"source" : [ "obj-36", 1 ]
 				}
 
@@ -2389,7 +2389,17 @@
 					"destination" : [ "obj-48", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
-					"order" : 3,
+					"order" : 4,
+					"source" : [ "obj-36", 1 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-50", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"order" : 2,
 					"source" : [ "obj-36", 1 ]
 				}
 
@@ -2969,9 +2979,9 @@
 			}
  ],
 		"parameters" : 		{
-			"obj-10::obj-21::obj-6" : [ "live.tab[3]", "live.tab[1]", 0 ],
+			"obj-10::obj-35" : [ "[5]", "Level", 0 ],
 			"obj-6" : [ "live.gain~", "live.gain~", 0 ],
-			"obj-10::obj-35" : [ "[5]", "Level", 0 ]
+			"obj-10::obj-21::obj-6" : [ "live.tab[3]", "live.tab[1]", 0 ]
 		}
 ,
 		"dependency_cache" : [ 			{
