@@ -1,6 +1,6 @@
 (
 var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, maxPort, heldHitTasks, maxMidiOut;
-var broadcastOSCport, tempo, maxBeatFunc, lastMasterBeat, linkDrift;
+var broadcastOSCport, tempo, maxBeatFunc, lastMasterBeat, linkDrift, adjustPhase;
 
 var channelMap, startWaveHandler, stopWaveHandler, startWave, stopWave;
 var sinwav = {|fr,ph,am,sh, time| (sin((pi*fr*time)+ph)*am)+sh};
@@ -80,6 +80,7 @@ MIDIIn.connectAll;
 masterTempoClock = TempoClock.new(1);
 lastMasterBeat = 0;
 linkDrift = 0;
+adjustPhase = false;
 broadcastOSCport = NetAddr("localhost", 57120);
 
 
@@ -93,11 +94,18 @@ maxBeatFunc = {|msg, time, addr, recvPort|
     //["BEATS", beat-lastMasterBeat, linkDrift, beat].postln;
     lastMasterBeat = beat;
 
+    if(adjustPhase, {
+        masterTempoClock.beats = masterTempoClock.beats.round;
+        tempoClockMap.values.do({|clock| clock.beats = clock.beats.round});
+        adjustPhase = false;
+    });
+
     if(newTempo != tempo, {
         ["TEMPO CHANGE", tempo, newTempo].postln;
         tempo = newTempo;
         masterTempoClock.tempo = tempo/60;
         tempoClockMap.values.do({|clock| clock.tempo = tempo/60});
+        adjustPhase = true;
     });
 };
 
@@ -116,7 +124,7 @@ OSCFunc({|msg, time, addr, recvPort|
                 loopStartFunctions[key] = nil;
             })
         });
-        ["PYDAL BEAT", masterTempoClock.beats].postln;
+        //["PYDAL BEAT", masterTempoClock.beats].postln;
 
         //LATENCYFIX - adjust this number by latencyCompMap and save the leftover latency
         1
