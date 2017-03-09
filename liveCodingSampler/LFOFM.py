@@ -16,18 +16,22 @@ class WavePlayer:
 
 
 	#utility func to make succint keyword methods 
-	def keyWordWaveAdress(self, keyWord, bufferNum, wave):
-		if wave == 0:
+	def keyWordWaveAdress(self, keyWord, bufferLetter, wave):
+		bufferNum = "abcd".index(bufferLetter) + 1
+		if wave == "stop":
 			self.stopWave("/sampLoop/"+str(bufferNum)+"/"+keyWord)
 		else:
 			self.startWaveOSC("/sampLoop/"+str(bufferNum)+"/"+keyWord, wave)
 
-	def shift(self, bufferNum, wave):
-		self.keyWordWaveAdress("shift", bufferNum, wave)
+	def shift(self, bufferLetter, wave):
+		self.keyWordWaveAdress("shift", bufferLetter, wave)
 
 
-	def speed(self, bufferNum, wave):
-		self.keyWordWaveAdress("speed", bufferNum, wave)
+	def speed(self, bufferLetter, wave):
+		self.keyWordWaveAdress("speed", bufferLetter, wave)
+
+	def vol(self, bufferLetter, wave):
+		self.keyWordWaveAdress("vol", bufferLetter, wave)
 
 
 	def startWave(self, ccNum, wave):

@@ -69,6 +69,8 @@ stopWave = {|msg, time, addr, recvPort|
     if(channelMap[msg[1]].isNil.not, {
         channelMap[msg[1]].stop;
         channelMap[msg[1]].free;
+        channelMap[msg[1]] = nil;
+        ["WAVE STOPPED", msg[1]];
     });
     channelMap[msg[1]] = nil;
 };
@@ -361,4 +363,4 @@ sendSample = {|drumStr|
 )
 
 ~max=false;
-~ableton=true
+~ableton=false
