@@ -51,7 +51,7 @@ def isPydalSymbol(s):
 def isSampleSymbol(s):
     return re.match('^[a-g][a-g]:[0-9](\.[0-9]+)?_[0-9](\.[0-9]+)?$', s) or s == "~"
 def isMaxSymbol(s):
-    return re.match('^[a-d](:[0-9](\.[0-9]+)?(_[0-9](\.[0-9]+)?)?)?$', s) or s == "~"
+    return re.match('^[a-d](:[0-9](\.[0-9]+)?(_[0-9](\.[0-9]+)?)?)?(\^0?.[0-9]+)?$', s) or s == "~"
 def isArpeggiatorSymbol(s):
     return s.isdigit()
 
@@ -78,7 +78,7 @@ def parseMult(tokenList, ind, node):
     if isNumber(tokenList[ind+1]):
         return nodes.MultNode(node, tokenList[ind+1]), ind+2
     else:
-        raise StopIteration("number must follow muliplication operator")
+        raise StopIteration("number must follow muliplication operator (at token " + str(ind) + ")")
 
 
 def parseSymbol(tokenList, ind):
@@ -141,7 +141,7 @@ def parseExpression(tokenList, ind, isSymbol):
             parenOrMultNode, newInd = parseParenBlock(tokenList, ind, isSymbol)
             node.children.append(parenOrMultNode)
         else:
-            raise StopIteration("can only start expressions with symbols or open paren: ") 
+            raise StopIteration("can only start expressions with symbols or open paren (at token " + str(ind) + ")") 
 
         ind = newInd
 

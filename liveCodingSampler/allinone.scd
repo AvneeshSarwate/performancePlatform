@@ -254,9 +254,9 @@ OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 //msg[1] is ind of channel to stop
 stopPattern = {|msg, time, addr, recvPort|
     if(channelPatternMap.keys.includes(msg[1]), {channelPatternMap[msg[1]] = []});
-    maxPort.sendMsg("/sampLoop/stopAll", 1);
     loopStartFunctions[msg[1]] = {tempoClockMap[msg[1]].clear};
     ["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
+    maxPort.sendMsg("/sampLoop/stopAll", 1);
 };
 OSCFunc(stopPattern, "/pydalStop");
 
@@ -293,17 +293,21 @@ timeListToDurationList = {|oldList, totalLength|
 //LATENCYFIX - this method contains a task that sends start-pos OSC, then noteOn midi x ms later
 sendSample = {|drumStr|
     if(drumStr.asString != "~", {
-        var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset;
+        var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset, bankSym, rangeStr, volStr;
 
-        bank = ['a', 'b', 'c', 'd'].indexOf(drumStr.split($:)[0].asSymbol) + 1;
-        if(drumStr.split($:)[1].isNil,
+        bankSym = drumStr.split($:)[0].split($^)[0].asSymbol;
+        rangeStr = drumStr.asString.split($^)[0].split($:)[1];
+        volStr = drumStr.asString.split($^)[1];
+        [bankSym, rangeStr, volStr].postln;
+        bank = ['a', 'b', 'c', 'd'].indexOf(bankSym) + 1;
+        if(rangeStr.isNil,
             {
                 start = 0;
                 end = 0.25;
             },
             {
-                start = drumStr.asString.split($:)[1].split($_)[0].asFloat;
-                end = drumStr.asString.split($:)[1].split($_)[1];
+                start = rangeStr.split($_)[0].asFloat;
+                end = rangeStr.split($_)[1];
             }
         );
 
@@ -340,6 +344,8 @@ sendSample = {|drumStr|
                 }).play;
             });
 
+
+            if(volStr.isNil.not, {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/vol", volStr.asFloat)});
 
             if(~max, {
                 //play this buffer
