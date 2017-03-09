@@ -1,0 +1,1 @@
+open -a SuperCollider.app liveCodingSampler/allinone.scd && open -a Max.app liveCodingSampler/multisample.maxpat && sleep 3 && /usr/local/bin/jupyter notebook liveCodingSampler/livecodeSampling.ipynb
