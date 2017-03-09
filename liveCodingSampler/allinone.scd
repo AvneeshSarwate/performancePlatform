@@ -118,6 +118,7 @@ OSCFunc({|msg, time, addr, recvPort|
     //msg[1] is the new BEAT DURATION (not tempo)
     masterClockBeat = {|msg, time, addr, recvPort|
         loopStartFunctions.keys.do({|key|
+            maxPort.sendMsg("/sampLoop/stopAll", 1);
             if(loopStartFunctions[key] != nil, {
                 ["START", masterTempoClock.beats].postln;
                 loopStartFunctions[key].();
@@ -136,8 +137,8 @@ OSCFunc({|msg, time, addr, recvPort|
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
-maxMidiOut = MIDIOut.newByName("to Max 1", "to Max 1");
-maxMidiOut.latency = 0;
+// maxMidiOut = MIDIOut.newByName("to Max 1", "to Max 1");
+// maxMidiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
 maxPort = NetAddr("localhost", 5432);
 
@@ -312,21 +313,22 @@ sendSample = {|drumStr|
         Task({
             //turn of other buffers (all buffers if end < start, otherwise start buffer)
             //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
-            banksToTurnOff = if(end.isNil.not and: {(end < start)}, {Set.newFrom((1..4)).remove(bank)}, {[]});
+            //TODO - figure out how you want to stop samples when multiple are playing at once
+            banksToTurnOff = if(end.isNil.not and: {(end < start)}, {Set.newFrom((1..4))}, {[bank]});
             banksToTurnOff.do({|i|
-                maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
+                //maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
                 if(heldHitTasks[i].isNil.not, {
+                    ["KILLED STOPTASK ON", i].postln;
                     heldHitTasks[i].stop;
                     heldHitTasks[i].free;
                     heldHitTasks[i] = nil;
                 });
             });
 
-            0.001.wait;
 
             //["SENTSAMP", ~sentCount, masterTempoClock.beats].postln;
             ~sentCount = ~sentCount+1;
-            maxMidiOut.noteOn(0, 60, 60);
+            // maxMidiOut.noteOn(0, 60, 60);
 
             if(~ableton, {
                 Task({
@@ -348,9 +350,9 @@ sendSample = {|drumStr|
         //schedule turn off if needed
         if(duration.isNil.not, {
             heldHitTasks[bank] = Task({
-                duration.wait;
+                (duration+0.001).wait;
                 maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
-                //["SEND END", bank].postln;
+                ["SEND END", bank].postln;
             }, masterTempoClock).play;
         });
     });
@@ -358,5 +360,5 @@ sendSample = {|drumStr|
 
 )
 
-~max=true;
-~ableton=false
+~max=false;
+~ableton=true
