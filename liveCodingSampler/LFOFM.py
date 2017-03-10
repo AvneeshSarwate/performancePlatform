@@ -13,6 +13,8 @@ class WavePlayer:
 	def __init__(self):
 		self.superColliderClient = OSC.OSCClient()
 		self.superColliderClient.connect( ('127.0.0.1', 57120) ) 
+		self.maxClient = OSC.OSCClient()
+		self.maxClient.connect( ('127.0.0.1', 5432) )
 
 
 	#utility func to make succint keyword methods 
@@ -32,6 +34,14 @@ class WavePlayer:
 
 	def vol(self, bufferLetter, wave):
 		self.keyWordWaveAdress("vol", bufferLetter, wave)
+
+
+	def timestretchMode(self, bufferLetter, isOn):
+		bufferNum = "abcd".index(bufferLetter) + 1
+		msg = OSC.OSCMessage()
+		msg.setAddress("/sampLoop/"+str(bufferNum)+"/timestretch")
+		msg.append(1 if isOn else 0)
+		self.maxClient.send(msg)
 
 
 	def startWave(self, ccNum, wave):
