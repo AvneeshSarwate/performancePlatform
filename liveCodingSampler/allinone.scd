@@ -133,6 +133,8 @@ OSCFunc({|msg, time, addr, recvPort|
         1
     };
     masterTempoClock.sched(masterTempoClock.timeToNextBeat, masterClockBeat);
+
+    maxPort.sendMsg("/startupTempo", tempo);
 }, "/maxLink").oneShot;
 
 

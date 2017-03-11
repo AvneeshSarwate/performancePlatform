@@ -35,6 +35,14 @@ class WavePlayer:
 	def vol(self, bufferLetter, wave):
 		self.keyWordWaveAdress("vol", bufferLetter, wave)
 
+	def tempo(self, tempo):
+		if tempo < 0 or not (type(tempo) is float or type(tempo) is int):
+			print "TEMPO MUST BE A NUMBER > 0"
+		else :
+			msg = OSC.OSCMessage()
+			msg.setAddress("/setTempo")
+			msg.append(tempo)
+			self.maxClient.send(msg)
 
 	def timestretchMode(self, bufferLetter, isOn):
 		bufferNum = "abcd".index(bufferLetter) + 1
