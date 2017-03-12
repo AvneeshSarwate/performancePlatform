@@ -120,7 +120,7 @@ OSCFunc({|msg, time, addr, recvPort|
     //msg[1] is the new BEAT DURATION (not tempo)
     masterClockBeat = {|msg, time, addr, recvPort|
         loopStartFunctions.keys.do({|key|
-            maxPort.sendMsg("/sampLoop/stopAll", 1);
+            maxPort.sendMsg("/sampLoop/stopAll", "stop");
             if(loopStartFunctions[key] != nil, {
                 ["START", masterTempoClock.beats].postln;
                 loopStartFunctions[key].();
@@ -258,7 +258,7 @@ stopPattern = {|msg, time, addr, recvPort|
     if(channelPatternMap.keys.includes(msg[1]), {channelPatternMap[msg[1]] = []});
     loopStartFunctions[msg[1]] = {tempoClockMap[msg[1]].clear};
     ["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
-    maxPort.sendMsg("/sampLoop/stopAll", 1);
+    maxPort.sendMsg("/sampLoop/stopAll", "stop");
 };
 OSCFunc(stopPattern, "/pydalStop");
 
