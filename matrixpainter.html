@@ -6,11 +6,13 @@
  	<title>Title Goes Here</title> 
 </head> 
 <body>
-
+	<div id="gridholder"></div>
+	<button id="selectorToggle" class="selected">on</button>
 </body> 
 <script type="text/javascript">
 	var lastClicked;
 	var selecting = true;
+	var mouseDown = false;
 	var grid = clickableGrid(32,32,function(el,row,col,i){
 	    console.log("You clicked on element:",el);
 	    console.log("You clicked on row:",row);
@@ -24,8 +26,18 @@
 	    lastClicked = el;
 	});
 
-	document.body.appendChild(grid);
-	     
+	document.getElementById('gridholder').appendChild(grid);
+
+	document.body.addEventListener('onmousedown', function(el) {mouseDown = true; console.log("mouse", mouseDown)});
+	document.body.addEventListener('onmouseup', function(el) {mouseDown = false; console.log("mouse", mouseDown)});
+	
+	document.getElementById('selectorToggle').addEventListener('click', function(el){
+		selecting = !selecting;
+		el.target.className = selecting ? 'selected' : 'unselected';
+		el.target.innerHTML = selecting ? "on" : "off";
+		console.log("click toggle", el);
+	});
+
 	function clickableGrid( rows, cols, callback ){
 	    var i=0;
 	    var grid = document.createElement('table');
@@ -40,7 +52,13 @@
 	                    callback(el,r,c,i);
 	                }
 	            })(cell,r,c,i),false);
-	            cell.addEventListener('onmouseover', function)
+	            cell.addEventListener('onmouseover', function(el) {
+	            	if(selecting){
+	            		el.target.setAttribute("vidIndex", 1);
+	            	} else {
+	            		el.target.setAttribute("vidIndex", 0);
+	            	}
+	            });
 	        }
 	    }
 	    return grid;
