@@ -108,6 +108,7 @@ maxBeatFunc = {|msg, time, addr, recvPort|
         masterTempoClock.tempo = tempo/60;
         tempoClockMap.values.do({|clock| clock.tempo = tempo/60});
         adjustPhase = true;
+        maxPort.sendMsg("/setTempo", tempo);
     });
 };
 
@@ -256,9 +257,15 @@ OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 //msg[1] is ind of channel to stop
 stopPattern = {|msg, time, addr, recvPort|
     if(channelPatternMap.keys.includes(msg[1]), {channelPatternMap[msg[1]] = []});
-    loopStartFunctions[msg[1]] = {tempoClockMap[msg[1]].clear};
+    loopStartFunctions[msg[1]] = {
+        tempoClockMap[msg[1]].clear;
+        Task({
+            0.001.wait;
+            "ALL STOPPED".postln;
+            maxPort.sendMsg("/sampLoop/stopAll", "stop");
+        }).start;
+    };
     ["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
-    maxPort.sendMsg("/sampLoop/stopAll", "stop");
 };
 OSCFunc(stopPattern, "/pydalStop");
 
@@ -300,7 +307,7 @@ sendSample = {|drumStr|
         bankSym = drumStr.split($:)[0].split($^)[0].asSymbol;
         rangeStr = drumStr.asString.split($^)[0].split($:)[1];
         volStr = drumStr.asString.split($^)[1];
-        [bankSym, rangeStr, volStr].postln;
+        //[bankSym, rangeStr, volStr].postln;
         bank = ['a', 'b', 'c', 'd'].indexOf(bankSym) + 1;
         if(rangeStr.isNil,
             {
@@ -326,7 +333,7 @@ sendSample = {|drumStr|
             banksToTurnOff.do({|i|
                 //maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
                 if(heldHitTasks[i].isNil.not, {
-                    ["KILLED STOPTASK ON", i].postln;
+                    //["KILLED STOPTASK ON", i].postln;
                     heldHitTasks[i].stop;
                     heldHitTasks[i].free;
                     heldHitTasks[i] = nil;
@@ -370,5 +377,5 @@ sendSample = {|drumStr|
 
 )
 
-~max=false;
+~max=true;
 ~ableton=false
