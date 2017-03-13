@@ -1,0 +1,49 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
+<html lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+	<link rel="stylesheet" type="text/css" href="matrixpainter.css">
+ 	<title>Title Goes Here</title> 
+</head> 
+<body>
+
+</body> 
+<script type="text/javascript">
+	var lastClicked;
+	var selecting = true;
+	var grid = clickableGrid(32,32,function(el,row,col,i){
+	    console.log("You clicked on element:",el);
+	    console.log("You clicked on row:",row);
+	    console.log("You clicked on col:",col);
+	    console.log("You clicked on item #:",i);
+
+	    el.className='selected';
+	    el.setAttribute("vidIndex", 1);
+
+	    if (lastClicked) lastClicked.className='';
+	    lastClicked = el;
+	});
+
+	document.body.appendChild(grid);
+	     
+	function clickableGrid( rows, cols, callback ){
+	    var i=0;
+	    var grid = document.createElement('table');
+	    grid.className = 'grid';
+	    for (var r=0;r<rows;++r){
+	        var tr = grid.appendChild(document.createElement('tr'));
+	        for (var c=0;c<cols;++c){
+	            var cell = tr.appendChild(document.createElement('td'));
+	            //cell.innerHTML = ++i;
+	            cell.addEventListener('click',(function(el,r,c,i){
+	                return function(){
+	                    callback(el,r,c,i);
+	                }
+	            })(cell,r,c,i),false);
+	            cell.addEventListener('onmouseover', function)
+	        }
+	    }
+	    return grid;
+	}
+</script>
+</html>
