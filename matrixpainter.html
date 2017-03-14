@@ -10,6 +10,13 @@
 	<span>
 		<button id="selectorToggle" class="selected">on</button>
 		<button id="sendmatrix">send</button>
+		<input type="text" id="gridname">
+		<button id="savematrix">save</button>
+	</span>
+	<br>
+	<span>
+		<button id="openmatrix">open</button>
+		<input type="text" id="filename">
 	</span>
 </body> 
 <script type="text/javascript" src="jquery-1.8.2.min.js"></script>
@@ -41,7 +48,7 @@
 		console.log("click toggle", el, mouseDown);
 	});
 
-	document.getElementById('sendmatrix').addEventListener('click', function(el){
+	var getMatrixString = function() {
 		var shapeVector = new Array(height*width);
 		for(var i=0; i < height; i++){
 			for (var j = 0; j < width; j++) {
@@ -49,17 +56,35 @@
 			}
 		}
 		console.log(shapeVector);
-		var vectString = shapeVector.join(",")
-		$.post('/send', {your_name: vectString, 'height': height, 'width': width }, 
-			function(response){console.log(repsonse)});
-		// $.ajax({
-		//    url: '/send',
-		//    type: 'PUT',
-		//    contents:  {'your_name': shapeVector},
-		//    success: function(response) {
-		//      //...
-		//    }
-		// });
+		return shapeVector.join(",");
+	}
+
+	var setMatrixFromString = function(matrixstring) {
+		var shapeVector = matrixstring.split(",").map(function(val){return Math.round(parseFloat(val))});
+		for(var i=0; i < height; i++){
+			for (var j = 0; j < width; j++) {
+				cells[i][j].vidIndex = shapeVector[i*height+j];
+				cells[i][j].setAttribute("vidIndex", cells[i][j].vidIndex) 
+			}
+		}
+	}
+
+	document.getElementById('sendmatrix').addEventListener('click', function(el){		
+		$.post('/send', {matrixstring: getMatrixString(), 'height': height, 'width': width }, 
+			function(response){console.log(response)});
+	});
+
+	document.getElementById('savematrix').addEventListener('click', function(el){	
+		console.log("saved name", $("#gridname").val())	
+		$.post('/save', {matrixstring: getMatrixString(), 'height': height, 'width': width, name: $("#gridname").val() }, 
+			function(response){console.log(response)});
+	});
+	document.getElementById('openmatrix').addEventListener('click', function(el){	
+		console.log("saved name", $("#filename").val())	
+		$.post('/open', {name: $("#filename").val() }, 
+			function(response){
+				setMatrixFromString(response['matrixstring'])
+			}, dataType='json');
 	});
 
 	function clickableGrid( rows, cols, callback ){

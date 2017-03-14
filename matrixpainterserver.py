@@ -3,8 +3,13 @@ from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 from os import curdir, sep
 import cgi
 import logging
+import OSC
+import json
 
 PORT_NUMBER = 8080
+
+scClient = OSC.OSCClient()
+scClient.connect( ('127.0.0.1', 57120) ) 
 
 #This class will handles any incoming request from
 #the browser 
@@ -54,24 +59,41 @@ class myHandler(BaseHTTPRequestHandler):
 		logging.error(self.headers)
 		print "POST PATH", self.path, self.headers 
 		# print "CONTENT", self.rfile.readline()
+		form = cgi.FieldStorage(
+			fp=self.rfile, 
+			headers=self.headers,
+			environ={'REQUEST_METHOD':'POST',
+	                 'CONTENT_TYPE':self.headers['Content-Type'],
+		})
 		if self.path=="/send":
-			form = cgi.FieldStorage(
-				fp=self.rfile, 
-				headers=self.headers,
-				environ={'REQUEST_METHOD':'POST',
-		                 'CONTENT_TYPE':self.headers['Content-Type'],
-			})
-			# form = cgi.FieldStorage()
-			print "NUM KEYS", len(form)
-			print "neesh_KEYS", form.keys()
-			print form.getlist("your_name")
-			print form.getlist("someshit")
+			
+			msg = OSC.OSCMessage()
+			msg.setAddress("/paintedMatrix")
+			msg.append(form['height'].value)
+			msg.append(form['width'].value)
+			msg.append(form['matrixstring'].value)
+			scClient.send(msg)
 			self.send_response(200)
 			self.end_headers()
-			return			
-	
-	def do_PUT(self):
-		print "put done"
+		if self.path == "/save":
+			matrixfile = open(form['name'].value, "w")
+			matrixfile.write("height: " + str(form['height'].value) + "\n")
+			matrixfile.write("width: " + str(form['width'].value) + "\n")
+			matrixfile.write("matrixstring: " + str(form['matrixstring'].value) + "\n")
+			matrixfile.close()
+			self.send_response(200)
+			self.end_headers()
+		if self.path == "/open":
+			matrixfileLines = open(form['name'].value).read().split("\n")
+			height = int(matrixfileLines[0].split(": ")[1])
+			width = int(matrixfileLines[1].split(": ")[1])
+			matrixstring = matrixfileLines[2].split(": ")[1]
+			respoonseStr =json.dumps({"height": height, "width": width, "matrixstring": matrixstring}, separators=(",", ":"))
+			
+			self.send_response(200)
+			self.end_headers()
+			self.wfile.write(respoonseStr)
+
 			
 try:
 	#Create a web server and define the handler to manage the
