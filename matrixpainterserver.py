@@ -52,7 +52,8 @@ class myHandler(BaseHTTPRequestHandler):
 	#Handler for the POST requests
 	def do_POST(self):
 		logging.error(self.headers)
-		print "POST PATH", self.path
+		print "POST PATH", self.path, self.headers 
+		# print "CONTENT", self.rfile.readline()
 		if self.path=="/send":
 			form = cgi.FieldStorage(
 				fp=self.rfile, 
@@ -60,12 +61,13 @@ class myHandler(BaseHTTPRequestHandler):
 				environ={'REQUEST_METHOD':'POST',
 		                 'CONTENT_TYPE':self.headers['Content-Type'],
 			})
-
-			print form
-			print "Your name is: %s" % form["your_name"].value
+			# form = cgi.FieldStorage()
+			print "NUM KEYS", len(form)
+			print "neesh_KEYS", form.keys()
+			print form.getlist("your_name")
+			print form.getlist("someshit")
 			self.send_response(200)
 			self.end_headers()
-			self.wfile.write("Thanks %s !" % form["your_name"].value)
 			return			
 	
 	def do_PUT(self):

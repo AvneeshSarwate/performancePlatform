@@ -49,15 +49,17 @@
 			}
 		}
 		console.log(shapeVector);
-		$.post('/send', {'your_name': shapeVector}, function(response){console.log(repsonse)});
-		$.ajax({
-		   url: '/send',
-		   type: 'PUT',
-		   contents:  {'your_name': shapeVector},
-		   success: function(response) {
-		     //...
-		   }
-		});
+		var vectString = shapeVector.join(",")
+		$.post('/send', {your_name: vectString, 'height': height, 'width': width }, 
+			function(response){console.log(repsonse)});
+		// $.ajax({
+		//    url: '/send',
+		//    type: 'PUT',
+		//    contents:  {'your_name': shapeVector},
+		//    success: function(response) {
+		//      //...
+		//    }
+		// });
 	});
 
 	function clickableGrid( rows, cols, callback ){
