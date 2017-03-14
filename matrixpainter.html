@@ -14,6 +14,10 @@
 	var selecting = true;
 	var mouseDown = false;
 	var height = 32, width = 32;
+	var cells = new Array(height);
+	for(var i=0; i < cells.length; i++){
+		cells[i] = new Array(width);
+	}
 	var grid = clickableGrid(height,width,function(el,row,col,i){
 	    console.log("You clicked on element:",el, row, col, i);
 
@@ -44,13 +48,16 @@
 	        var tr = grid.appendChild(document.createElement('tr'));
 	        for (var c=0;c<cols;++c){
 	            var cell = tr.appendChild(document.createElement('td'));
+	            cell.vidIndex = 0;
 	            //cell.innerHTML = ++i;
 	            cell.addEventListener('mousedown', function(el) {
 	            	mouseDown = true;
 	            	if(selecting){
 	            		el.target.setAttribute("vidIndex", 1);
+	            		el.target.vidIndex = 1;
 	            	} else {
 	            		el.target.setAttribute("vidIndex", 0);
+	            		el.target.vidIndex = 0;
 	            	}	
 	            });
 	            cell.addEventListener('mouseup', function(el) {
@@ -60,8 +67,10 @@
 	            	if(mouseDown) {
 		            	if(selecting){
 		            		el.target.setAttribute("vidIndex", 1);
+		            		el.target.vidIndex = 1;
 		            	} else {
 		            		el.target.setAttribute("vidIndex", 0);
+		            		el.target.vidIndex = 0;
 		            	}
 		            }
 	            });
