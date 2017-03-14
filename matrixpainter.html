@@ -13,11 +13,9 @@
 	var lastClicked;
 	var selecting = true;
 	var mouseDown = false;
-	var grid = clickableGrid(32,32,function(el,row,col,i){
-	    console.log("You clicked on element:",el);
-	    console.log("You clicked on row:",row);
-	    console.log("You clicked on col:",col);
-	    console.log("You clicked on item #:",i);
+	var height = 32, width = 32;
+	var grid = clickableGrid(height,width,function(el,row,col,i){
+	    console.log("You clicked on element:",el, row, col, i);
 
 	    el.className='selected';
 	    el.setAttribute("vidIndex", 1);
@@ -28,14 +26,14 @@
 
 	document.getElementById('gridholder').appendChild(grid);
 
-	document.body.addEventListener('onmousedown', function(el) {mouseDown = true; console.log("mouse", mouseDown)});
-	document.body.addEventListener('onmouseup', function(el) {mouseDown = false; console.log("mouse", mouseDown)});
+	// document.getElementById('gridholder').addEventListener('mousedown', function(el) {mouseDown = true; console.log("mouse", mouseDown)});
+	// document.getElementById('gridholder').addEventListener('mouseup', function(el) {mouseDown = false; console.log("mouse", mouseDown)});
 	
 	document.getElementById('selectorToggle').addEventListener('click', function(el){
 		selecting = !selecting;
 		el.target.className = selecting ? 'selected' : 'unselected';
 		el.target.innerHTML = selecting ? "on" : "off";
-		console.log("click toggle", el);
+		console.log("click toggle", el, mouseDown);
 	});
 
 	function clickableGrid( rows, cols, callback ){
@@ -47,17 +45,25 @@
 	        for (var c=0;c<cols;++c){
 	            var cell = tr.appendChild(document.createElement('td'));
 	            //cell.innerHTML = ++i;
-	            cell.addEventListener('click',(function(el,r,c,i){
-	                return function(){
-	                    callback(el,r,c,i);
-	                }
-	            })(cell,r,c,i),false);
-	            cell.addEventListener('onmouseover', function(el) {
+	            cell.addEventListener('mousedown', function(el) {
+	            	mouseDown = true;
 	            	if(selecting){
 	            		el.target.setAttribute("vidIndex", 1);
 	            	} else {
 	            		el.target.setAttribute("vidIndex", 0);
-	            	}
+	            	}	
+	            });
+	            cell.addEventListener('mouseup', function(el) {
+	            	mouseDown = false;
+	            });
+	            cell.addEventListener('mouseover', function(el) {
+	            	if(mouseDown) {
+		            	if(selecting){
+		            		el.target.setAttribute("vidIndex", 1);
+		            	} else {
+		            		el.target.setAttribute("vidIndex", 0);
+		            	}
+		            }
 	            });
 	        }
 	    }
