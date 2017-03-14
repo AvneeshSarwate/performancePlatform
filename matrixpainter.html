@@ -7,8 +7,12 @@
 </head> 
 <body>
 	<div id="gridholder"></div>
-	<button id="selectorToggle" class="selected">on</button>
+	<span>
+		<button id="selectorToggle" class="selected">on</button>
+		<button id="sendmatrix">send</button>
+	</span>
 </body> 
+<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
 <script type="text/javascript">
 	var lastClicked;
 	var selecting = true;
@@ -29,15 +33,31 @@
 	});
 
 	document.getElementById('gridholder').appendChild(grid);
-
-	// document.getElementById('gridholder').addEventListener('mousedown', function(el) {mouseDown = true; console.log("mouse", mouseDown)});
-	// document.getElementById('gridholder').addEventListener('mouseup', function(el) {mouseDown = false; console.log("mouse", mouseDown)});
 	
 	document.getElementById('selectorToggle').addEventListener('click', function(el){
 		selecting = !selecting;
 		el.target.className = selecting ? 'selected' : 'unselected';
 		el.target.innerHTML = selecting ? "on" : "off";
 		console.log("click toggle", el, mouseDown);
+	});
+
+	document.getElementById('sendmatrix').addEventListener('click', function(el){
+		var shapeVector = new Array(height*width);
+		for(var i=0; i < height; i++){
+			for (var j = 0; j < width; j++) {
+				shapeVector[i*height+j]= cells[i][j].vidIndex;
+			}
+		}
+		console.log(shapeVector);
+		$.post('/send', {'your_name': shapeVector}, function(response){console.log(repsonse)});
+		$.ajax({
+		   url: '/send',
+		   type: 'PUT',
+		   contents:  {'your_name': shapeVector},
+		   success: function(response) {
+		     //...
+		   }
+		});
 	});
 
 	function clickableGrid( rows, cols, callback ){
@@ -49,7 +69,7 @@
 	        for (var c=0;c<cols;++c){
 	            var cell = tr.appendChild(document.createElement('td'));
 	            cell.vidIndex = 0;
-	            //cell.innerHTML = ++i;
+	            cells[r][c] = cell;
 	            cell.addEventListener('mousedown', function(el) {
 	            	mouseDown = true;
 	            	if(selecting){
