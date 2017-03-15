@@ -21,9 +21,25 @@ var createCalcFunc = {|calcString|
     prepFunc.(sinwav, coswav, sqrwav, sawwav, triwav);
 };
 
-var func = createCalcFunc.(calcStr);
-func.(1);
+var waveStepFrac = 0.02;
 
+var func = createCalcFunc.(calcStr);
+
+var plotFunc = {|calcFunc, start, end, calcFuncStr|
+    var vals = (start, (start+waveStepFrac) .. end).collect({|i| calcFunc.(i)});
+    maxPort.sendRaw((["/sampLoop/waveValues"] ++ [vals.maxItem, vals.minItem] ++ vals).asArray.asRawOSC);
+    ~debugf = calcFunc;
+    AppClock.sched(0.1, {vals.plot});
+    ["SENT WAVE DATA", vals.maxItem, vals.minItem, calcFuncStr, vals].postln;
+};
+
+
+// msg[1] is calc string
+// msg[2] is start of plot range
+// msg[3] is end of plot range
+OSCFunc.new({|msg, time, addr, recvPort|
+    plotFunc.(createCalcFunc.(msg[1].asString), msg[2].asInt, msg[3].asInt, msg[1].asString);
+}, "/plotWave");
 
 //cc ind -> waveTask
 channelMap = Dictionary.new;
@@ -49,7 +65,7 @@ startWave = {|msg, time, addr, recvPort|
                     maxPort.sendMsg(ccIndOrWaveAddr.asString, func.(masterTempoClock.beats))
                 }
             );
-            0.02.wait;
+            waveStepFrac.wait;
         }.loop;
     });
     msg.postln;

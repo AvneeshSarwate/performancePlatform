@@ -17,6 +17,14 @@ class WavePlayer:
 		self.maxClient.connect( ('127.0.0.1', 5432) )
 
 
+	def plotWave(self, wave, start, end):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/plotWave")
+		msg.append(str(wave))
+		msg.append(start)
+		msg.append(end)
+		self.superColliderClient.send(msg)
+
 	#utility func to make succint keyword methods 
 	def keyWordWaveAdress(self, keyWord, bufferLetter, wave):
 		bufferNum = "abcd".index(bufferLetter) + 1
