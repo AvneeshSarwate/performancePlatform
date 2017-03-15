@@ -325,49 +325,49 @@ sendSample = {|drumStr|
 
         //[drumStr, masterTempoClock.beats].postln;
 
-        Task({
-            //turn of other buffers (all buffers if end < start, otherwise start buffer)
-            //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
-            //TODO - figure out how you want to stop samples when multiple are playing at once
-            banksToTurnOff = if(end.isNil.not and: {(end < start)}, {Set.newFrom((1..4))}, {[bank]});
-            banksToTurnOff.do({|i|
-                //maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
-                if(heldHitTasks[i].isNil.not, {
-                    //["KILLED STOPTASK ON", i].postln;
-                    heldHitTasks[i].stop;
-                    heldHitTasks[i].free;
-                    heldHitTasks[i] = nil;
-                });
+        //turn of other buffers (all buffers if end < start, otherwise start buffer)
+        //erase scheduled turn offs (all buffers if end < start, otherwise start buffer)
+        //TODO - figure out how you want to stop samples when multiple are playing at once
+        banksToTurnOff = if(end.isNil.not and: {(end < start)}, {Set.newFrom((1..4))}, {[bank]});
+        banksToTurnOff.do({|i|
+            //maxPort.sendMsg("/sampLoop/" ++ i ++ "/playStop", "stop");
+            if(heldHitTasks[i].isNil.not, {
+                //["KILLED STOPTASK ON", i].postln;
+                heldHitTasks[i].stop;
+                heldHitTasks[i].free;
+                heldHitTasks[i] = nil;
             });
+        });
 
 
-            //["SENTSAMP", ~sentCount, masterTempoClock.beats].postln;
-            ~sentCount = ~sentCount+1;
-            // maxMidiOut.noteOn(0, 60, 60);
+        //["SENTSAMP", ~sentCount, masterTempoClock.beats].postln;
+        ~sentCount = ~sentCount+1;
+        // maxMidiOut.noteOn(0, 60, 60);
 
-            if(~ableton, {
-                Task({
-                    midiOut.noteOn(0, 60+bank, 60);
-                    0.1.wait;
-                    midiOut.noteOff(0, 60+bank, 60);
-                }).play;
-            });
+        if(~ableton, {
+            Task({
+                midiOut.noteOn(0, 60+bank, 60);
+                0.1.wait;
+                midiOut.noteOff(0, 60+bank, 60);
+            }).play;
+        });
 
 
-            if(volStr.isNil.not, {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/vol", volStr.asFloat)});
+        if(volStr.isNil.not, {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/vol", volStr.asFloat)});
 
-            if(~max, {
-                //play this buffer
-                // 1/(beats/sec) * beats * ms/s
-                bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
-                maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
-            });
-        }).play;
+        if(~max, {
+            //play this buffer
+            // 1/(beats/sec) * beats * ms/s
+            bufferOffset = 1/(masterTempoClock.tempo/60) * start * 1000;
+            maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStart", bufferOffset);
+        });
 
         //schedule turn off if needed
         if(duration.isNil.not, {
+            ["CUTOFF SCHEDULED", duration].postln;
             heldHitTasks[bank] = Task({
-                (duration+0.001).wait;
+                "CUTOFF STARTED".postln;
+                (duration+0.0015).wait;
                 maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
                 ["SEND END", bank].postln;
             }, masterTempoClock).play;

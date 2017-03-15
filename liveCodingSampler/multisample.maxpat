@@ -436,9 +436,9 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "signal" ],
-					"patching_rect" : [ 845.414917, 214.0, 42.0, 22.0 ],
+					"patching_rect" : [ 845.414917, 214.0, 32.0, 22.0 ],
 					"style" : "",
-					"text" : "*~ 0.5"
+					"text" : "*~ 1"
 				}
 
 			}
@@ -472,7 +472,7 @@
 				"box" : 				{
 					"fontsize" : 13.0,
 					"id" : "obj-110",
-					"items" : [ "AU DLS Synth 1", ",", "IAC Driver Bus 1", ",", "IAC Driver Bus 2", ",", "IAC Driver Bus 3", ",", "IAC Driver Bus 4", ",", "IAC Driver Bus 5", ",", "IAC Driver Bus 6", ",", "from Max 1", ",", "from Max 2", ",", "to MaxMSP 1", ",", "to MaxMSP 2" ],
+					"items" : [ "AU DLS Synth 1", ",", "IAC Driver Bus 1", ",", "IAC Driver Bus 2", ",", "IAC Driver Bus 3", ",", "IAC Driver Bus 4", ",", "IAC Driver Bus 5", ",", "IAC Driver Bus 6", ",", "from Max 1", ",", "from Max 2" ],
 					"labelclick" : 1,
 					"maxclass" : "umenu",
 					"numinlets" : 1,

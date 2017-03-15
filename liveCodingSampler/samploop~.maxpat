@@ -38,6 +38,21 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"buffername" : "",
+					"id" : "obj-50",
+					"maxclass" : "waveform~",
+					"numinlets" : 5,
+					"numoutlets" : 6,
+					"outlettype" : [ "float", "float", "float", "float", "list", "" ],
+					"patching_rect" : [ 81.0, 757.0, 256.0, 64.0 ],
+					"presentation" : 1,
+					"presentation_rect" : [ 81.0, 757.0, 256.0, 64.0 ],
+					"style" : ""
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-54",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
@@ -474,7 +489,7 @@
 					"outlettype" : [ "int" ],
 					"patching_rect" : [ 791.003357, 150.0, 48.0, 22.0 ],
 					"style" : "",
-					"text" : "+ 1200"
+					"text" : "+ 2400"
 				}
 
 			}
@@ -916,10 +931,8 @@
 						"originaltempo" : 120.0,
 						"phase" : [ 0.0, "ticks" ],
 						"pitchcorrection" : 0,
-						"pitchshift" : [ 0.5 ],
-						"pitchshiftcent" : [ -1200 ],
 						"quality" : "basic",
-						"timestretch" : [ 1 ]
+						"timestretch" : [ 0 ]
 					}
 ,
 					"style" : "",
