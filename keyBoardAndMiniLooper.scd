@@ -4,6 +4,7 @@ var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colo
 //MIDIClient.init;
 //MIDIIn.connectAll;
 launchpadOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
+~launchpadOut = launchpadOut;
 launchpadOut.latency = 0;
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 metronomeOut = MIDIOut.newByName("IAC Driver", "Bus 3");
@@ -32,6 +33,7 @@ noteToInd = {|x|
 }; //convert note to pad index
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
 bankMap = Dictionary.new();
+~bankMap = bankMap;
 (0..100).do({|i|
     //launchpadOut.control(0, j, color1[i]);
     bankMap.put(i, [i, nil, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
@@ -139,6 +141,8 @@ scales = [
 	[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], //BR
 ];
 roots = [60, 60, 36, 36];
+~scales = scales;
+~roots = roots;
 
 indToNote_ = {|ind, scale, root, trans|
 	root + scale[(ind+trans)%scale.size()] + (((ind+trans) / scale.size).floor * 12);
@@ -922,6 +926,7 @@ stringToBuf = {|melString|
 	//buf.do({|b| b.postln;});
 	buf
 };
+~stringToBuf = stringToBuf;
 
 //msg[1] is the new BEAT DURATION (not tempo)
 //msg[2] is whether the beat is being realigned
@@ -1057,16 +1062,7 @@ basic layout
 //FILE SAVE/LOAD
 
 
-(
-var func = {|a, b=5|
-	[a, b].postln;
-};
-func.(1)
-)
-(
-a = [1, 4, 5];
-a.wrapAt(-1)
-)
+
 (
 var file = File("~/joelLoop.txt".standardizePath, "wb");
 var lines = List.new();
@@ -1082,8 +1078,40 @@ file.putString(lines.join("\n"));
 file.close;
 5
 )
-"5,6,5,3,2,8,5,4,3".split($,)
-[ 5, 6, 5, 3, 2, 8, 5, 4, 3 ].join(",")
+
+~saveLoops = {|roots, scales, bankMap|
+    var file = File(~saveFileName.standardizePath, "wb");
+    var rootString = roots.join(",");
+    var scaleString = scales.collect({|scale| scale.join(".")}).join(",");
+    var loopStrings = List.new();
+    bankMap.keys.do({|key|
+        if(bankMap[key][4].isNil.not, {
+            loopStrings.add(key.asString + bankMap[key][4])
+        });
+    });
+    file.putString(([rootString, scaleString] ++ loopStrings).join("\n"));
+    file.close;
+}
+
+~loadLoops = {|roots, scales, bankMap|
+    var file = File.open(~loadFileName.standardizePath, "rb");
+    var fileStr = file.readAllString;
+    var lines = fileStr.split($\n);
+    roots = lines[0].split($,).collect({|i| i.asInt});
+    scales = lines[1].split($,).collect({|str| str.split($.).collect({|st| st.asInt})});
+
+    (0..100).do({|i| ~launchpadOut.noteOff(0, i)});
+
+    lines[2..].do({|line|
+        var bankNum = line.split($ )[0].asInt;
+        var hitStr = line.split($ )[1];
+        var thisBank = bankMap[bankNum];
+        thisBank[4] = hitStr;
+        thisBank[3] = r.(~stringToBuf.(hitStr)); //r is createRecordedTasks
+        ~launchpadOut.noteOn(0, bankNum, 51);
+    });
+}
+
 (
 var file = File.open("~/testFilename4.txt".standardizePath, "rb");
 var fileStr = file.readAllString;
