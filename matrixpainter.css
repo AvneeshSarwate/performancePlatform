@@ -13,11 +13,11 @@
     background-color:yellow;
     font-weight:bold; color:red;
 }
-.grid td[vidindex=0] {
-    background-color:yellow;
+.grid td[vidindex="0"] {
+    background-color:black;
     font-weight:bold; color:red;
 }
 .grid td[vidindex="1"] {
-    background-color:black;
+    background-color:white;
     font-weight:bold; color:red;
 }

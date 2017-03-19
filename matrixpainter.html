@@ -95,7 +95,8 @@
 	        var tr = grid.appendChild(document.createElement('tr'));
 	        for (var c=0;c<cols;++c){
 	            var cell = tr.appendChild(document.createElement('td'));
-	            cell.vidIndex = 0;
+	            cell.vidIndex = 1;
+	            cell.setAttribute("vidIndex", 1);
 	            cells[r][c] = cell;
 	            cell.addEventListener('mousedown', function(el) {
 	            	mouseDown = true;

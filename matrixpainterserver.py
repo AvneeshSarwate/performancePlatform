@@ -8,8 +8,10 @@ import json
 
 PORT_NUMBER = 8080
 
-scClient = OSC.OSCClient()
-scClient.connect( ('127.0.0.1', 57120) ) 
+# scClient = OSC.OSCClient()
+# scClient.connect( ('127.0.0.1', 57120) ) 
+maxClient = OSC.OSCClient()
+maxClient.connect( ('127.0.0.1', 5432) ) 
 
 #This class will handles any incoming request from
 #the browser 
@@ -67,13 +69,18 @@ class myHandler(BaseHTTPRequestHandler):
 		})
 		if self.path=="/send":
 			
-			msg = OSC.OSCMessage()
-			msg.setAddress("/paintedMatrix/"+form['name'].value)
-			msg.append(form['height'].value)
-			msg.append(form['width'].value)
-			matrixList = map(int, form['matrixstring'].value.split(","))
-			msg.append(matrixList)
-			scClient.send(msg)
+			# msg = OSC.OSCMessage()
+			# msg.setAddress("/paintedMatrix/"+form['name'].value)
+			# msg.append(form['height'].value)
+			# msg.append(form['width'].value)
+			matrixList = map(lambda i: int(i)*255, form['matrixstring'].value.split(","))
+			# msg.append(matrixList)
+			# scClient.send(msg)
+
+			msg2 = OSC.OSCMessage()
+			msg2.setAddress("/paintedMatrix/"+form['name'].value)
+			msg2.append(matrixList)
+			maxClient.send(msg2)
 			self.send_response(200)
 			self.end_headers()
 		if self.path == "/save":
