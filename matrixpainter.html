@@ -70,7 +70,7 @@
 	}
 
 	document.getElementById('sendmatrix').addEventListener('click', function(el){		
-		$.post('/send', {matrixstring: getMatrixString(), 'height': height, 'width': width }, 
+		$.post('/send', {matrixstring: getMatrixString(), 'height': height, 'width': width, name: $("#gridname").val() }, 
 			function(response){console.log(response)});
 	});
 

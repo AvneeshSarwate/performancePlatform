@@ -68,10 +68,11 @@ class myHandler(BaseHTTPRequestHandler):
 		if self.path=="/send":
 			
 			msg = OSC.OSCMessage()
-			msg.setAddress("/paintedMatrix")
+			msg.setAddress("/paintedMatrix/"+form['name'].value)
 			msg.append(form['height'].value)
 			msg.append(form['width'].value)
-			msg.append(form['matrixstring'].value)
+			matrixList = map(int, form['matrixstring'].value.split(","))
+			msg.append(matrixList)
 			scClient.send(msg)
 			self.send_response(200)
 			self.end_headers()
