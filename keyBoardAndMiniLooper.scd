@@ -11,6 +11,9 @@ if you set the ~saveFileName variable to nil, you can go back to auto-timestamp 
 ~saveFileName = nil;
 ~loadFileName = nil;
 
+//to save, press the 2nd button from the right on the top (round) row of the launchpad
+//to load, press the rightmost button on the top (round) row
+
 )
 
 
