@@ -51,6 +51,7 @@ indToNote = {|x|
 };
 isPadNote = {|x| noteToInd.(x) != -1};
 bankSet = (0..100).select({|i| isPadNote.(i)});
+~bankSet = bankSet;
 
 //OPTIONS
 preRecordLength = 0;
@@ -695,7 +696,7 @@ controlHandler = {|vel, note, chan, port|
 								if(thisBank[5].isNil, {thisBank[3].start}, {thisBank[5].start});
 								thisBank[2] = true;
 								playingBanks.add(note);
-								pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], true); //mark python loop-info as playing
+								//pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], true); //mark python loop-info as playing
 							},
 							{
 								midiOut.allNotesOff(thisBank[1]);
@@ -708,7 +709,7 @@ controlHandler = {|vel, note, chan, port|
 								thisBank[2] = false;
 								launchpadOut.noteOn(0, note, amber_LIGHT);
 								playingBanks.remove(note);
-								pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], false); //mark python loop-info as stopped
+								//pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], false); //mark python loop-info as stopped
 						});
 						"TEMPOCLOCK FUNC RUN".postln;
 						//launchpadOut.control(0, note, 0);
@@ -1064,7 +1065,7 @@ basic layout
 
 
 (
-var file = File("~/joelLoop.txt".standardizePath, "wb");
+var file = File("~/joelLoop.txt".standardizePath, "w");
 var lines = List.new();
 f.keys.do({|key|
 	if(f[key][4] != nil, {
@@ -1078,109 +1079,61 @@ file.putString(lines.join("\n"));
 file.close;
 5
 )
-
+a = Dictionary.new;
+a[5] = 4
+a.keys.do({|item| a.removeAt(item)})
+a
+~saveFileName = "~/saveFile.txt";
+"~/saveFile.txt".standardizePath
+(
+~saveFileName = "~/saveFile2.txt";
 ~saveLoops = {|roots, scales, bankMap|
-    var file = File(~saveFileName.standardizePath, "wb");
+    var file = File(~saveFileName.standardizePath, "w");
     var rootString = roots.join(",");
     var scaleString = scales.collect({|scale| scale.join(".")}).join(",");
     var loopStrings = List.new();
     bankMap.keys.do({|key|
         if(bankMap[key][4].isNil.not, {
-            loopStrings.add(key.asString + bankMap[key][4])
+            loopStrings.add(bankMap[key][4])
         });
     });
     file.putString(([rootString, scaleString] ++ loopStrings).join("\n"));
     file.close;
-}
+};
+~saveLoops.(~roots, ~scales, ~bankMap)
+)
 
-~loadLoops = {|roots, scales, bankMap|
-    var file = File.open(~loadFileName.standardizePath, "rb");
+(
+~loadFileName = "~/saveFile.txt";
+~loadLoops = {
+    var file = File.open(~loadFileName.standardizePath, "r");
     var fileStr = file.readAllString;
     var lines = fileStr.split($\n);
-    roots = lines[0].split($,).collect({|i| i.asInt});
-    scales = lines[1].split($,).collect({|str| str.split($.).collect({|st| st.asInt})});
+    var roots = lines[0].split($,).collect({|i| i.asInt});
+    var scales = lines[1].split($,).collect({|str| str.split($.).collect({|st| st.asInt})});
+    lines.size.postln;
+    ~roots.removeAllSuchThat({true});
+    roots.do({|root| ~roots.add(root)});
+    ~scales.removeAllSuchThat({true});
+    scales.do({|scale| ~scales.add(scale)});
 
-    (0..100).do({|i| ~launchpadOut.noteOff(0, i)});
+    ~bankNotes.do({|i| ~launchpadOut.noteOff(0, i)});
 
+    (0..100).do({|i|
+        ~bankMap.put(i, [i, nil, false, nil, nil, nil, nil]);
+    });
     lines[2..].do({|line|
         var bankNum = line.split($ )[0].asInt;
         var hitStr = line.split($ )[1];
-        var thisBank = bankMap[bankNum];
+        var thisBank = ~bankMap[bankNum];
+        line.postln;
         thisBank[4] = hitStr;
         thisBank[3] = r.(~stringToBuf.(hitStr)); //r is createRecordedTasks
+        thisBank[1] = ~stringToBuf.(hitStr)[0][3]
         ~launchpadOut.noteOn(0, bankNum, 51);
     });
-}
-
-(
-var file = File.open("~/testFilename4.txt".standardizePath, "rb");
-var fileStr = file.readAllString;
-var fileSplit = fileStr.split($\n);
-var launchpadOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
-fileSplit.size.postln;
-fileSplit.do({|line|
-	var lineSplit = line.split($ );
-	var key = lineSplit[0].asInteger;
-	var startBeat = lineSplit[2].asFloat;
-	var recBuf = lineSplit[1].split($-).collect({|hitString|
-		var sp = hitString.split($,);
-		[sp[0].asFloat, sp[1].asInt, sp[2].asInt, sp[3].asInt, sp[4]]
-	});
-	recBuf.sort({|a, b| a[0] < b[0]});
-	recBuf.do({|hit| hit.postln});
-
-	//call createTask (assign to global var) and set it in bankMap (f)
-	f[key][3] = r.(recBuf, startBeat);
-	f[key][4] = lineSplit[1];
-
-	//turn on lights of necessary banks
-	launchpadOut.control(0, k[f[key][1]][f[key][0]], l[f[key][1]]);
-});
-)
-
-
-56%12
-83%12
-((83-56)/12).asInt * 12
-// ================================================================================================
-(
-//INDEXING FOR MODIFIED FULL-PAD KEYBOARD
-var root = 60;
-var scale = [0, 2, 4, 5 , 7 , 9, 11];
-(1..8).do({|i|
-	(1..8).do({|j|
-		var ind = i*10 + j - 11;
-		if(i > 1,
-			{
-				var shift = 0; //+- 5 for vertical, +- 1 for horizontal
-				var noteInd = (ind-((i-1)*5));
-				var note = root+noteInd;
-				var isRoot = (note%12) == (root%12)
-				var floorRoot = root + (((note-root)/12).asInt * 12);
-				var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
-				noteInd.postln;  //pad -> index into chromatic list of numbers starting from root in bottom left
-
-			},
-			{ind.postln}
-		);
-	})
-});
-)
-// ================================================================================================
-
-(
-var st = "0.0,64,118,3,on-0.0,70,118,1,on-0.0,70,120,2,on-0.111803,70,120,2,off-0.231101,64,118,3,off-0.0,70,118,1,off-0.407096,64,111,3,on-0.0,70,111,1,on-0.127192,64,111,3,off-0.0,70,111,1,off-0.122808,65,117,3,on-0.0,68,98,0,off-0.0,68,98,0,on-0.0,70,120,2,on-0.0,72,117,1,on-0.096141,68,98,0,on-0.015662,70,120,2,off-0.001363,68,98,0,off-0.022534,65,117,3,off-0.0,72,117,1,off-0.3643,65,118,3,on-0.0,72,118,1,on-0.183747,65,118,3,off-0.0,72,118,1,off-0.316253,63,117,3,on-0.0,72,118,1,on-0.294883,72,118,1,off-0.094903,63,117,3,off-0.110214,70,96,0,on-0.039907,70,96,0,off-0.210093,63,116,3,on-0.0,72,112,1,on-0.127904,63,116,3,off-0.000296,72,112,1,off-0.1218,63,116,3,on-0.0,72,116,1,on-0.142987,63,116,3,off-0.0,72,116,1,off-0.357013,63,120,3,on-0.0,72,118,2,on-0.0,72,120,1,on-0.13537,72,118,2,off-0.040893,63,120,3,off-0.0,72,120,1,off-0.323737,63,113,3,on-0.0,68,104,0,on-0.0,74,117,1,on-0.134925,63,113,3,off-0.223343,68,104,0,off-0.031518,74,117,1,off-0.110214,63,116,3,on-0.0,72,117,2,on-0.143854,72,117,2,off-0.007526,63,116,3,off-0.09862,74,116,1,on-0.127904,74,116,1,off-0.122096,62,116,3,on-0.0,70,119,2,on-0.0,72,121,2,on-0.0,74,116,1,on-0.158418,72,121,2,off-0.040768,70,119,2,off-0.111906,62,116,3,off-0.0,74,116,1,off-0.355575,68,115,0,on-0.083333,62,114,3,on-0.0,74,114,1,on-0.028532,68,115,0,off-0.090169,62,114,3,off-0.0,74,114,1,off-0.131299,63,118,3,on-0.0,72,108,1,on-0.0,74,120,2,on-1e-06,70,112,0,on-0.096008,70,112,0,off-0.048012,72,108,1,off-0.023165,74,120,2,off-0.127697,63,118,3,off-0.205117,72,121,1,on-0.199338,72,121,1,off-0.050662,63,112,3,on-0.1282,63,112,3,off-0.1218,63,108,3,on-0.0,70,113,1,on-0.0,72,121,2,on-1e-06,67,116,0,on-0.096039,67,116,0,off-0.038885,70,113,1,off-0.009096,63,108,3,off-0.015661,72,121,2,off-0.340318,63,121,3,on-0.0,70,116,1,on-0.15138,70,116,1,off-0.047958,63,121,3,off-0.300662,0,0,0,timeAfterLastHit";
-
-var stringToBuf = {|melString|
-	var buf = melString.split($-).collect({|hitString|
-		var sp = hitString.split($,);
-        sp.postln;
-		[sp[0].asFloat, sp[1].asInt, sp[2].asInt, sp[3].asInt, sp[4]]
-	});
-	//buf.do({|b| b.postln;});
-	buf
 };
-
-stringToBuf.(st)
-
+~loadLoops.()
 )
+
+~bankMap[0].postln

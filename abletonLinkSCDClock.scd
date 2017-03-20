@@ -1,19 +1,18 @@
 (
-var masterTempoClock, broadcastOSCport, abletonLinkPort, tempo;
+var broadcastOSCport, tempo, maxPort;
 
 MIDIClient.init;
 MIDIIn.connectAll;
 
 broadcastOSCport = NetAddr("localhost", 57120);
-abletonLinkPort = MIDIClient.sources.select({|elem| (elem.name == "Bus 6")
-	&& (elem.device == "IAC Driver")})[0];
+maxPort = NetAddr("localhost", 5432);
 
-
-MIDIFunc.noteOn({|vel, note, chan, port|
-	var newTempo = (note * 127) + vel;
+//msg[1] is the new TEMPO
+OSCFunc({|msg, time, addr, recvPort|
+    var newTempo = msg[1].asFloat;
 	if(tempo.isNil, {tempo = newTempo});
 	broadcastOSCport.sendMsg("/masterClockBeat", 60.0/tempo);
-	["LINK BEAT", newTempo].postln;
+	//["LINK BEAT", newTempo].postln;
 
 	//should this go before or after the /masterClockBeat message? probably doesn't matter
 	if(newTempo != tempo, {
@@ -21,5 +20,14 @@ MIDIFunc.noteOn({|vel, note, chan, port|
 		broadcastOSCport.sendMsg("/masterClockTempo", 60.0/tempo, false); //don't worry about beat alignment for now
 	});
 
-}, nil, nil, abletonLinkPort.uid);
+}, "/maxLink");
+
+
+//msg[1] is the new BEAT DURATION (not tempo)
+OSCFunc({|msg, time, addr, recvPort|
+    var newTempo = 60.0/msg[1];
+    ["new tempo pre max link", newTempo].postln;
+	maxPort.sendMsg("/tempoUpdateRequest", newTempo)
+}, "/uploadTempo");
+
 )
