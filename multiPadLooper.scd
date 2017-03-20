@@ -101,7 +101,7 @@ scales = [
 	[0, 2, 3, 5, 7, 8, 10], //BL
 	[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], //BR
 ];
-roots = [60, 60, 36, 36];
+roots = [57, 57, 57, 36];
 
 indToNote_ = {|ind, scale, root, trans|
 	root + scale[(ind+trans)%scale.size()] + (((ind+trans) / scale.size).floor * 12);
@@ -352,7 +352,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	var melodyEndingBeat;
 
 
-	recBuf.do({|hit| /*[hit[0], startBeat].postln;*/ if(hit[0] < startBeat, {hit[0] = startBeat}) });
+	recBuf.do({|hit| if(hit[0] < startBeat, {hit[0] = startBeat}) });
 	recBuf.do({|elem|
 		if(elem[4] == "on",
 			{hangingNotes.add([elem[1], elem[3]])},
@@ -449,7 +449,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
 	timeAfterLastHit.postln;
 
-	//recBuf.do({|hit| if(true/*hit[4] == "on"*/, {["HIT TIME", hit[4], hit[0]].postln})});
+	//recBuf.do({|hit| if(true/*hit[4] == "on", {["HIT TIME", hit[4], hit[0]].postln})});
 
 
 	recBuf.add([timeAfterLastHit, 0, 0, 0, "timeAfterLastHit"]); //xtra vals to simlpify save/load serialization
@@ -1094,76 +1094,18 @@ var scale = [0, 2, 4, 5 , 7 , 9, 11];
 // ================================================================================================
 
 (
-var hitListToNoteList, noteListToHitList;
+var st = "0.0,64,118,3,on-0.0,70,118,1,on-0.0,70,120,2,on-0.111803,70,120,2,off-0.231101,64,118,3,off-0.0,70,118,1,off-0.407096,64,111,3,on-0.0,70,111,1,on-0.127192,64,111,3,off-0.0,70,111,1,off-0.122808,65,117,3,on-0.0,68,98,0,off-0.0,68,98,0,on-0.0,70,120,2,on-0.0,72,117,1,on-0.096141,68,98,0,on-0.015662,70,120,2,off-0.001363,68,98,0,off-0.022534,65,117,3,off-0.0,72,117,1,off-0.3643,65,118,3,on-0.0,72,118,1,on-0.183747,65,118,3,off-0.0,72,118,1,off-0.316253,63,117,3,on-0.0,72,118,1,on-0.294883,72,118,1,off-0.094903,63,117,3,off-0.110214,70,96,0,on-0.039907,70,96,0,off-0.210093,63,116,3,on-0.0,72,112,1,on-0.127904,63,116,3,off-0.000296,72,112,1,off-0.1218,63,116,3,on-0.0,72,116,1,on-0.142987,63,116,3,off-0.0,72,116,1,off-0.357013,63,120,3,on-0.0,72,118,2,on-0.0,72,120,1,on-0.13537,72,118,2,off-0.040893,63,120,3,off-0.0,72,120,1,off-0.323737,63,113,3,on-0.0,68,104,0,on-0.0,74,117,1,on-0.134925,63,113,3,off-0.223343,68,104,0,off-0.031518,74,117,1,off-0.110214,63,116,3,on-0.0,72,117,2,on-0.143854,72,117,2,off-0.007526,63,116,3,off-0.09862,74,116,1,on-0.127904,74,116,1,off-0.122096,62,116,3,on-0.0,70,119,2,on-0.0,72,121,2,on-0.0,74,116,1,on-0.158418,72,121,2,off-0.040768,70,119,2,off-0.111906,62,116,3,off-0.0,74,116,1,off-0.355575,68,115,0,on-0.083333,62,114,3,on-0.0,74,114,1,on-0.028532,68,115,0,off-0.090169,62,114,3,off-0.0,74,114,1,off-0.131299,63,118,3,on-0.0,72,108,1,on-0.0,74,120,2,on-1e-06,70,112,0,on-0.096008,70,112,0,off-0.048012,72,108,1,off-0.023165,74,120,2,off-0.127697,63,118,3,off-0.205117,72,121,1,on-0.199338,72,121,1,off-0.050662,63,112,3,on-0.1282,63,112,3,off-0.1218,63,108,3,on-0.0,70,113,1,on-0.0,72,121,2,on-1e-06,67,116,0,on-0.096039,67,116,0,off-0.038885,70,113,1,off-0.009096,63,108,3,off-0.015661,72,121,2,off-0.340318,63,121,3,on-0.0,70,116,1,on-0.15138,70,116,1,off-0.047958,63,121,3,off-0.300662,0,0,0,timeAfterLastHit";
 
-//does NOT include timeAfterLastHit
-//makes assumption that there is always a noteOn before a noteOff
-hitListToNoteList = {|hitList|
-	var notesToStartStop = Dictionary.new();
-	var noteList = List.new();
-	var timeSoFar = 0;
-	var count = 1;
-	"AAAAAAA".postln;
-	x = hitList;
-	"A1".postln;
-	hitList.do({|hit|
-		hit.postln;
-		timeSoFar = timeSoFar + hit[0];
-		if(notesToStartStop[hit[1]].isNil,
-			//time, velocity, midiChan, on/off
-			{notesToStartStop[hit[1]] = [[timeSoFar,  hit[2], hit[3], hit[4]]].asList},
-			{
-				count = count+1;
-				["pre", notesToStartStop[hit[1]].size].postln;
-				notesToStartStop[hit[1]].add([timeSoFar,  hit[2], hit[3], hit[4]]);
-				["post", notesToStartStop[hit[1]].size].postln;
-			}
-	)});
-	"A2".postln;
-	notesToStartStop.postln;
-	notesToStartStop.keys.do({|midiNote|
-		var startStop = notesToStartStop[midiNote];
-		[count, startStop.size].postln;
-		(0,2..(startStop.size-2)).do({|ind|
-			//time, midiNote, onVelocity, midiChan, duration
-			noteList.add([startStop[ind][0], midiNote, startStop[ind][1], startStop[ind][2], startStop[ind+1][0]-startStop[ind][0]]);
-		});
+var stringToBuf = {|melString|
+	var buf = melString.split($-).collect({|hitString|
+		var sp = hitString.split($,);
+        sp.postln;
+		[sp[0].asFloat, sp[1].asInt, sp[2].asInt, sp[3].asInt, sp[4]]
 	});
-
-	noteList.sort({|a, b| a[0] < b[0]});
-	"A3".postln;
-	noteList;
-};
-y = hitListToNoteList;
-
-noteListToHitList = {|noteList|
-	var intermediateHitList = List.new();
-
-	noteList.do({|n|
-		intermediateHitList.add([n[0], n[1], n[2], n[3], "on"]);
-		intermediateHitList.add([n[0]+n[4], n[1], 0, n[3], "off"])
-	});
-	["B1", noteList.size, intermediateHitList.size].postln;
-	intermediateHitList.sort({|a, b| a[0] < b[0]});
-
-	"B2".postln;
-	((intermediateHitList.size-1), (intermediateHitList.size-2)..1).do({|ind|
-		intermediateHitList[ind][0] = intermediateHitList[ind][0] - intermediateHitList[ind-1][0];
-	});
-
-	intermediateHitList
+	//buf.do({|b| b.postln;});
+	buf
 };
 
-z = noteListToHitList;
-)
-(
-a = if(5 > 6, 1, 2);
-a+1
-)
+stringToBuf.(st)
 
-"abbbc".splitext($b)
-"" == ""
-
-(
-y.(x)
 )
