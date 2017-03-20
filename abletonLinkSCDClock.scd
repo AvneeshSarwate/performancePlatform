@@ -3,6 +3,8 @@ var broadcastOSCport, tempo, maxPort;
 
 MIDIClient.init;
 MIDIIn.connectAll;
+~lightIndexes = List.new;
+~lightIndex = nil;
 
 broadcastOSCport = NetAddr("localhost", 57120);
 maxPort = NetAddr("localhost", 5432);

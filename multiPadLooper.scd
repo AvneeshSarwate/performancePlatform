@@ -1,6 +1,9 @@
 (
 var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights;
 
+//light switching variables
+var setLight, ccLights, padColorState, cycleLight, lightIndex;
+
 //MIDIClient.init;
 //MIDIIn.connectAll;
 launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port");
@@ -11,6 +14,63 @@ midiOut.latency = 0;
 metronomeOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 masterClockOSCport = NetAddr("localhost", 57120);
+
+
+//light switching variables
+padColorState = Dictionary.new;
+ccLights = List.new;
+(1..8).do({|i|
+    ccLights.add(i);
+    ccLights.add(90+i);
+    ccLights.add(i*10);
+    ccLights.add((i*10)+9);
+});
+
+setLight = {|note, color|
+    if(~lightIndex == lightIndex, {
+        if(ccLights.includes(note),
+            {launchpadOut.control(0, note, color)},
+            {launchpadOut.noteOn(0, note, color)}
+        );
+    });
+    padColorState[note] = color;
+};
+(1..100).do({|note|
+    if(ccLights.includes(note),
+        {launchpadOut.control(0, note, 0)},
+        {launchpadOut.noteOn(0, note, 0)}
+    );
+    padColorState[note] = 0;
+});
+cycleLight = {
+    //TODO: change name of this port to something like SCOSCport
+    masterClockOSCport.sendMsg("/lightsChange", (lightIndex+1)%~lightIndexes.size);
+    ~lightIndex = (lightIndex+1)%~lightIndexes.size;
+};
+
+//msg[1] is lightIndex
+OSCFunc({|msg, time, addr, recvPort|
+    if(msg[1].asInt == lightIndex, {
+        padColorState.keys.do({|key| setLight.(key, padColorState[key])});å
+    });
+
+}, "/lightsChange");
+lightIndex = if(~lightIndexes.size == 0,
+    {
+        lightIndex.add(0);
+        0
+    },
+    {
+        lightIndex.add(lightIndex.maxItem+1);
+        lightIndex.maxItem+1
+    }
+);
+~lightIndex = lightIndex;
+//TODO - add ~lightIndex == lightIndex condition to all launchpad note/cc hanlders
+//--------------------------
+
+
+
 
 
 //OPTIONS

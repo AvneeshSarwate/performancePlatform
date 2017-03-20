@@ -3,6 +3,8 @@ var masterTempoClock, broadcastOSCport;
 
 MIDIClient.init;
 MIDIIn.connectAll;
+~lightIndexes = List.new;
+~lightIndex = nil;
 
 masterTempoClock = TempoClock.new(1);
 broadcastOSCport = NetAddr("localhost", 57120);
