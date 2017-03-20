@@ -1,5 +1,22 @@
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, keyBoard, amber_LIGHT, red_LIGHT, green_LIGHT, isPadNote, noteToInd, channelIndButtons;
+/*
+Run this block of code to set the name for files you want to save/load.
+If you save a file withouth running this, it will save with a timestamp name
+to the directory in which this SC file is saved. If you load a file without
+setting a name, it will error out. Paths can be written using ~ as a placehodler
+for the current director e.g "~/song1loops/myloopfile.txt".
+
+if you set the ~saveFileName variable to nil, you can go back to auto-timestamp naming
+*/
+~saveFileName = nil;
+~loadFileName = nil;
+
+)
+
+
+// RUN THE BLOCK BELOW TO START THE PROGRAM
+(
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, keyBoard, amber_LIGHT, red_LIGHT, green_LIGHT, isPadNote, noteToInd, channelIndButtons, topRowFuncHandler;
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
@@ -38,7 +55,8 @@ bankMap = Dictionary.new();
     //launchpadOut.control(0, j, color1[i]);
     bankMap.put(i, [i, nil, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
 });
-
+channelIndButtons.do({|button| launchpadOut.noteOff(0, button, 100)});
+launchpadOut.noteOn(0, channelIndButtons[0], amber_LIGHT);
 
 
 indToNote = {|x|
@@ -783,6 +801,66 @@ controlHandler = {|vel, note, chan, port|
 };
 MIDIFunc.noteOn(controlHandler, nil, nil, launchPad.uid);
 
+
+~loadLoops = {
+    var file = File.open(~loadFileName.standardizePath, "r");
+    var fileStr = file.readAllString;
+    var lines = fileStr.split($\n);
+    var roots = lines[0].split($,).collect({|i| i.asInt});
+    var scales = lines[1].split($,).collect({|str| str.split($.).collect({|st| st.asInt})});
+    lines.size.postln;
+    ~roots.removeAllSuchThat({true});
+    roots.do({|root| ~roots.add(root)});
+    ~scales.removeAllSuchThat({true});
+    scales.do({|scale| ~scales.add(scale)});
+
+    ~bankNotes.do({|i| ~launchpadOut.noteOff(0, i)});
+
+    (0..100).do({|i|
+        ~bankMap.put(i, [i, nil, false, nil, nil, nil, nil]);
+    });
+    lines[2..].do({|line|
+        var bankNum = line.split($ )[0].asInt;
+        var hitStr = line.split($ )[1];
+        var thisBank = ~bankMap[bankNum];
+        line.postln;
+        thisBank[4] = hitStr;
+        thisBank[3] = r.(~stringToBuf.(hitStr)); //r is createRecordedTasks
+        thisBank[1] = ~stringToBuf.(hitStr)[0][3];
+        ~launchpadOut.noteOn(0, bankNum, 51);
+    });
+};
+
+
+~saveLoops = {|roots, scales, bankMap|
+    var saveName = if(~saveFileName.isNil,
+        {("~/"++Date.getDate.asString++".txt").replace(" ", "_").replace(":", "").standardizePath},
+        {~saveFileName.standardizePath});
+    var file = File(saveName, "w");
+    var rootString = roots.join(",");
+    var scaleString = scales.collect({|scale| scale.join(".")}).join(",");
+    var loopStrings = List.new();
+    saveName.postln;
+    bankMap.keys.do({|key|
+        if(bankMap[key][4].isNil.not, {
+            loopStrings.add(bankMap[key][4])
+        });
+    });
+    file.write(([rootString, scaleString] ++ loopStrings).join("\n"));
+    file.close;
+};
+
+topRowFuncHandler = {|vel, note, chan, port|
+    if((note == 110) && (vel != 0), {
+        ~saveLoops.(roots, scales, bankMap);
+    });
+    if((note == 111) && (vel != 0), {
+        ~loadLoops.();
+    });
+
+};
+MIDIFunc.cc(topRowFuncHandler, nil, nil, launchPad.uid);
+
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
 setBankMelody = {|button, hitString, startBeat, playing|
 	var hitList, startFunc;
@@ -1063,48 +1141,28 @@ basic layout
 //FILE SAVE/LOAD
 
 
-
 (
-var file = File("~/joelLoop.txt".standardizePath, "w");
-var lines = List.new();
-f.keys.do({|key|
-	if(f[key][4] != nil, {
-		var str = f[key][4]++"\n";
-		lines.add(f[key][4]);
-		str.postln;
-		//file.putString(str);
-	});
-});
-file.putString(lines.join("\n"));
-file.close;
-5
-)
-a = Dictionary.new;
-a[5] = 4
-a.keys.do({|item| a.removeAt(item)})
-a
-~saveFileName = "~/saveFile.txt";
-"~/saveFile.txt".standardizePath
-(
-~saveFileName = "~/saveFile2.txt";
 ~saveLoops = {|roots, scales, bankMap|
-    var file = File(~saveFileName.standardizePath, "w");
+    var saveName = if(~saveFileName.isNil,
+        {("~/"++Date.getDate.asString++".txt").replace(" ", "_").replace(":", "").standardizePath},
+        {~saveFileName.standardizePath});
+    var file = File(saveName, "w");
     var rootString = roots.join(",");
     var scaleString = scales.collect({|scale| scale.join(".")}).join(",");
     var loopStrings = List.new();
+    saveName.postln;
     bankMap.keys.do({|key|
         if(bankMap[key][4].isNil.not, {
             loopStrings.add(bankMap[key][4])
         });
     });
-    file.putString(([rootString, scaleString] ++ loopStrings).join("\n"));
+    file.write(([rootString, scaleString] ++ loopStrings).join("\n"));
     file.close;
 };
 ~saveLoops.(~roots, ~scales, ~bankMap)
 )
-
+~loadFileName= "~/Mon_Mar_20_144417_2017.txt"
 (
-~loadFileName = "~/saveFile.txt";
 ~loadLoops = {
     var file = File.open(~loadFileName.standardizePath, "r");
     var fileStr = file.readAllString;
@@ -1129,7 +1187,7 @@ a
         line.postln;
         thisBank[4] = hitStr;
         thisBank[3] = r.(~stringToBuf.(hitStr)); //r is createRecordedTasks
-        thisBank[1] = ~stringToBuf.(hitStr)[0][3]
+        thisBank[1] = ~stringToBuf.(hitStr)[0][3];
         ~launchpadOut.noteOn(0, bankNum, 51);
     });
 };
