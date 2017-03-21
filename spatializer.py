@@ -19,6 +19,7 @@ class Spatializer:
 		self.fhInstance = fhInstance
 		self.fhInstance.superColliderServer.addMsgHandler("/saveChord", self.saveChordHandler)
 		self.fhInstance.superColliderServer.addMsgHandler("/playChord", self.playChordHandler)
+		self.fhInstance.superColliderServer.addMsgHandler("/utilityButton", self.handleFaderSave)
 
 		#NOTE: using channelSeparation and spatialization on same instrument will cause undefined behavior
 		self.separateChannels = False  
@@ -27,6 +28,23 @@ class Spatializer:
 		self.openChannels = [1, 2, 5, 6, 7, 9, 10, 11, 13, 14, 15]  
 
 		self.chordSetStack = []
+
+		self.parameterBank = [[0]*12 for i in range(7)]
+
+	#hardcoded for drone song
+	def handleFaderSave(self, addr, tags, stuff, source):
+		if stuff[1] == 1:
+			self.parameterBank[int(stuff[0])] = copy.deepcopy(self.fhInstance.currentFaderVals[1])
+		else:
+			banksToString = lambda a: "-".join(map(lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank)), a))
+			currentFadersToString = lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank))
+			self.fhInstance.currentFaderVals[2] = copy.deepcopy(self.parameterBank[stuff[0]])
+			msg = OSC.OSCMessage()
+			msg.setAddress("/loadSceneFaders")
+			msg.append(banksToString(self.fhInstance.faderBanks))
+			msg.append(currentFadersToString(self.fhInstance.currentFaderVals))
+			self.fhInstance.superColliderClient.send(msg)
+
 
 	def handle(self, channel, note, vel, keyOnOff, launchpadKey):
 		onOff = self.resolveOnOff(note, keyOnOff, launchpadKey)
