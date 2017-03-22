@@ -58,15 +58,16 @@ OSCFunc({|msg, time, addr, recvPort|
 }, "/lightsChange");
 lightIndex = if(~lightIndexes.size == 0,
     {
-        lightIndex.add(0);
+        ~lightIndexes.add(0);
         0
     },
     {
-        lightIndex.add(lightIndex.maxItem+1);
-        lightIndex.maxItem+1
+        ~lightIndexes.add(~lightIndexes.maxItem+1);
+        ~lightIndexes.maxItem
     }
 );
 ~lightIndex = lightIndex;
+["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 //TODO - add ~lightIndex == lightIndex condition to all launchpad note/cc hanlders
 //----------------------------------------------
 
@@ -280,6 +281,7 @@ launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 [launchPad, MIDIClient.sources[2]].postln;
 a = {|vel, note, chan, port|
     if((chan == 0) && (~lightIndex == lightIndex), {
+        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 		if(pads.includes(note), {
 			//TODO newKeys - new note map, new channel
 			var chan, newNote;
@@ -306,6 +308,7 @@ padOn = MIDIFunc.noteOn(a, nil, nil, launchPad.uid);
 
 b = {|vel, note, chan, port|
 	if((chan == 0) && (~lightIndex == lightIndex), {
+        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 		if(pads.includes(note), {
 			var chan, newNote;
 			if(playingNewKeys,
@@ -595,7 +598,10 @@ recordingState = 0;
 bankToSaveTo = 0;
 bankToRecording = Dictionary.new();
 controlHandlerWrapper = {|vel, note, chan, port|
-    if((chan == 0) && (~lightIndex == lightIndex), {controlHandler.(vel, note, chan, port)});
+    if((chan == 0) && (~lightIndex == lightIndex), {
+        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
+        controlHandler.(vel, note, chan, port)
+    });
 };
 controlHandler = {|vel, note, chan, port|
 	if(interruptLoopButtons.includes(note), {
