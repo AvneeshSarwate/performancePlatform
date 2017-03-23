@@ -1,8 +1,13 @@
+//env vars for control
+(
+~truncateLoop = false;
+)
+
 (
 var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper;
 
 //light switching variables
-var setLight, ccLights, padColorState, cycleLight, lightIndex;
+var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON;
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
@@ -18,6 +23,7 @@ masterClockOSCport = NetAddr("localhost", 57120);
 
 //----------------------------------------------
 //light switching variables
+cycleLight_BUTTON = 95;
 padColorState = Dictionary.new;
 ccLights = List.new;
 (1..8).do({|i|
@@ -27,8 +33,8 @@ ccLights = List.new;
     ccLights.add((i*10)+9);
 });
 
-setLight = {|note, color|
-    if(~lightIndex == lightIndex, {
+setLight = {|note, color, lightIndexOverride=false|
+    if((~lightIndex == lightIndex) || lightIndexOverride, {
         if(ccLights.includes(note),
             {launchpadOut.control(0, note, color)},
             {launchpadOut.noteOn(0, note, color)}
@@ -36,7 +42,7 @@ setLight = {|note, color|
     });
     padColorState[note] = color;
 };
-(1..100).do({|note|
+(1..98).do({|note|
     if(ccLights.includes(note),
         {launchpadOut.control(0, note, 0)},
         {launchpadOut.noteOn(0, note, 0)}
@@ -45,14 +51,21 @@ setLight = {|note, color|
 });
 cycleLight = {
     //TODO: change name of this port to something like SCOSCport
-    masterClockOSCport.sendMsg("/lightsChange", (lightIndex+1)%~lightIndexes.size);
-    ~lightIndex = (lightIndex+1)%~lightIndexes.size;
+    Task({
+        masterClockOSCport.sendMsg("/lightsChange", (~lightIndex+1)%~lightIndexes.size);
+        0.01.wait;
+        ~lightIndex = (~lightIndex+1)%~lightIndexes.size;
+    }).play;
 };
 
 //msg[1] is lightIndex
 OSCFunc({|msg, time, addr, recvPort|
     if(msg[1].asInt == lightIndex, {
-        padColorState.keys.do({|key| setLight.(key, padColorState[key])});å
+        var colorStateLog = List.new(100);
+        (0..99).do({|i| colorStateLog.add(0)});
+        padColorState.keys.do({|key| setLight.(key, padColorState[key], true);
+            colorStateLog[key]=padColorState[key]});
+        ["CHANGING MULTILOOP LIGHTS", msg[1], colorStateLog].postln;
     });
 
 }, "/lightsChange");
@@ -77,11 +90,10 @@ lightIndex = if(~lightIndexes.size == 0,
 
 //OPTIONS
 preRecordLength = 0;
-truncateLoop = true;
+~truncateLoop = true;
 quantizationLevels = [3,4];
 
 
-algButtons = [95];
 
 
 a = [1, 2, 3, 4];
@@ -426,7 +438,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
 	melodyEndingBeat = recBuf[recBuf.size-1][0].ceil;
 
-	if(truncateLoop,
+	if(~truncateLoop,
 		{timeAfterLastHit = (recBuf[recBuf.size-1][0].ceil - recBuf[recBuf.size-1][0])},
 		{timeAfterLastHit = endBeat - recBuf[recBuf.size-1][0]}
 	);
@@ -492,7 +504,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	//TODO - something still messed up with long held notes
 	//TOGGLE QUANTIZATION HERE
 	if(quantized, {
-		var loopDur = if(truncateLoop,  melodyEndingBeat - startBeat, endBeat - startBeat);
+		var loopDur = if(~truncateLoop,  melodyEndingBeat - startBeat, endBeat - startBeat);
 		var maxEnd = 0;
 
 		["timeAFterLastHit", startBeat, endBeat, melodyEndingBeat].postln;
@@ -593,16 +605,10 @@ playMetronome = false;
 recordingMetronome = false;
 recordingInterim = false;
 preRecordCount = 0;
-//0: not recording, 1: "record" hit, 2: bank specified, 3: pre record metronome, 4: actually recording notes
+//0: not recording, 1: pre record metronome, 2: recording notes 3:stopped recording and tempBuffer full
 recordingState = 0;
 bankToSaveTo = 0;
 bankToRecording = Dictionary.new();
-controlHandlerWrapper = {|vel, note, chan, port|
-    if((chan == 0) && (~lightIndex == lightIndex), {
-        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
-        controlHandler.(vel, note, chan, port)
-    });
-};
 controlHandler = {|vel, note, chan, port|
 	if(interruptLoopButtons.includes(note), {
 		var chan = note - interruptLoopButtons[0];
@@ -628,7 +634,7 @@ controlHandler = {|vel, note, chan, port|
 			{setLight.(buttonForwardingButton, 81)},
 			{setLight.(buttonForwardingButton, 0)}
 		);
-
+        ["MULTI LOOP 96", ~lightIndex].postln;
 	});
 	if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
 	if((note == recordButton) && (vel == 127), {
@@ -651,7 +657,7 @@ controlHandler = {|vel, note, chan, port|
 			recordingState = 3;
 			preRecordCount = 0;
 			recordingMetronome = false;
-			recordingEndBeat = tempoClock.beats.ceil;
+			recordingEndBeat = tempoClock.beats.round;
 
 			//TODO: handle cases where multiple inst hits in a recBuf, or when there's no noteOns recorded
 			chan = recordBuffer[0][3];
@@ -792,12 +798,18 @@ controlHandler = {|vel, note, chan, port|
 	//MULTIPLE ALG BUTTONS CAN BE HELD DOWN
 	//THEIR ORDER WILL SPECIFY A "pipeline" of transformations
 	//if alg button, add/remove from list depending on button up/down
-	if(algButtons.includes(note), {
-		if(vel == 127,
-			{algOrderList.add(note-95)},
-			{algOrderList.remove(algOrderList.indexOf(note-95))}
-		);
-	});
+	if((note == cycleLight_BUTTON) && (vel !=0), {
+        // ["MULTILOOP BUTTON CYCLE HIT", ~lightIndex, lightIndex].postln;
+        if(~cycling, {cycleLight.()})
+    });
+};
+controlHandlerWrapper = {|vel, note, chan, port|
+    ~lock.wait;
+    if((chan == 0) && (~lightIndex == lightIndex) && (vel != 0), {
+        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex, SystemClock.beats].postln;
+        controlHandler.(vel, note, chan, port)
+    });
+    ~lock.signal;
 };
 MIDIFunc.cc(controlHandlerWrapper, nil, nil, launchPad.uid);
 

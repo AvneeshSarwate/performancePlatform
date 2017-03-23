@@ -5,6 +5,8 @@ MIDIClient.init;
 MIDIIn.connectAll;
 ~lightIndexes = List.new;
 ~lightIndex = nil;
+~lock = Semaphore(1);
+~cycling = true;
 
 masterTempoClock = TempoClock.new(1);
 broadcastOSCport = NetAddr("localhost", 57120);
@@ -18,3 +20,5 @@ OSCFunc({|msg, time, addr, recvPort|
 	broadcastOSCport.sendMsg("/masterClockTempo", msg[1].asFloat, msg[2].asBoolean)
 }, "/uploadTempo");
 )
+
+~lightIndex=0
