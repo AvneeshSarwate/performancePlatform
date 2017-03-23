@@ -7,8 +7,8 @@
 </head> 
 <body>
 	<div id="gridholder"></div>
+	<button id="selectorToggle" class="selected">on</button>
 	<span>
-		<button id="selectorToggle" class="selected">on</button>
 		<button id="sendmatrix">send</button>
 		<input type="text" id="gridname">
 		<button id="savematrix">save</button>
@@ -18,6 +18,11 @@
 		<button id="openmatrix">open</button>
 		<input type="text" id="filename">
 	</span>
+	<br>
+	<span>
+		<button id="penSizeButton">set pen size</button>
+		<input type="text" id="penSizeInput">
+	</span>
 </body> 
 <script type="text/javascript" src="jquery-1.8.2.min.js"></script>
 <script type="text/javascript">
@@ -26,6 +31,7 @@
 	var mouseDown = false;
 	var height = 32, width = 32;
 	var cells = new Array(height);
+	var penSize = 1;
 	for(var i=0; i < cells.length; i++){
 		cells[i] = new Array(width);
 	}
@@ -87,6 +93,40 @@
 			}, dataType='json');
 	});
 
+	document.getElementById('penSizeButton').addEventListener('click', function(el){		
+		penSize = parseInt($("#penSizeInput").val());
+		console.log("penSize", penSize)
+	});
+
+	function drawAroundElement(el){
+		var paintValue;
+		var centerX = el.xVal;
+		var centerY = el.yVal;
+    	if(selecting){
+    		el.setAttribute("vidIndex", 1);
+    		el.vidIndex = 1;
+    		paintValue = 1;
+    	} else {
+    		el.setAttribute("vidIndex", 0);
+    		el.vidIndex = 0;
+    		paintValue = 0
+    	}
+    	var xmin = Math.max(0, centerX - Math.floor((1.0*(penSize))/2));
+    	var xmax = Math.min(32, centerX + Math.ceil((1.0*(penSize))/2));
+    	var ymin = Math.max(0, centerY - Math.floor((1.0*(penSize))/2));
+    	var ymax = Math.min(32, centerY + Math.ceil((1.0*(penSize))/2));
+    	console.log("painting in", xmin, xmax, ymin, ymax, (1.0*(penSize-1))/2);
+    	for(var i = xmin; i < xmax; i++){
+    		//console.log("painted", i, j);
+    		for(var j = ymin; j < ymax; j++){
+    			//console.log("draw in loop");
+    			cells[j][i].setAttribute("vidIndex", paintValue);
+    			cells[j][i].vidIndex = paintValue;
+    		}
+    	}
+    	//TODO - add to newest layer of stack of changes
+	}
+
 	function clickableGrid( rows, cols, callback ){
 	    var i=0;
 	    var grid = document.createElement('table');
@@ -97,29 +137,20 @@
 	            var cell = tr.appendChild(document.createElement('td'));
 	            cell.vidIndex = 1;
 	            cell.setAttribute("vidIndex", 1);
+	            cell.xVal = c;
+	            cell.yVal = r;
 	            cells[r][c] = cell;
-	            cell.addEventListener('mousedown', function(el) {
+	            cell.addEventListener('mousedown', function(e) {
+	            	//TODO - add new layer stack of changes
 	            	mouseDown = true;
-	            	if(selecting){
-	            		el.target.setAttribute("vidIndex", 1);
-	            		el.target.vidIndex = 1;
-	            	} else {
-	            		el.target.setAttribute("vidIndex", 0);
-	            		el.target.vidIndex = 0;
-	            	}	
+	            	drawAroundElement(e.target);
 	            });
 	            cell.addEventListener('mouseup', function(el) {
 	            	mouseDown = false;
 	            });
-	            cell.addEventListener('mouseover', function(el) {
+	            cell.addEventListener('mouseover', function(e) {
 	            	if(mouseDown) {
-		            	if(selecting){
-		            		el.target.setAttribute("vidIndex", 1);
-		            		el.target.vidIndex = 1;
-		            	} else {
-		            		el.target.setAttribute("vidIndex", 0);
-		            		el.target.vidIndex = 0;
-		            	}
+	            		drawAroundElement(e.target);
 		            }
 	            });
 	        }
