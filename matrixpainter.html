@@ -32,6 +32,7 @@
 	var height = 32, width = 32;
 	var cells = new Array(height);
 	var penSize = 1;
+	var undoStack = new Array();
 	for(var i=0; i < cells.length; i++){
 		cells[i] = new Array(width);
 	}
@@ -103,12 +104,8 @@
 		var centerX = el.xVal;
 		var centerY = el.yVal;
     	if(selecting){
-    		el.setAttribute("vidIndex", 1);
-    		el.vidIndex = 1;
     		paintValue = 1;
     	} else {
-    		el.setAttribute("vidIndex", 0);
-    		el.vidIndex = 0;
     		paintValue = 0
     	}
     	var xmin = Math.max(0, centerX - Math.floor((1.0*(penSize))/2));
@@ -120,10 +117,21 @@
     		//console.log("painted", i, j);
     		for(var j = ymin; j < ymax; j++){
     			//console.log("draw in loop");
+    			let r1 = j;
+				let c1 = i;
+				let v1 = !paintValue+0;
+				if(cells[j][i].vidIndex != paintValue) {
+	    			undoStack[undoStack.length-1].push(function(){
+	    				cells[r1][c1].setAttribute("vidIndex", v1);
+	    				cells[r1][c1].vidIndex = v1;
+	    				console.log("setting to", c1, r1, v1)
+	    			});
+    			}
     			cells[j][i].setAttribute("vidIndex", paintValue);
     			cells[j][i].vidIndex = paintValue;
     		}
     	}
+
     	//TODO - add to newest layer of stack of changes
 	}
 
@@ -141,7 +149,7 @@
 	            cell.yVal = r;
 	            cells[r][c] = cell;
 	            cell.addEventListener('mousedown', function(e) {
-	            	//TODO - add new layer stack of changes
+	            	undoStack.push(new Array());
 	            	mouseDown = true;
 	            	drawAroundElement(e.target);
 	            });
@@ -157,5 +165,22 @@
 	    }
 	    return grid;
 	}
+</script>
+<script type='text/javascript'>
+    function KeyPress(e) {
+        var evtobj = window.event ? event : e
+        if (evtobj.key == "z") {
+        	console.log("z");
+        	var undoActions = undoStack.pop();
+        	for (var i = 0; i < undoActions.length; i++) {
+        		undoActions[i]();
+        	}
+        }
+        if (evtobj.key == "x") {
+        	console.log("x");
+        }
+    }
+
+    document.onkeypress = KeyPress;
 </script>
 </html>
