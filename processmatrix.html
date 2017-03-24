@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
+<html lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+	<link rel="stylesheet" type="text/css" href="matrixpainter.css">
+ 	<title>Title Goes Here</title> 
+</head> 
+<body>
+	<div id="gridholder"></div>
+	<button id="selectorToggle" class="selected">on</button>
+	<span>
+		<button id="sendmatrix">send</button>
+		<input type="text" id="gridname">
+		<button id="savematrix">save</button>
+	</span>
+	<br>
+	<span>
+		<button id="openmatrix">open</button>
+		<input type="text" id="filename">
+	</span>
+	<br>
+	<span>
+		<button id="penSizeButton">set pen size</button>
+		<input type="text" id="penSizeInput">
+	</span>
+</body> 
+<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+<script type="text/javascript">
+	var lastClicked;
+	var selecting = true;
+	var mouseDown = false;
+	var height = 32, width = 32;
+	var cells = new Array(height);
+	var penSize = 1;
+	var undoStack = new Array();
+	for(var i=0; i < cells.length; i++){
+		cells[i] = new Array(width);
+	}
+	var grid = clickableGrid(height,width,function(el,row,col,i){
+	    console.log("You clicked on element:",el, row, col, i);
+
+	    el.className='selected';
+	    el.setAttribute("vidIndex", 1);
+
+	    if (lastClicked) lastClicked.className='';
+	    lastClicked = el;
+	});
+
+	document.getElementById('gridholder').appendChild(grid);
+	
+	document.getElementById('selectorToggle').addEventListener('click', function(el){
+		selecting = !selecting;
+		el.target.className = selecting ? 'selected' : 'unselected';
+		el.target.innerHTML = selecting ? "on" : "off";
+		console.log("click toggle", el, mouseDown);
+	});
+
+	var getMatrixString = function() {
+		var shapeVector = new Array(height*width);
+		for(var i=0; i < height; i++){
+			for (var j = 0; j < width; j++) {
+				shapeVector[i*height+j]= cells[i][j].vidIndex;
+			}
+		}
+		console.log(shapeVector);
+		return shapeVector.join(",");
+	}
+
+	var setMatrixFromString = function(matrixstring) {
+		var shapeVector = matrixstring.split(",").map(function(val){return Math.round(parseFloat(val))});
+		for(var i=0; i < height; i++){
+			for (var j = 0; j < width; j++) {
+				cells[i][j].vidIndex = shapeVector[i*height+j];
+				cells[i][j].setAttribute("vidIndex", cells[i][j].vidIndex) 
+			}
+		}
+	}
+
+	document.getElementById('sendmatrix').addEventListener('click', function(el){		
+		$.post('/send', {matrixstring: getMatrixString(), 'height': height, 'width': width, name: $("#gridname").val() }, 
+			function(response){console.log(response)});
+	});
+
+	document.getElementById('savematrix').addEventListener('click', function(el){	
+		console.log("saved name", $("#gridname").val())	
+		$.post('/save', {matrixstring: getMatrixString(), 'height': height, 'width': width, name: $("#gridname").val() }, 
+			function(response){console.log(response)});
+	});
+	document.getElementById('openmatrix').addEventListener('click', function(el){	
+		console.log("saved name", $("#filename").val())	
+		$.post('/open', {name: $("#filename").val() }, 
+			function(response){
+				setMatrixFromString(response['matrixstring'])
+			}, dataType='json');
+	});
+
+	document.getElementById('penSizeButton').addEventListener('click', function(el){		
+		penSize = parseInt($("#penSizeInput").val());
+		console.log("penSize", penSize)
+	});
+
+	function drawAroundElement(el){
+		var paintValue;
+		var centerX = el.xVal;
+		var centerY = el.yVal;
+    	if(selecting){
+    		paintValue = 1;
+    	} else {
+    		paintValue = 0
+    	}
+    	var xmin = Math.max(0, centerX - Math.floor((1.0*(penSize))/2));
+    	var xmax = Math.min(32, centerX + Math.ceil((1.0*(penSize))/2));
+    	var ymin = Math.max(0, centerY - Math.floor((1.0*(penSize))/2));
+    	var ymax = Math.min(32, centerY + Math.ceil((1.0*(penSize))/2));
+    	console.log("painting in", xmin, xmax, ymin, ymax, (1.0*(penSize-1))/2);
+    	for(var i = xmin; i < xmax; i++){
+    		//console.log("painted", i, j);
+    		for(var j = ymin; j < ymax; j++){
+    			//console.log("draw in loop");
+    			let r1 = j;
+				let c1 = i;
+				let v1 = !paintValue+0;
+				if(cells[j][i].vidIndex != paintValue) {
+	    			undoStack[undoStack.length-1].push(function(){
+	    				cells[r1][c1].setAttribute("vidIndex", v1);
+	    				cells[r1][c1].vidIndex = v1;
+	    				console.log("setting to", c1, r1, v1)
+	    			});
+    			}
+    			cells[j][i].setAttribute("vidIndex", paintValue);
+    			cells[j][i].vidIndex = paintValue;
+    		}
+    	}
+
+    	//TODO - add to newest layer of stack of changes
+	}
+
+	function clickableGrid( rows, cols, callback ){
+	    var i=0;
+	    var grid = document.createElement('table');
+	    grid.className = 'grid';
+	    for (var r=0;r<rows;++r){
+	        var tr = grid.appendChild(document.createElement('tr'));
+	        for (var c=0;c<cols;++c){
+	            var cell = tr.appendChild(document.createElement('td'));
+	            cell.vidIndex = 1;
+	            cell.setAttribute("vidIndex", 1);
+	            cell.xVal = c;
+	            cell.yVal = r;
+	            cells[r][c] = cell;
+	            cell.addEventListener('mousedown', function(e) {
+	            	undoStack.push(new Array());
+	            	mouseDown = true;
+	            	drawAroundElement(e.target);
+	            });
+	            cell.addEventListener('mouseup', function(el) {
+	            	mouseDown = false;
+	            });
+	            cell.addEventListener('mouseover', function(e) {
+	            	if(mouseDown) {
+	            		drawAroundElement(e.target);
+		            }
+	            });
+	        }
+	    }
+	    return grid;
+	}
+</script>
+<script type='text/javascript'>
+    function KeyPress(e) {
+        var evtobj = window.event ? event : e
+        if (evtobj.key == "z") {
+        	console.log("z");
+        	var undoActions = undoStack.pop();
+        	for (var i = 0; i < undoActions.length; i++) {
+        		undoActions[i]();
+        	}
+        }
+        if (evtobj.key == "x") {
+        	console.log("x");
+        }
+    }
+
+    document.onkeypress = KeyPress;
+</script>
+</html>

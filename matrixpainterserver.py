@@ -5,6 +5,8 @@ import cgi
 import logging
 import OSC
 import json
+import threading
+import pickle 
 
 PORT_NUMBER = 8080
 
@@ -12,6 +14,22 @@ PORT_NUMBER = 8080
 # scClient.connect( ('127.0.0.1', 57120) ) 
 maxClient = OSC.OSCClient()
 maxClient.connect( ('127.0.0.1', 5432) ) 
+scServer = OSC.OSCServer(('127.0.0.1', 12345))
+matrixStrings = {}
+
+#stuff[0] is padInd, stuff[1] is colorStr, stuff[2] is selectStr
+def recieveMatrixStr(addr, tags, stuff, source):
+	matrixStrings[int(stuff[0])] = (stuff[1], stuff[2])
+
+def saveAllMatricies(addr, tags, stuff, source):
+	pickle.dump(open(stuff[0], "w"))
+
+def loadAllMatricies(addr, tags, stuff, source):
+	matrixStrings = pickle.load(open(stuff[0]))
+
+scServer.addMsgHandler("/processMatrices", recieveMatrixStr)
+
+scThread = threading.Thread(target=scServer.serve_forever)
 
 #This class will handles any incoming request from
 #the browser 
@@ -96,11 +114,18 @@ class myHandler(BaseHTTPRequestHandler):
 			height = int(matrixfileLines[0].split(": ")[1])
 			width = int(matrixfileLines[1].split(": ")[1])
 			matrixstring = matrixfileLines[2].split(": ")[1]
-			respoonseStr =json.dumps({"height": height, "width": width, "matrixstring": matrixstring}, separators=(",", ":"))
-			
+			responseStr =json.dumps({"height": height, "width": width, "matrixstring": matrixstring}, separators=(",", ":"))		
 			self.send_response(200)
 			self.end_headers()
-			self.wfile.write(respoonseStr)
+			self.wfile.write(responseStr)
+		if self.path == "/processGrid":
+			for i in range(8, 0, -1):
+				for j in range
+			responseStr = json.dumps
+			self.send_response(200)
+			self.end_headers()
+			self.wfile.write(responseStr)
+
 
 			
 try:
@@ -114,4 +139,6 @@ try:
 
 except KeyboardInterrupt:
 	print '^C received, shutting down the web server'
+	scServer.close()
+	scThread.join()
 	server.socket.close()
