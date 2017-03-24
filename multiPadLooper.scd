@@ -4,7 +4,7 @@
 )
 
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort;
 
 //light switching variables
 var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON;
@@ -19,12 +19,14 @@ midiOut.latency = 0;
 metronomeOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 masterClockOSCport = NetAddr("localhost", 57120);
+processPort = NetAddr("localhost", 12345);
 
 
 //----------------------------------------------
 //light switching variables
 cycleLight_BUTTON = 95;
 padColorState = Dictionary.new;
+~padColors = padColorState;
 ccLights = List.new;
 (1..8).do({|i|
     ccLights.add(i);
@@ -1055,7 +1057,8 @@ to let module recolor as necessary. Upon event occuring, keyboard will recolor f
 (thus updating padToColorMap), and then module will update lights afterwards.
 TODO - add event broadcasting for multiPadLooper color state change.
 */
-// stuff [addr, padInd, color(-1 if revert to old), repeated]
+// msg [addr, padInd, color(-1 if revert to old), repeated]
+~basePadColors = padIndToColor;
 moduleLights = {|msg, time, addr, recvPort|
 	["MODULE LIGHTS", msg].postln;
 	(1,3..(msg.size-2)).do({|i|
@@ -1066,6 +1069,24 @@ moduleLights = {|msg, time, addr, recvPort|
 	})
 };
 OSCFunc(moduleLights, "/moduleLights");
+
+OSCFunc({|msg, time, addr, recvPort|
+    Task({
+        var colorList = List.new;
+        var selectedList = List.new;
+        0.1.wait;
+        (8..1).do({|i|
+            (1..8).do({|j|
+                var colStr = switch(~basePadColors[i*10+j], 112, {"key"}, 45, {"root"}, 21, {"on"}, 0, {"nk"});
+                var selStr = if(~padColors[i*10+j] == 21, {"sel"}, {"nsel"});
+                colorList.add(colStr);
+                selectedList.add(selStr);
+            });
+        })
+        processPort.sendMsg("/processMatrices", msg[1] , colorList.join("."), selectedList.join("."));
+    }).play
+},"/chordPadIndFwd")
+
 
 /*
 basic layout
@@ -1188,6 +1209,26 @@ var stringToBuf = {|melString|
 	buf
 };
 
+//112, 45, 21, 0, c1, c2, held, clear
+~padColors
+~basePadColors
+[1,2].join(".")
+(
+var colorList = List.new;
+var selectedList = List.new;
+(8..1).do({|i|
+    (1..8).do({|j|
+        var colStr = switch(~basePadColors[i*10+j], 112, {"key"}, 45, {"root"}, 21, {"on"}, 0, {"nk"});
+        var selStr = if(~padColors[i*10+j] == 21, {"sel"}, {"nsel"});
+        colorList.add(colStr);
+        selectedList.add(selStr);
+    });
+})
+NetAddr("localhost", 12345).sendMsg("/processMatrices", , colorList.join("."), selectedList.join(".");
+)
+
+
+switch(8, 4, {true}, 5, {false}, )
 stringToBuf.(st)
 
 )

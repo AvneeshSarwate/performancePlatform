@@ -134,6 +134,10 @@ class Spatializer:
 
 	def playChordHandler(self, addr, tags, stuff, source):
 		self.playChord(self.savedChords[int(stuff[0])])
+		msg = OSC.OSCMessage()
+		msg.setAddress("/chordPadIndFwd")
+		msg.append(stuff[0])
+		self.superColliderClient.send(msg)
 
 	def saveChordHandler(self, addr, tags, stuff, source):
 		self.saveChord(int(stuff[0]))
