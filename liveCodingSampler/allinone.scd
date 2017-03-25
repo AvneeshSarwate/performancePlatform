@@ -369,7 +369,10 @@ sendSample = {|drumStr|
         });
 
 
-        if(volStr.isNil.not, {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/vol", volStr.asFloat)});
+        if(volStr.isNil.not,
+            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accent", volStr.asFloat)},
+            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accent", 1.0)}
+        );
 
         if(~max, {
             //play this buffer
