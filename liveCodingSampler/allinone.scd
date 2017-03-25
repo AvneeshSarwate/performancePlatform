@@ -383,7 +383,7 @@ sendSample = {|drumStr|
             ["CUTOFF SCHEDULED", duration].postln;
             heldHitTasks[bank] = Task({
                 "CUTOFF STARTED".postln;
-                (duration+0.0015).wait;
+                (duration+0.0025).wait;
                 maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
                 ["SEND END", bank].postln;
             }, masterTempoClock).play;
