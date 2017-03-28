@@ -21,3 +21,8 @@
     background-color:white;
     font-weight:bold; color:red;
 }
+
+.grid td[vidindex="2"] {
+    background-color:red;
+    font-size: 8px
+}

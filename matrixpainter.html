@@ -23,6 +23,13 @@
 		<button id="penSizeButton">set pen size</button>
 		<input type="text" id="penSizeInput">
 	</span>
+	<br>
+	<span>
+		<button id="queueButton">q off</button>
+		<button id="clearQueue">clear</button>
+		<span id="queueSize">0</div>
+		<button id="sendSkeleton">skend</button>
+	</span>
 </body> 
 <script type="text/javascript" src="jquery-1.8.2.min.js"></script>
 <script type="text/javascript">
@@ -33,6 +40,8 @@
 	var cells = new Array(height);
 	var penSize = 1;
 	var undoStack = new Array();
+	var queueing = false;
+	var skeletonQueue = new Array();
 	for(var i=0; i < cells.length; i++){
 		cells[i] = new Array(width);
 	}
@@ -53,6 +62,18 @@
 		el.target.className = selecting ? 'selected' : 'unselected';
 		el.target.innerHTML = selecting ? "on" : "off";
 		console.log("click toggle", el, mouseDown);
+	});
+
+	document.getElementById('queueButton').addEventListener('click', function(el){
+		queueing = !queueing;
+		el.target.innerHTML = queueing ? "q on" : "q off";
+		console.log("click q toggle", el, mouseDown);
+	});
+
+	document.getElementById('clearQueue').addEventListener('click', function(el){
+		skeletonQueue = new Array();
+		$("queueSize").html(0)
+		console.log("clear q", el, mouseDown);
 	});
 
 	var getMatrixString = function() {
@@ -77,20 +98,49 @@
 	}
 
 	document.getElementById('sendmatrix').addEventListener('click', function(el){		
-		$.post('/send', {matrixstring: getMatrixString(), 'height': height, 'width': width, name: $("#gridname").val() }, 
-			function(response){console.log(response)});
+		$.post('/skeleton', 
+		{
+			matrixstring: getMatrixString(), 
+			'height': height, 
+			'width': width, 
+			name: $("#gridname").val(),
+			'skeleton': JSON.stringify(skeletonQueue) 
+		}, 
+		function(response){console.log(response)});
+	});
+
+	document.getElementById('sendSkeleton').addEventListener('click', function(el){		
+		$.post('/send', 
+		{
+			matrixstring: getMatrixString(), 
+			'height': height, 
+			'width': width, 
+			name: $("#gridname").val(),
+			'skeleton': JSON.stringify(skeletonQueue) 
+		}, 
+		function(response){console.log(response)});
 	});
 
 	document.getElementById('savematrix').addEventListener('click', function(el){	
 		console.log("saved name", $("#gridname").val())	
-		$.post('/save', {matrixstring: getMatrixString(), 'height': height, 'width': width, name: $("#gridname").val() }, 
-			function(response){console.log(response)});
+		$.post('/save', 
+		{
+			matrixstring: getMatrixString(), 
+			'height': height, 
+			'width': width, 
+			name: $("#gridname").val(),
+			'skeleton': JSON.stringify(skeletonQueue) 
+		}, 
+		function(response){console.log(response)});
 	});
 	document.getElementById('openmatrix').addEventListener('click', function(el){	
 		console.log("saved name", $("#filename").val())	
 		$.post('/open', {name: $("#filename").val() }, 
 			function(response){
-				setMatrixFromString(response['matrixstring'])
+				setMatrixFromString(response['matrixstring']);
+				console.log("skeleton", response['skeleton'])
+				skeletonQueue = JSON.parse(response['skeleton']);
+				$('#queueSize').html(skeletonQueue.length);
 			}, dataType='json');
 	});
 
@@ -98,6 +148,23 @@
 		penSize = parseInt($("#penSizeInput").val());
 		console.log("penSize", penSize)
 	});
+
+	function addToSkeletonQueue(el){
+		let x = el.xVal;
+		let y = el.yVal;
+		let v0 = el.vidIndex;
+		skeletonQueue.push([x,y]);
+		undoStack.push([function(){
+			cells[y][x].setAttribute("vidIndex", v0);
+			cells[y][x].vidIndex = v0;
+			skeletonQueue.pop();
+			$("#queueSize").html(skeletonQueue.length);
+		}])
+		el.setAttribute("vidIndex", 2);
+		el.vidIndex = 2;
+		$("#queueSize").html(skeletonQueue.length);
+		console.log("skeleton", skeletonQueue);
+	}
 
 	function drawAroundElement(el){
 		var paintValue;
@@ -151,13 +218,17 @@
 	            cell.addEventListener('mousedown', function(e) {
 	            	undoStack.push(new Array());
 	            	mouseDown = true;
-	            	drawAroundElement(e.target);
+	            	if(queueing){
+	            		addToSkeletonQueue(e.target);
+	            	} else {
+	            		drawAroundElement(e.target);
+	            	}
 	            });
 	            cell.addEventListener('mouseup', function(el) {
 	            	mouseDown = false;
 	            });
 	            cell.addEventListener('mouseover', function(e) {
-	            	if(mouseDown) {
+	            	if(mouseDown && !queueing) {
 	            		drawAroundElement(e.target);
 		            }
 	            });

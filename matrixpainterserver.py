@@ -8,7 +8,7 @@ import json
 import threading
 import pickle 
 
-PORT_NUMBER = 8080
+PORT_NUMBER = 8081
 
 # scClient = OSC.OSCClient()
 # scClient.connect( ('127.0.0.1', 57120) ) 
@@ -106,6 +106,7 @@ class myHandler(BaseHTTPRequestHandler):
 			matrixfile.write("height: " + str(form['height'].value) + "\n")
 			matrixfile.write("width: " + str(form['width'].value) + "\n")
 			matrixfile.write("matrixstring: " + str(form['matrixstring'].value) + "\n")
+			matrixfile.write("skeleton: " + str(form['skeleton'].value) + "\n")
 			matrixfile.close()
 			self.send_response(200)
 			self.end_headers()
@@ -114,17 +115,22 @@ class myHandler(BaseHTTPRequestHandler):
 			height = int(matrixfileLines[0].split(": ")[1])
 			width = int(matrixfileLines[1].split(": ")[1])
 			matrixstring = matrixfileLines[2].split(": ")[1]
-			responseStr =json.dumps({"height": height, "width": width, "matrixstring": matrixstring}, separators=(",", ":"))		
+			skeleton = matrixfileLines[3].split(": ")[1]
+			print "load skeleton", skeleton
+			responseStr =json.dumps({"height": height, "width": width, "matrixstring": matrixstring, "skeleton": skeleton}, separators=(",", ":"))		
 			self.send_response(200)
 			self.end_headers()
 			self.wfile.write(responseStr)
 		if self.path == "/processGrid":
-			for i in range(8, 0, -1):
-				for j in range
 			responseStr = json.dumps
 			self.send_response(200)
 			self.end_headers()
 			self.wfile.write(responseStr)
+		if self.path == "/skeleton":
+			print form['skeleton']
+			self.send_response(200)
+			self.end_headers()
+
 
 
 			
