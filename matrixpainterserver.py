@@ -136,6 +136,7 @@ class myHandler(BaseHTTPRequestHandler):
 			scClient.send(msg)
 			self.send_response(200)
 			self.end_headers()
+			self.wfile.write("sent skeleton")
 
 
 

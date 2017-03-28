@@ -3,18 +3,20 @@
 
 
 (
+~processingPort = NetAddr("localhost", 12000);
+
 //skeletonFrames
 ~frames = List.new;
 
+~recieveFrame = {|msg, time, addr, recvPort|
+    ~frames.add(msg[1..40]);
+    msg.postln;
+};
+
 OSCFunc({|msg, time, addr, recvPort|
-
-    //map grid coordinates to processing draw coordinates
-
-    //add list to skeleton frame
-
-
-
-}, "/gridSkeleton")
+    msg.postln;
+    ~frames.add(msg[1..40]);
+}, "/gridSkeleton");
 
 //calculateInterolation
 ~calcInterp = {|frame1, frame2, interpolation|
@@ -24,23 +26,32 @@ OSCFunc({|msg, time, addr, recvPort|
         newFrame.add(frame1[i] + (diff*interpolation))
     });
     newFrame
-}
+};
 
 ~sendFrames = Task({
-    var nFr = {~skeletonFrames.size};
+    var nFr = {~frames.size};
     var interpSteps = 100; //number of interpolation steps
-    var frameTime = 1/60;
+    var frameTime = 1/10;
     var interpInd = 0; //interpolation index
     var frameInd = 0;
 
-    var frameToSend = ~calcInterp.(~frames[frameInd], ~frames[frameInd+1%nFr.()], interpInd/interpSteps);
+    {
+        if(~frames.size > 0, {
+            var frameToSend = ~calcInterp.(~frames[frameInd], ~frames[frameInd+1%nFr.()], interpInd/interpSteps);
 
-    interpInd = interpInd+1%interpSteps;
-    if(interpInd == 0, {frameInd = frameInd+1%nFr.()});
-
-    frameTime.wait;
+            interpInd = interpInd+1%interpSteps;
+            if(interpInd == 0, {frameInd = frameInd+1%nFr.()});
+            frameToSend.postln;
+            ~processingPort.sendRaw((["/skeletonFrame"]++frameToSend).asArray.asRawOSC);
+        });
+        frameTime.wait;
+    }.loop;
 });
 
+~sendFrames.start;
 
+"ALL STARTED".postln;
 )
 
+
+~sendFrames.start;
