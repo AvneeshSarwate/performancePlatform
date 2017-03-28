@@ -14,6 +14,8 @@ PORT_NUMBER = 8081
 # scClient.connect( ('127.0.0.1', 57120) ) 
 maxClient = OSC.OSCClient()
 maxClient.connect( ('127.0.0.1', 5432) ) 
+scClient = OSC.OSCClient()
+scClient.connect( ('127.0.0.1', 57120) ) 
 scServer = OSC.OSCServer(('127.0.0.1', 12345))
 matrixStrings = {}
 
@@ -127,7 +129,11 @@ class myHandler(BaseHTTPRequestHandler):
 			self.end_headers()
 			self.wfile.write(responseStr)
 		if self.path == "/skeleton":
-			print form['skeleton']
+			msg = OSC.OSCMessage()
+			msg.setAddress("/gridSkeleton")
+			msg.append(json.loads(form['skeleton'].value))
+			print msg
+			scClient.send(msg)
 			self.send_response(200)
 			self.end_headers()
 

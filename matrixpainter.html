@@ -98,7 +98,7 @@
 	}
 
 	document.getElementById('sendmatrix').addEventListener('click', function(el){		
-		$.post('/skeleton', 
+		$.post('/send', 
 		{
 			matrixstring: getMatrixString(), 
 			'height': height, 
@@ -110,7 +110,7 @@
 	});
 
 	document.getElementById('sendSkeleton').addEventListener('click', function(el){		
-		$.post('/send', 
+		$.post('/skeleton', 
 		{
 			matrixstring: getMatrixString(), 
 			'height': height, 
