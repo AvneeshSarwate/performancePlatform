@@ -29,7 +29,7 @@ OSCFunc(~recieveFrame, "/gridSkeleton");
 ~sendFrames = Task({
     var nFr = {~frames.size};
     var interpSteps = 20; //number of interpolation steps
-    var frameTime = 1/10;
+    var frameTime = 1/60;
     var interpInd = 0; //interpolation index
     var frameInd = 0;
 
