@@ -45,7 +45,9 @@ class EtherDream {
 
 
     void readResponse() { //very complicated attempt number three for reading data from the DAC
-
+        // while(dacClient.available() == 0) {
+        //     delay(1);
+        // }
         if (dacClient.available() > 0) { // If there's incoming data from the client...
             int rd = dacClient.readBytes(firstData);//read the first byte
             if (rd == 1) {
@@ -166,7 +168,6 @@ class EtherDream {
         if (validAckChar) {
             if (data.length == 22) { //if we're receiving the right kind of packet
                 commandSent = char(bb.get(1));
-                println("======COMMAND SENT:    " + commandSent);
                 protocol = int(bb.get(3));
                 lightEngineState = int(bb.get(3));//int(bb.getShort(3));
                 playbackState = int(bb.get(4));
@@ -177,7 +178,7 @@ class EtherDream {
                 bufferFullness = int(getUnsignedShort(bb, 12));
                 pointRate = bb.getInt(14);
                 pointCount = bb.getInt(18);
-
+                if(ackChar != 'a') println("INVALID COMMAND SENT: " + commandSent + "   " + ackString  + " " + playbackState);
                 //printStatus();
             } else {
                 println("INVALID DATA LENGTH:    " + data.length);
@@ -262,6 +263,7 @@ class EtherDream {
         putUnsignedShort(headerData, count);
         byte[] ptHeader = headerData.array(); //create a header byte array that tells the DAC how many points to draw
         //CONCATENATE ALL OF OUR DATA INTO ONE BYTE ARRAY (HEADER AND POINT INFO)
+        int theMeasuredCount = 0;
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
         try {
@@ -272,7 +274,6 @@ class EtherDream {
             int flag = 0;
             boolean firstI = true;
             boolean firstJ = true;
-            int theMeasuredCount = 0;
 
             while (theMeasuredCount < count) { //keep repeating until we've sent as many points as necessary
                 for (int i = 0; i<thePoints.size (); i++) {
@@ -340,7 +341,7 @@ class EtherDream {
         byte [] message = outputStream.toByteArray();
         dacClient.write(message);
         readResponse();
-        println("SENT POLYLINE SUBSET=====================    Total Count:    " + pointsSent);
+        println("SENT POLYLINE SUBSET=====================  :    " + theMeasuredCount);
         return terminatingIndices;
         // printStatus();
     }
@@ -460,7 +461,7 @@ class EtherDream {
     void ping() {
         dacClient.write(byte('?'));
         readResponse();
-        println("PING=====================");
+        //println("PING=====================");
         //printStatus();
     }
 

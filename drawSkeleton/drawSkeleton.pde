@@ -93,7 +93,7 @@ void draw() {
     }
     
     ////////////////////////////SEND STUFF TO THE DAC/////////////////////////////////////////////////
-    if(usingDac) dac.printStatus();
+    //if(usingDac) dac.printStatus();
     if (stream && usingDac) { //if we have been told to stream
         if (dac.ackChar != 'a') { //if we have a NAK character, we need to reset things, so turn off "started" so we can send the prepare/begin command again.
             started = false;
@@ -133,9 +133,9 @@ void draw() {
 
 
 void oscEvent( OscMessage m ) {
-  print( "Received an osc message" );
-  print( ", address pattern: " + m.getAddress( ) );
-  println( ", typetag: " + m.getTypetag( ) );
+  // print( "Received an osc message" );
+  // print( ", address pattern: " + m.getAddress( ) );
+  // println( ", typetag: " + m.getTypetag( ) );
   if(m.getAddress( ).equals("/skeletonFrame")) {
     ArrayList<PVector> arms = new ArrayList<PVector>();
     ArrayList<PVector> headLeg = new ArrayList<PVector>();
@@ -173,10 +173,9 @@ void oscEvent( OscMessage m ) {
     frame.add(headLeg);
     frame.add(lastLeg);
     newestFrame = frame;
-    println(debugFrame);
+    //println(debugFrame);
     //skeletonFrames.add(frame);
   }
-  println();
 }
 
 
