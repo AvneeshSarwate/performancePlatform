@@ -9,14 +9,12 @@
 ~frames = List.new;
 
 ~recieveFrame = {|msg, time, addr, recvPort|
-    ~frames.add(msg[1..40]);
+    var fr = msg[1..40];
+    ~frames.add(fr);
     msg.postln;
 };
 
-OSCFunc({|msg, time, addr, recvPort|
-    msg.postln;
-    ~frames.add(msg[1..40]);
-}, "/gridSkeleton");
+OSCFunc(~recieveFrame, "/gridSkeleton");
 
 //calculateInterolation
 ~calcInterp = {|frame1, frame2, interpolation|
@@ -30,7 +28,7 @@ OSCFunc({|msg, time, addr, recvPort|
 
 ~sendFrames = Task({
     var nFr = {~frames.size};
-    var interpSteps = 100; //number of interpolation steps
+    var interpSteps = 20; //number of interpolation steps
     var frameTime = 1/10;
     var interpInd = 0; //interpolation index
     var frameInd = 0;
@@ -42,6 +40,7 @@ OSCFunc({|msg, time, addr, recvPort|
             interpInd = interpInd+1%interpSteps;
             if(interpInd == 0, {frameInd = frameInd+1%nFr.()});
             frameToSend.postln;
+            (["/skeletonFrame"]++frameToSend).asArray.asRawOSC.postln;
             ~processingPort.sendRaw((["/skeletonFrame"]++frameToSend).asArray.asRawOSC);
         });
         frameTime.wait;
@@ -54,4 +53,4 @@ OSCFunc({|msg, time, addr, recvPort|
 )
 
 
-~sendFrames.start;
+~sendFrames.stop;
