@@ -34,7 +34,6 @@ class EtherDream {
     int bufferFullness = 0;
     int pointRate = 0;
     int pointCount = 0;
-    int pointsSent = 0; //total points sent by this object
 
     EtherDream() { //class constructor doesn't do anything
     }
@@ -46,9 +45,7 @@ class EtherDream {
 
 
     void readResponse() { //very complicated attempt number three for reading data from the DAC
-        // while(dacClient.available() == 0) {
-        //     delay(1);
-        // }
+
         if (dacClient.available() > 0) { // If there's incoming data from the client...
             int rd = dacClient.readBytes(firstData);//read the first byte
             if (rd == 1) {
@@ -267,7 +264,6 @@ class EtherDream {
         //CONCATENATE ALL OF OUR DATA INTO ONE BYTE ARRAY (HEADER AND POINT INFO)
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
-        int theMeasuredCount = 0;
         try {
             outputStream.write(ptHeader);
             int intensity = -1;
@@ -276,6 +272,7 @@ class EtherDream {
             int flag = 0;
             boolean firstI = true;
             boolean firstJ = true;
+            int theMeasuredCount = 0;
 
             while (theMeasuredCount < count) { //keep repeating until we've sent as many points as necessary
                 for (int i = 0; i<thePoints.size (); i++) {
@@ -342,8 +339,8 @@ class EtherDream {
 
         byte [] message = outputStream.toByteArray();
         dacClient.write(message);
-        println("SENT POLYLINE SUBSET=====================  :    " + theMeasuredCount);
         readResponse();
+        println("SENT POLYLINE SUBSET=====================    Total Count:    " + pointsSent);
         return terminatingIndices;
         // printStatus();
     }

@@ -20,7 +20,7 @@ boolean started = false; //we need to send some stuff only once at the beginning
 //ArrayList<color> polylineColors = new ArrayList<color>();
 int nextStreamLineIndex = 0; //the location where we should start the subset to send
 int nextStreamVertexIndex = 0; //he location where we should start the subset to send
-
+int pointsSent = 0;
 //=================================NETWORKING DATA===========================================================================
 String ipAddress = "192.168.0.20"; //set the ip address of the DAC
 int port = 7765; //set the port of the DAC
@@ -28,7 +28,6 @@ EtherDream dac; //make a new instance of the etherdream class called dac
 
 boolean usingDac= true;
 boolean drawingSkeleton = true;
-long drawCount = 0;
 
 void setup() {
     size(640, 360);
@@ -94,7 +93,7 @@ void draw() {
     }
     
     ////////////////////////////SEND STUFF TO THE DAC/////////////////////////////////////////////////
-    //if(usingDac) dac.printStatus();
+    if(usingDac) dac.printStatus();
     if (stream && usingDac) { //if we have been told to stream
         if (dac.ackChar != 'a') { //if we have a NAK character, we need to reset things, so turn off "started" so we can send the prepare/begin command again.
             started = false;
@@ -110,19 +109,17 @@ void draw() {
                 println("INVALID DAC STATE AT PREPARE");
             }
         }
-        if(started) {
-            int cap = 1799 - dac.bufferFullness; //find how much space is left between the max buffer capacity and the current number of points in the buffer
-            //if (cap > numBufferPts) {
-            //println("============BUFFER FULLNESS:    " + dac.bufferFullness + " ============");
-            //dac.sendPolylines(rebuiltPolylines, rebuiltColorList);
-            int theCountToSend = min(cap, numBufferPts); //calculate the numbef of points to send, the minimum between the number wanted and the number that we have
-            int [] theIndexResponse = dac.sendPolylineSubset(rebuiltPolylines, rebuiltColorList, nextStreamLineIndex, nextStreamVertexIndex, theCountToSend); //given a 2d arraylist of vertices, send the requested subset
-            nextStreamLineIndex = theIndexResponse[0]; //what curve number comes next?
-            nextStreamVertexIndex = theIndexResponse[1]; //what vertex comes immediately after the one we just sent (for next time)?
-            //dac.sendPolylines(originalPolylinesToDraw, originalColors);
-            //println("SENDING VALUES");
-            //}
-        }
+        int cap = 1799 - dac.bufferFullness; //find how much space is left between the max buffer capacity and the current number of points in the buffer
+        //if (cap > numBufferPts) {
+        println("============BUFFER FULLNESS:    " + dac.bufferFullness + " ============");
+        //dac.sendPolylines(rebuiltPolylines, rebuiltColorList);
+        int theCountToSend = min(cap, numBufferPts); //calculate the numbef of points to send, the minimum between the number wanted and the number that we have
+        int [] theIndexResponse = dac.sendPolylineSubset(rebuiltPolylines, rebuiltColorList, nextStreamLineIndex, nextStreamVertexIndex, theCountToSend); //given a 2d arraylist of vertices, send the requested subset
+        nextStreamLineIndex = theIndexResponse[0]; //what curve number comes next?
+        nextStreamVertexIndex = theIndexResponse[1]; //what vertex comes immediately after the one we just sent (for next time)?
+        //dac.sendPolylines(originalPolylinesToDraw, originalColors);
+        //println("SENDING VALUES");
+        //}
 
         if (!started) { //if it's the first time around
             //dac.sendPolylines(rebuiltPolylines, rebuiltColorList); //double send to get the buffer more full at start
@@ -131,14 +128,14 @@ void draw() {
             println("STARTING STREAM");
         }
     }
-    //if(usingDac) dac.ping(); //ping the DAC so that we know how many points are in the buffer next time we go through the draw loop
+    if(usingDac) dac.ping(); //ping the DAC so that we know how many points are in the buffer next time we go through the draw loop
 }//end draw
 
 
 void oscEvent( OscMessage m ) {
-  //print( "Received an osc message" );
-  //print( ", address pattern: " + m.getAddress( ) );
-  //println( ", typetag: " + m.getTypetag( ) );
+  print( "Received an osc message" );
+  print( ", address pattern: " + m.getAddress( ) );
+  println( ", typetag: " + m.getTypetag( ) );
   if(m.getAddress( ).equals("/skeletonFrame")) {
     ArrayList<PVector> arms = new ArrayList<PVector>();
     ArrayList<PVector> headLeg = new ArrayList<PVector>();
@@ -176,11 +173,10 @@ void oscEvent( OscMessage m ) {
     frame.add(headLeg);
     frame.add(lastLeg);
     newestFrame = frame;
-    //nextStreamLineIndex = 0; 
-    //nextStreamVertexIndex = 0;
-    //println(debugFrame);
+    println(debugFrame);
     //skeletonFrames.add(frame);
   }
+  println();
 }
 
 
