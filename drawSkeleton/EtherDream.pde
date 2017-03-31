@@ -45,9 +45,9 @@ class EtherDream {
 
 
     void readResponse() { //very complicated attempt number three for reading data from the DAC
-        // while(dacClient.available() == 0) {
-        //     delay(1);
-        // }
+        while(dacClient.available() == 0) {
+            delay(1);
+        }
         if (dacClient.available() > 0) { // If there's incoming data from the client...
             int rd = dacClient.readBytes(firstData);//read the first byte
             if (rd == 1) {
@@ -178,7 +178,7 @@ class EtherDream {
                 bufferFullness = int(getUnsignedShort(bb, 12));
                 pointRate = bb.getInt(14);
                 pointCount = bb.getInt(18);
-                if(ackChar != 'a') println("INVALID COMMAND SENT: " + commandSent + "   " + ackString  + " " + playbackState);
+                if(ackChar != 'a') println("INVALID COMMAND SENT: " + commandSent + "   " + ackString  + " playState: " + playbackState + " lightState: " + lightEngineState);
                 //printStatus();
             } else {
                 println("INVALID DATA LENGTH:    " + data.length);

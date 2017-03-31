@@ -95,7 +95,7 @@ void draw() {
     ////////////////////////////SEND STUFF TO THE DAC/////////////////////////////////////////////////
     //if(usingDac) dac.printStatus();
     if (stream && usingDac) { //if we have been told to stream
-        if (dac.ackChar != 'a') { //if we have a NAK character, we need to reset things, so turn off "started" so we can send the prepare/begin command again.
+        if (dac.ackChar != 'a'  || dac.playbackState != 2) { //if we have a NAK character, we need to reset things, so turn off "started" so we can send the prepare/begin command again.
             started = false;
             //dac.begin(40000);
         }
