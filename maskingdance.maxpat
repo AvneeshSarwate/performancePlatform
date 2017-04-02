@@ -38,6 +38,24 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-164",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 1840.0, 549.0, 107.0, 22.0 ],
+					"saved_object_attributes" : 					{
+						"filename" : "bars.js",
+						"parameter_enable" : 0
+					}
+,
+					"style" : "",
+					"text" : "js bars.js template"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-163",
 					"maxclass" : "newobj",
 					"numinlets" : 4,
@@ -554,7 +572,7 @@
 				"box" : 				{
 					"id" : "obj-16",
 					"maxclass" : "newobj",
-					"numinlets" : 1,
+					"numinlets" : 5,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1656.732544, 696.5, 126.0, 22.0 ],
@@ -4636,6 +4654,18 @@
 			}
  ],
 		"dependency_cache" : [ 			{
+				"name" : "fillwithfft.js",
+				"bootpath" : "~/performancePlatform",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+, 			{
+				"name" : "bars.js",
+				"bootpath" : "~/performancePlatform",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+, 			{
 				"name" : "OpenSoundControl.mxo",
 				"type" : "iLaX"
 			}
