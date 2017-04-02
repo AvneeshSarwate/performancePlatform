@@ -33,31 +33,68 @@ function calcLines(){
 	var old_dstdimend = copyMatrix.dstdimend;
 	copyMatrix.usedstdim = 1;
 	
-
-	
 	for(var i = 0; i < numVertLines; i++){
+		var start = vLinePos[i];
+		var end = vLinePos[i] + vWidths[i];
+		if(start < 0 && end > 0){
+			copyMatrix.dstdimstart = [0, 0];
+			copyMatrix.dstdimend = [end, yDim];
+			copyMatrix.frommatrix(whiteMatrix);
+			copyMatrix.dstdimstart = [xDim-Math.abs(start), 0];
+			copyMatrix.dstdimend = [xDim, yDim];
+			copyMatrix.frommatrix(whiteMatrix);
+		}
+		if(start > 0 && end < xDim){
+			copyMatrix.dstdimstart = [newStart, 0];
+			copyMatrix.dstdimend = [newEnd, yDim];
+		}
+		if(start > 0 && start < xDim && end > xDim){
+			copyMatrix.dstdimstart = [start, 0];
+			copyMatrix.dstdimend = [xDim, yDim];
+			copyMatrix.frommatrix(whiteMatrix);
+			copyMatrix.dstdimstart = [0, 0];
+			copyMatrix.dstdimend = [end%xDim, yDim];
+		}
+		
 		var newStart = vLinePos[i] + vLineSteps[i];
-		var newEnd = vLinePos[i] + vLineSteps[i] + vWidths[i];
-		if(newStart < 0 &&  newEnd < 0){
-			
+		var newEnd = vLinePos[i] + vWidths[i] + vLineSteps[i];
+		vLinePos[i] += vLineSteps[i];
+		if(newStart > xDim || newEnd < 0) {
+			vLinePos[i] %= xDim;
 		}
-		if(newStart > 0 && newEnd < 0){
-			
-		}
-		if(newStart > 0 && newEnd < xDim){
-			
-		}
-		if(newStart < xDim && newEnd > xDim){
-			
-		}
-		if(newStart > xDim && newEnd > xDim){
-			
-		}		
 	}
 	
 	for(var i = 0; i < numHorLines; i++){
+		var start = hLinePos[i];
+		var end = hLinePos[i] + hWidths[i];
+		if(start < 0 && end > 0){
+			copyMatrix.dstdimstart = [0, 0];
+			copyMatrix.dstdimend = [xDim, end];
+			copyMatrix.frommatrix(whiteMatrix);
+			copyMatrix.dstdimstart = [0, yDim-Math.abs(start)];
+			copyMatrix.dstdimend = [xDim, yDim];
+			copyMatrix.frommatrix(whiteMatrix);
+		}
+		if(start > 0 && end < xDim){
+			copyMatrix.dstdimstart = [0, newStart];
+			copyMatrix.dstdimend = [xDim, newEnd];
+		}
+		if(start > 0 && start < xDim && end > xDim){
+			copyMatrix.dstdimstart = [0, start];
+			copyMatrix.dstdimend = [xDim, yDim];
+			copyMatrix.frommatrix(whiteMatrix);
+			copyMatrix.dstdimstart = [0, 0];
+			copyMatrix.dstdimend = [xDim, end%yDim];
+		}
 		
+		var newStart = vLinePos[i] + vLineSteps[i];
+		var newEnd = vLinePos[i] + vWidths[i] + vLineSteps[i];
+		vLinePos[i] += vLineSteps[i];
+		if(newStart > xDim || newEnd < 0) {
+			vLinePos[i] %= xDim;
+		}
 	}
+	
 	copyMatrix.dstdimstart = old_dstdimstart;
 	copyMatrix.dstdimend = old_dstdimend;
 	copyMatrix.usedstdim = 0;
