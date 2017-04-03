@@ -11,7 +11,7 @@
 ,
 		"rect" : [ 59.0, 104.0, 1234.0, 854.0 ],
 		"bglocked" : 0,
-		"openinpresentation" : 0,
+		"openinpresentation" : 1,
 		"default_fontsize" : 12.0,
 		"default_fontface" : 0,
 		"default_fontname" : "Arial",
@@ -639,6 +639,7 @@
 					"outlettype" : [ "int", "", "" ],
 					"parameter_enable" : 0,
 					"patching_rect" : [ 1382.295044, 277.277405, 145.0, 22.0 ],
+					"presentation_rect" : [ 0.0, 0.0, 10.0, 22.0 ],
 					"style" : "umenuGold"
 				}
 
