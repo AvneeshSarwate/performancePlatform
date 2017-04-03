@@ -1,11 +1,12 @@
 (
-var launchpadOut, maxOut, launchPad, padToInd, noiseRanges, noiseRangeButtons, lastPad, lastNoiseButton, green_COLOR, red_COLOR, orange_COLOR;
+var launchpadOut, maxOut, maxOut2, launchPad, padToInd, noiseRanges, noiseRangeButtons, lastPad, lastNoiseButton, notButton, notting, green_COLOR, red_COLOR, orange_COLOR;
 
 MIDIClient.init;
 MIDIIn.connectAll;
 
 launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port");
 maxOut = MIDIOut.newByName("to Max 1", "to Max 1");
+maxOut2 = MIDIOut.newByName("to Max 2", "to Max 2");
 launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
 padToInd = {|padNum|
@@ -19,7 +20,8 @@ noiseRanges = [0, 2, 5, 10, 20, 30, 40, 50];
 noiseRangeButtons = (19,29..89);
 lastPad = 0;
 lastNoiseButton = 0;
-
+notButton = 98;
+notting = false;
 
 green_COLOR = 18;
 red_COLOR = 5;
@@ -45,6 +47,11 @@ MIDIFunc.cc({|vel, note, chan, port|
         lastNoiseButton = note;
     });
 
+    if((note == notButton) && (vel != 0), {
+        notting = notting.not;
+        launchpadOut.noteOn(0, note, if(notting, orange_COLOR, 0));
+        maxOut2.noteOn(0, 100, 10)
+    });
 }, nil, nil, launchPad.uid);
 
 )
