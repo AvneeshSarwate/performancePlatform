@@ -19,25 +19,23 @@ var hLinePos = [vLinePos[p[0]], vLinePos[p[1]], vLinePos[p[2]], vLinePos[p[3]], 
 var hLineSteps = [vLineSteps[p[0]], vLineSteps[p[1]], vLineSteps[p[2]], vLineSteps[p[3]], vLineSteps[p[4]]];
 var hLineWidths = [vLineWidths[p[0]], vLineWidths[p[1]], vLineWidths[p[2]], vLineWidths[p[3]], vLineWidths[p[4]]];
 
-post(numVertLines);
-post(numHorLines);
-post();
-post(hLinePos);
-post();
-post(hLineSteps);
-post();
-post(hLineWidths);
-post();
-
-calcLines();
+var linesCalculated = false;
 
 function bang(){
+	if(!linesCalculated) {
+		calcLines();
+		linesCalculated = true;
+	}
+	post("POST LINES");
+	post();
 	outlet(0, "jit_matrix", copyMatrix.name);
 }
 
 
 function calcLines(){
 
+	post("DRAWING LINES");
+	post();
 	copyMatrix.frommatrix(blackMatrix);
 	
 	var old_dstdimstart = copyMatrix.dstdimstart;
