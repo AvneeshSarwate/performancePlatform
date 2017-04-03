@@ -1,5 +1,5 @@
 (
-var launchpadOut, maxOut, maxOut2, launchPad, padToInd, noiseRanges, noiseRangeButtons, lastPad, lastNoiseButton, notButton, notting, green_COLOR, red_COLOR, orange_COLOR;
+var launchpadOut, maxOut, maxOut2, launchPad, padToInd, noiseRanges, noiseRangeButtons, lastPad, lastNoiseButton, notButton, notting, green_COLOR, red_COLOR, orange_COLOR, aToggleButton, vidAon, bToggleButton, vidBon;
 
 MIDIClient.init;
 MIDIIn.connectAll;
@@ -22,11 +22,18 @@ lastPad = 0;
 lastNoiseButton = 0;
 notButton = 98;
 notting = false;
+aToggleButton = 91;
+bToggleButton = 92;
+vidAon = true;
+vidBon = true;
 
 green_COLOR = 18;
 red_COLOR = 5;
 orange_COLOR = 96;
 
+
+launchpadOut.noteOn(0, aToggleButton, orange_COLOR);
+launchpadOut.noteOn(0, bToggleButton, orange_COLOR);
 
 MIDIFunc.noteOn({|vel, note, chan, port|
     padToInd.(note).postln;
@@ -45,12 +52,23 @@ MIDIFunc.cc({|vel, note, chan, port|
         launchpadOut.noteOn(0, lastNoiseButton, 0);
         launchpadOut.noteOn(0, note, red_COLOR);
         lastNoiseButton = note;
+        ["CONTROL", noiseRanges[ind]].postln;
     });
 
     if((note == notButton) && (vel != 0), {
         notting = notting.not;
         launchpadOut.noteOn(0, note, if(notting, orange_COLOR, 0));
         maxOut2.noteOn(0, 100, 10)
+    });
+    if((note == aToggleButton) && (vel != 0), {
+        vidAon = vidAon.not;
+        launchpadOut.noteOn(0, note, if(vidAon, orange_COLOR, 0));
+        maxOut2.noteOn(0, 50, 10)
+    });
+    if((note == bToggleButton) && (vel != 0), {
+        vidBon = vidBon.not;
+        launchpadOut.noteOn(0, note, if(vidBon, orange_COLOR, 0));
+        maxOut2.noteOn(0, 51, 10)
     });
 }, nil, nil, launchPad.uid);
 
