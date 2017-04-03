@@ -29,9 +29,9 @@ post();
 post(hLineWidths);
 post();
 
+calcLines();
 
 function bang(){
-	calcLines();
 	outlet(0, "jit_matrix", copyMatrix.name);
 }
 

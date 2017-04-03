@@ -1,5 +1,5 @@
 (
-var launchpadOut, maxOut, maxOut2, launchPad, padToInd, noiseRanges, noiseRangeButtons, lastPad, lastNoiseButton, notButton, notting, green_COLOR, red_COLOR, orange_COLOR, aToggleButton, vidAon, bToggleButton, vidBon;
+var launchpadOut, maxOut, maxOut2, launchPad, padToInd, noiseRanges, noiseRangeButtons, lastPad, lastNoiseButton, notButton, notting, green_COLOR, red_COLOR, orange_COLOR, aToggleButton, vidAon, bToggleButton, vidBon, defaultRotateButton;
 
 MIDIClient.init;
 MIDIIn.connectAll;
@@ -26,14 +26,17 @@ aToggleButton = 91;
 bToggleButton = 92;
 vidAon = true;
 vidBon = true;
+defaultRotateButton  = 1;
 
 green_COLOR = 18;
 red_COLOR = 5;
 orange_COLOR = 96;
 
-
+(1..98).do({|i| launchpadOut.noteOn(0, i, 0)});
 launchpadOut.noteOn(0, aToggleButton, orange_COLOR);
 launchpadOut.noteOn(0, bToggleButton, orange_COLOR);
+launchpadOut.noteOn(0, noiseRangeButtons[0], red_COLOR);
+
 
 MIDIFunc.noteOn({|vel, note, chan, port|
     padToInd.(note).postln;
@@ -69,6 +72,9 @@ MIDIFunc.cc({|vel, note, chan, port|
         vidBon = vidBon.not;
         launchpadOut.noteOn(0, note, if(vidBon, orange_COLOR, 0));
         maxOut2.noteOn(0, 51, 10)
+    });
+    if((note == defaultRotateButton) && (vel != 0), {
+        maxOut2.noteOn(0, 40, 10)
     });
 }, nil, nil, launchPad.uid);
 
