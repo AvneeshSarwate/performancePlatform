@@ -11,7 +11,7 @@
 ,
 		"rect" : [ 59.0, 104.0, 1545.0, 887.0 ],
 		"bglocked" : 0,
-		"openinpresentation" : 0,
+		"openinpresentation" : 1,
 		"default_fontsize" : 12.0,
 		"default_fontface" : 0,
 		"default_fontname" : "Arial",
@@ -1172,18 +1172,6 @@
 			}
 , 			{
 				"name" : "jit.==.mxo",
-				"type" : "iLaX"
-			}
-, 			{
-				"name" : "jit.*.mxo",
-				"type" : "iLaX"
-			}
-, 			{
-				"name" : "jit.&.mxo",
-				"type" : "iLaX"
-			}
-, 			{
-				"name" : "jit.|.mxo",
 				"type" : "iLaX"
 			}
  ],
