@@ -62,7 +62,7 @@
 					"patching_rect" : [ 251.0, 53.0, 150.0, 60.0 ],
 					"presentation" : 1,
 					"presentation_linecount" : 3,
-					"presentation_rect" : [ 75.0, 19.0, 174.0, 47.0 ],
+					"presentation_rect" : [ 60.049744, 75.0, 174.0, 47.0 ],
 					"style" : "",
 					"text" : "Find and turn on the camera just like in the instructions for the dance video program"
 				}
@@ -166,7 +166,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 285.37735, 225.828491, 69.0, 22.0 ],
 					"presentation" : 1,
-					"presentation_rect" : [ 137.584045, 180.828491, 69.0, 22.0 ],
+					"presentation_rect" : [ 145.084045, 168.5, 69.0, 22.0 ],
 					"style" : "messageGold",
 					"text" : "getinputlist"
 				}
@@ -219,7 +219,7 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-69",
-					"items" : [ "FaceTime HD Camera", ",", "USB Camera" ],
+					"items" : "FaceTime HD Camera",
 					"maxclass" : "umenu",
 					"numinlets" : 1,
 					"numoutlets" : 3,
@@ -227,7 +227,7 @@
 					"parameter_enable" : 0,
 					"patching_rect" : [ 231.427094, 402.631409, 145.0, 22.0 ],
 					"presentation" : 1,
-					"presentation_rect" : [ 61.584045, 262.631409, 145.0, 22.0 ],
+					"presentation_rect" : [ 61.584045, 226.631409, 145.0, 22.0 ],
 					"style" : "umenuGold"
 				}
 
@@ -271,7 +271,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 200.343048, 225.828491, 68.0, 22.0 ],
 					"presentation" : 1,
-					"presentation_rect" : [ 52.549744, 180.828491, 68.0, 22.0 ],
+					"presentation_rect" : [ 60.049744, 168.5, 68.0, 22.0 ],
 					"style" : "messageGold",
 					"text" : "getvdevlist"
 				}
@@ -328,7 +328,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 115.308746, 225.828491, 38.0, 22.0 ],
 					"presentation" : 1,
-					"presentation_rect" : [ 115.084045, 96.828491, 38.0, 22.0 ],
+					"presentation_rect" : [ 115.084045, 282.828491, 38.0, 22.0 ],
 					"style" : "messageGold",
 					"text" : "open"
 				}

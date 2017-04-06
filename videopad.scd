@@ -100,7 +100,7 @@ c = {|vel, note, chan, port|
                 ["VIDEO IND", videoInd].postln;
                 videoSelectorFlashTask.stop;
                 videoSelectorFlashTask.free;
-                (0..7).do({|i| launchpadOut.noteOn(0, videoSelectorButtons[i], videoSelectorColors[i])});
+                (0..3).do({|i| launchpadOut.noteOn(0, videoSelectorButtons[i], videoSelectorColors[i])});
                 videoSelectorFlashTask = getNewSelectorFlashTask.();
                 videoSelectorFlashTask.start;
             }
