@@ -737,40 +737,10 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-13", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"order" : 3,
-					"source" : [ "obj-2", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-15", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"order" : 2,
-					"source" : [ "obj-2", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-16", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"order" : 1,
-					"source" : [ "obj-2", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-20", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
-					"order" : 4,
+					"order" : 1,
 					"source" : [ "obj-2", 0 ]
 				}
 
@@ -1182,13 +1152,13 @@
  ],
 		"dependency_cache" : [ 			{
 				"name" : "filtersplit.maxpat",
-				"bootpath" : "~/performancePlatform",
+				"bootpath" : "~/performancePlatform/videopad",
 				"type" : "JSON",
 				"implicit" : 1
 			}
 , 			{
 				"name" : "filterFromList.maxpat",
-				"bootpath" : "~/performancePlatform",
+				"bootpath" : "~/performancePlatform/videopad",
 				"type" : "JSON",
 				"implicit" : 1
 			}
@@ -1198,6 +1168,22 @@
 			}
 , 			{
 				"name" : "OSC-route.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "jit.==.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "jit.*.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "jit.&.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "jit.|.mxo",
 				"type" : "iLaX"
 			}
  ],
