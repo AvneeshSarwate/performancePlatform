@@ -19,7 +19,7 @@ maxPort = NetAddr("localhost", 5432);
 savedMatricies = Dictionary.new;
 gameOfLife_BUTTON = 89;
 videoSelectorButtons = (10,20..80);
-videoSelectorColors = [6, 9, 13, 109];
+videoSelectorColors = [6, 13, 18, 67]
 //red, orange, yellow, YG, green, turqoise, blue, purple
 videoInd = 0;
 videoSelectorFlashTask = Task({});
