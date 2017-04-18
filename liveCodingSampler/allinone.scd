@@ -102,7 +102,7 @@ adjustPhase = false;
 broadcastOSCport = NetAddr("localhost", 57120);
 
 
-//msg[1] is the new tempo in beats per MINUTE (tempo clock is bpSEC)
+//msg[1] is the new tempo in beats per MINUTE (tempo clock is beats per SEC)
 maxBeatFunc = {|msg, time, addr, recvPort|
     var newTempo = msg[1].asFloat;
     //["max LINK BEAT", newTempo].postln;
