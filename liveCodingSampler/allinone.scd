@@ -318,12 +318,32 @@ timeListToDurationList = {|oldList, totalLength|
 //LATENCYFIX - this method contains a task that sends start-pos OSC, then noteOn midi x ms later
 sendSample = {|drumStr|
     if(drumStr.asString != "~", {
-        var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset, bankSym, rangeStr, volStr;
+        var bank, start, end, duration, bufToUse, startSecs, banksToTurnOff, bufferOffset, bankSym, rangeStr, volStr, speedVal, pitchVal;
+        var findPitchVal = {|st|
+            if(st.findRegexp("@-?[0-9]+")[0].isNil,
+                {nil},
+                {st.findRegexp("@-?[0-9]+")[0][1][1..].asFloat}
+            )
+        };
+
+        var findSpeedVal = {|st|
+            var speedVal = nil;
+            if(st.findRegexp("#-?[0-9]+")[0].isNil.not,
+                {speedVal = st.findRegexp("#-?[0-9]+")[0][1][1..].asFloat}
+            );
+            if(st.findRegexp("#-?[0-9]+.[0-9]+")[0].isNil.not,
+                {speedVal = st.findRegexp("#-?[0-9]+.[0-9]+")[0][1][1..].asFloat}
+            );
+            speedVal
+        };
 
         bankSym = drumStr.split($:)[0].split($^)[0].asSymbol;
         rangeStr = drumStr.asString.split($^)[0].split($:)[1];
         volStr = drumStr.asString.split($^)[1];
+        pitchVal = findPitchVal.(drumStr);
+        speedVal = findSpeedVal.(drumStr);
         //[bankSym, rangeStr, volStr].postln;
+
         bank = ['a', 'b', 'c', 'd'].indexOf(bankSym) + 1;
         if(rangeStr.isNil,
             {
@@ -331,8 +351,8 @@ sendSample = {|drumStr|
                 end = 0.25;
             },
             {
-                start = rangeStr.split($_)[0].asFloat;
-                end = rangeStr.split($_)[1];
+                start = rangeStr.split($-)[0].asFloat;
+                end = rangeStr.split($-)[1];
             }
         );
 
@@ -373,6 +393,14 @@ sendSample = {|drumStr|
             {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accent", volStr.asFloat)},
             {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accent", 1.0)}
         );
+        if(speedVal.isNil.not,
+            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentSpeed", speedVal)},
+            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentSpeed", 0)}
+        );
+        if(pitchVal.isNil.not,
+            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentPitch", pitchVal)},
+            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentPitch", 0)}
+        );
 
         if(~max, {
             //play this buffer
@@ -395,6 +423,32 @@ sendSample = {|drumStr|
 };
 
 )
+"#[0-9]+".matchRegexp()
+
+(
+~findPitchVal = {|st|
+    if(st.findRegexp("@-?[0-9]+")[0].isNil,
+        {nil},
+        {st.findRegexp("@-?[0-9]+")[0][1][1..].asFloat}
+    )
+};
+
+~findSpeedVal = {|st|
+    var speedVal = nil;
+    if(st.findRegexp("#-?[0-9]+")[0].isNil.not,
+        {speedVal = st.findRegexp("#-?[0-9]+")[0][1][1..].asFloat}
+    );
+    if(st.findRegexp("#-?[0-9]+.[0-9]+")[0].isNil.not,
+        {speedVal = st.findRegexp("#-?[0-9]+.[0-9]+")[0][1][1..].asFloat}
+    );
+    speedVal
+};
+
+
+~findPitchVal.("a:0_1:@-3423^0.3").postln;
+~findSpeedVal.("a:0_1:#-0.54^0.3").postln;
+)
+
 
 ~max=true;
 ~ableton=false
