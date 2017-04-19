@@ -139,7 +139,7 @@ OSCFunc({|msg, time, addr, recvPort|
         loopStartFunctions.keys.do({|key|
             maxPort.sendMsg("/sampLoop/stopAll", "stop");
             if(loopStartFunctions[key] != nil, {
-                ["START", masterTempoClock.beats].postln;
+                //["START", masterTempoClock.beats].postln;
                 loopStartFunctions[key].();
                 loopStartFunctions[key] = nil;
             })
@@ -281,7 +281,7 @@ stopPattern = {|msg, time, addr, recvPort|
             maxPort.sendMsg("/sampLoop/stopAll", "stop");
         }).start;
     };
-    ["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
+    //["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
 };
 OSCFunc(stopPattern, "/pydalStop");
 
@@ -289,7 +289,7 @@ OSCFunc(stopPattern, "/pydalStop");
 patternRead = {|patternStr|
     var patternList = List.new;
     patternStr.split($;).do({|s|
-        var step = s.split($-);
+        var step = s.split($&);
         var time = step[0].asFloat;
         var sampSet = Set.newFrom(step[1].split($,));
         patternList.add([time, sampSet]);
@@ -337,12 +337,12 @@ sendSample = {|drumStr|
             speedVal
         };
 
-        bankSym = drumStr.split($:)[0].split($^)[0].asSymbol;
+        bankSym = drumStr[0].asSymbol;
         rangeStr = drumStr.asString.split($^)[0].split($:)[1];
         volStr = drumStr.asString.split($^)[1];
         pitchVal = findPitchVal.(drumStr);
         speedVal = findSpeedVal.(drumStr);
-        //[bankSym, rangeStr, volStr].postln;
+        [drumStr, bankSym, rangeStr, volStr, pitchVal, speedVal].postln;
 
         bank = ['a', 'b', 'c', 'd'].indexOf(bankSym) + 1;
         if(rangeStr.isNil,
@@ -395,7 +395,7 @@ sendSample = {|drumStr|
         );
         if(speedVal.isNil.not,
             {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentSpeed", speedVal)},
-            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentSpeed", 0)}
+            {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentSpeed", 1)}
         );
         if(pitchVal.isNil.not,
             {maxPort.sendMsg("/sampLoop/" ++ bank ++ "/accentPitch", pitchVal)},
@@ -411,18 +411,20 @@ sendSample = {|drumStr|
 
         //schedule turn off if needed
         if(duration.isNil.not, {
-            ["CUTOFF SCHEDULED", duration].postln;
+            //["CUTOFF SCHEDULED", duration].postln;
             heldHitTasks[bank] = Task({
-                "CUTOFF STARTED".postln;
+                //"CUTOFF STARTED".postln;
                 (duration+0.0025).wait;
                 maxPort.sendMsg("/sampLoop/" ++ bank ++ "/playStop", "stop");
-                ["SEND END", bank].postln;
+                //["SEND END", bank].postln;
             }, masterTempoClock).play;
         });
     });
 };
 
 )
+
+
 "#[0-9]+".matchRegexp()
 
 (
@@ -445,7 +447,7 @@ sendSample = {|drumStr|
 };
 
 
-~findPitchVal.("a:0_1:@-3423^0.3").postln;
+~findPitchVal.("a@-200").postln;
 ~findSpeedVal.("a:0_1:#-0.54^0.3").postln;
 )
 
