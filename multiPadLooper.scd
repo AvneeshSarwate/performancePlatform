@@ -242,6 +242,7 @@ newKeysSetPadLights = {|ctrlChanInd|
 			});
 		})
 	});
+    //TODO - modularize hyperkeyboardlights - set lights from ~moduleLightsPerChannel
 };
 //---------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
@@ -1059,12 +1060,24 @@ TODO - add event broadcasting for multiPadLooper color state change.
 */
 // msg [addr, padInd, color(-1 if revert to old), repeated]
 ~basePadColors = padIndToColor;
+
+//best practice is to only have 1 hyperkeyboard that changes pad-lighting at a time
+~moduleLightsPerChannel = Dictionary.new;
+(0..3).do({|i|
+    ~moduleLightsPerChannel[i] = Dictionary.new;
+});
 moduleLights = {|msg, time, addr, recvPort|
 	["MODULE LIGHTS", msg].postln;
 	(1,3..(msg.size-2)).do({|i|
 		if(msg[i+1] > 0,
-			{setLight.(msg[i], msg[i+1])},
-			{setLight.(msg[i], padIndToColor[msg[i]])}
+			{
+                setLight.(msg[i], msg[i+1]);
+                ~moduleLightsPerChannel[controlChanInd][msg[i]] = msg[i+1];
+            },
+			{
+                setLight.(msg[i], padIndToColor[msg[i]]);
+                ~moduleLightsPerChannel[controlChanInd][msg[i]] = padIndToColor[msg[i]];
+            }
 		);
 	})
 };
