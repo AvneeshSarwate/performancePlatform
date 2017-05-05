@@ -10,10 +10,14 @@ class Spatializer:
 		self.noteSets = noteSets
 		self.newNoteSets = map(lambda noteSet: map(lambda degree: (root+degree)%12, noteSet), noteSets)
 		self.spatialize = True
-		self.client = OSC.OSCClient()
-		self.client.connect( ('127.0.0.1', 57120) )
+		self.scClient = OSC.OSCClient()
+		self.scClient.connect( ('127.0.0.1', 57120) )
+		self.broadcastClient = OSC.OSCClient()
+		self.broadcastClient.connect( ('127.0.0.1', 34545) ) #currently "broadcasting" to just Pydal, for safety
 		self.sustaining = True
 		self.onNotes = {} #maps note to midi key
+		self.normalForwardingBehavior = True
+
 
 		self.savedChords = [{} for i in range(100)]
 		self.fhInstance = fhInstance
@@ -46,13 +50,14 @@ class Spatializer:
 			self.fhInstance.superColliderClient.send(msg)
 
 
-	def handle(self, channel, note, vel, keyOnOff, launchpadKey):
-		onOff = self.resolveOnOff(note, keyOnOff, launchpadKey)
-		if onOff is None:
-			return
-		newChannel = self.getChan(note, channel, onOff)
-		msg = OSC.OSCMessage()
-		self.sendNote(newChannel, note, vel, onOff)
+	def handle(self, channel, note, vel, keyOnOff, launchpadKey, callFromModifiedBehavior=False):
+		if self.normalForwardingBehavior or callFromModifiedBehavior:
+			onOff = self.resolveOnOff(note, keyOnOff, launchpadKey)
+			if onOff is None:
+				return
+			newChannel = self.getChan(note, channel, onOff)
+			msg = OSC.OSCMessage()
+			self.sendNote(newChannel, note, vel, onOff)
 
 	def heldNotesOff(self, chan):
 		for note in self.onNotes:
@@ -68,14 +73,24 @@ class Spatializer:
 		msg.append(note)
 		msg.append(vel)
 		msg.append(onOff)
-		self.client.send(msg)
+		self.scClient.send(msg)
+
+	def broadcastNote(self, channel, note, vel, onOff):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/broadcastNoteSelector")
+		msg.append(channel)
+		msg.append(note)
+		msg.append(vel)
+		msg.append(onOff)
+		self.broadcastClient.send(msg)
+
 
 	def sendKeyColor(self, key, color):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/moduleLights")
 		msg.append(key)
 		msg.append(color)
-		self.client.send(msg)
+		self.scClient.send(msg)
 
 	def resolveOnOff(self, note, keyOnOff, launchpadKey):
 		if self.sustaining:
@@ -156,7 +171,7 @@ class Spatializer:
 		msg = OSC.OSCMessage()
 		msg.setAddress("/loadChords")
 		msg.append(chordIndexesString)
-		self.client.send(msg)
+		self.scClient.send(msg)
 
 	def setNoteSets(self, noteSets):
 		self.noteSets = noteSets

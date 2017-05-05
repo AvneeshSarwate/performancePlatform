@@ -10,6 +10,11 @@ class Arpeggiator:
 		self.pydalInstance = pydalInstance 
 		self.channel = pydalInstance.newArpeggiatorChannel(midiChannel)
 		self.pattern = pattern
+		self.normalForwardingBehavior = True
+
+		noteSelectorHanlder = lambda addr, tags, stuff, source : self.handle(stuff[0], stuff[1], stuff[2], stuff[3], True)
+
+		self.pydalInstance.superColliderServer.addMsgHandler("/broadcastNoteSelector", noteSelectorHanlder)
 
 		if(useIndependentHandler):
 			self.superColliderServer = OSC.OSCServer(('127.0.0.1', 34567))
@@ -18,19 +23,22 @@ class Arpeggiator:
 			self.serverThread.start()
 			self.superColliderServer.addMsgHandler("/sendToArpeggiator", lambda addr, tags, stuff, source : self.handle(*stuff))
 
-	def handle(self, chan, note, vel, onOff):
-		if onOff == "on":
-			self.onNotes[note] = vel
 
-			self.sendNoteUpdate(note, vel, onOff)
 
-			if len(self.onNotes) == 1:
-				self.channel.play(self.pattern)
-		if onOff == "off" and note in self.onNotes:
-			del self.onNotes[note]
-			if len(self.onNotes) == 0:
-				self.channel.stop()
-			self.sendNoteUpdate(note, vel, onOff)
+	def handle(self, chan, note, vel, onOff, callFromModifiedBehavior=False):
+		if self.normalForwardingBehavior or callFromModifiedBehavior:
+			if onOff == "on":
+				self.onNotes[note] = vel
+
+				self.sendNoteUpdate(note, vel, onOff)
+
+				if len(self.onNotes) == 1:
+					self.channel.play(self.pattern)
+			if onOff == "off" and note in self.onNotes:
+				del self.onNotes[note]
+				if len(self.onNotes) == 0:
+					self.channel.stop()
+				self.sendNoteUpdate(note, vel, onOff)
 
 	def sendNoteUpdate(self, note, vel, onOff):
 		msg = OSC.OSCMessage()
