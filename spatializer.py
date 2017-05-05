@@ -13,7 +13,7 @@ class Spatializer:
 		self.scClient = OSC.OSCClient()
 		self.scClient.connect( ('127.0.0.1', 57120) )
 		self.broadcastClient = OSC.OSCClient()
-		self.broadcastClient.connect( ('127.0.0.1', 34545) ) #currently "broadcasting" to just Pydal, for safety
+		self.broadcastClient.connect( ('127.0.0.1', 34345) ) #currently "broadcasting" to just Pydal, for safety
 		self.sustaining = True
 		self.onNotes = {} #maps note to midi key
 		self.normalForwardingBehavior = True
@@ -58,12 +58,15 @@ class Spatializer:
 			newChannel = self.getChan(note, channel, onOff)
 			msg = OSC.OSCMessage()
 			self.sendNote(newChannel, note, vel, onOff)
+			self.broadcastNote(newChannel, note, vel, onOff)
 
 	def heldNotesOff(self, chan):
 		for note in self.onNotes:
 			self.sendNote(chan, note, 0, "off")
+			self.broadcastNote(chan, note, 0, "off")
 			if note in self.noteToChanMap:
 				self.sendNote(self.noteToChanMap[note], note, 0, "off")
+				self.broadcastNote(self.noteToChanMap[note], note, 0, "off")
 				del self.noteToChanMap[note]
 
 	def sendNote(self, channel, note, vel, onOff):

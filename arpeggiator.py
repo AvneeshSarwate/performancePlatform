@@ -12,9 +12,7 @@ class Arpeggiator:
 		self.pattern = pattern
 		self.normalForwardingBehavior = True
 
-		noteSelectorHanlder = lambda addr, tags, stuff, source : self.handle(stuff[0], stuff[1], stuff[2], stuff[3], True)
-
-		self.pydalInstance.superColliderServer.addMsgHandler("/broadcastNoteSelector", noteSelectorHanlder)
+		self.pydalInstance.superColliderServer.addMsgHandler("/broadcastNoteSelector", self.noteSelectorHanlder)
 
 		if(useIndependentHandler):
 			self.superColliderServer = OSC.OSCServer(('127.0.0.1', 34567))
@@ -24,8 +22,10 @@ class Arpeggiator:
 			self.superColliderServer.addMsgHandler("/sendToArpeggiator", lambda addr, tags, stuff, source : self.handle(*stuff))
 
 
+	def noteSelectorHanlder(self, addr, tags, stuff, source):
+		self.handle(stuff[0], stuff[1], stuff[2], stuff[3], None, True)
 
-	def handle(self, chan, note, vel, onOff, callFromModifiedBehavior=False):
+	def handle(self, chan, note, vel, onOff, launchpadKey, callFromModifiedBehavior=False):
 		if self.normalForwardingBehavior or callFromModifiedBehavior:
 			if onOff == "on":
 				self.onNotes[note] = vel
