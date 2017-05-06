@@ -21,6 +21,11 @@ class Arpeggiator:
 			self.serverThread.start()
 			self.superColliderServer.addMsgHandler("/sendToArpeggiator", lambda addr, tags, stuff, source : self.handle(*stuff))
 
+	def sendNoteDuration(self, duration):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/noteDuration")
+		msg.append(duration)
+		self.pydalInstance.superColliderClient.send(msg)
 
 	def noteSelectorHanlder(self, addr, tags, stuff, source):
 		self.handle(stuff[0], stuff[1], stuff[2], stuff[3], None, True)

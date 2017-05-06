@@ -1,5 +1,5 @@
 (//tempoclock with beat set to 1 cycle length
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi, noteDuration;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
@@ -18,6 +18,8 @@ loopStartFunctions = Dictionary();
 //TODO: THIS (onNotes, onNotesList) WILL NOT WORK FOR MULTIPLE MIDI CHANNELS AT ONCE (the rest probably will, but check it)
 onNotes = Dictionary();
 onNotesList = List();
+
+noteDuration = 0.25;
 
 //msg is [addr, note, vel, onOff]
 noteForwardHandler = {|msg, time, addr, recvPort|
@@ -160,6 +162,9 @@ masterClockBeat = {|msg, time, addr, recvPort|
 };
 OSCFunc(masterClockBeat, "/masterClockBeat");
 
+OSCFunc({|msg, time, addr, recvPort|
+    noteDuration = msg[1].asFloat;
+}, "/noteDuration");
 
 patternRead = {|patternStr|
 	var patternList = List.new;
@@ -195,7 +200,7 @@ sendSample = {|noteStr, midiChannel, ind|
 		//todo - send cc map stuff if applicable
 		Task({
 			midiOut.noteOn(midiChannel, newNote, newNoteVel); //maybe add velocity based on gain?
-			0.25.wait;
+			noteDuration.wait;
 			midiOut.noteOff(midiChannel, newNote, newNoteVel);
 		}).play;
 	});
