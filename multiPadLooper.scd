@@ -240,7 +240,8 @@ newKeysSetPadLights = {|ctrlChanInd|
 				setLight.(ind, 0);
 				padIndToColor[ind] = 0;
 			});
-		})
+            if(~moduleLightsPerChannel[ctrlChanInd].isNil.not, {setLight.(ind, ~moduleLightsPerChannel[ctrlChanInd][ind]);
+		});
 	});
     //TODO - modularize hyperkeyboardlights - set lights from ~moduleLightsPerChannel
 };
@@ -1062,21 +1063,23 @@ TODO - add event broadcasting for multiPadLooper color state change.
 ~basePadColors = padIndToColor;
 
 //best practice is to only have 1 hyperkeyboard that changes pad-lighting at a time
+//nil value means no special module lighting for that key
 ~moduleLightsPerChannel = Dictionary.new;
 (0..3).do({|i|
     ~moduleLightsPerChannel[i] = Dictionary.new;
 });
+//msg = [addr, key, color, chanInd]
 moduleLights = {|msg, time, addr, recvPort|
 	["MODULE LIGHTS", msg].postln;
 	(1,3..(msg.size-2)).do({|i|
 		if(msg[i+1] > 0,
 			{
-                setLight.(msg[i], msg[i+1]);
+                if(playingNewKeys && (controlChanInd == msg[3].asInd), {setLight.(msg[i], msg[i+1])});
                 ~moduleLightsPerChannel[controlChanInd][msg[i]] = msg[i+1];
             },
 			{
-                setLight.(msg[i], padIndToColor[msg[i]]);
-                ~moduleLightsPerChannel[controlChanInd][msg[i]] = padIndToColor[msg[i]];
+                if(playingNewKeys && (controlChanInd == msg[3].asInd), {setLight.(msg[i], padIndToColor[msg[i]])});
+                ~moduleLightsPerChannel[controlChanInd][msg[i]] = nil;
             }
 		);
 	})
@@ -1095,7 +1098,7 @@ OSCFunc({|msg, time, addr, recvPort|
                 colorList.add(colStr);
                 selectedList.add(selStr);
             });
-        })
+        });
         processPort.sendMsg("/processMatrices", msg[1] , colorList.join("."), selectedList.join("."));
     }).play
 },"/chordPadIndFwd")

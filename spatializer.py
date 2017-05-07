@@ -5,7 +5,7 @@ import pickle
 
 class Spatializer:
 
-	def __init__(self, root, noteSets, fhInstance):
+	def __init__(self, root, noteSets, fhInstance, chanInd):
 		self.root = root
 		self.noteSets = noteSets
 		self.newNoteSets = map(lambda noteSet: map(lambda degree: (root+degree)%12, noteSet), noteSets)
@@ -17,6 +17,7 @@ class Spatializer:
 		self.sustaining = True
 		self.onNotes = {} #maps note to midi key
 		self.normalForwardingBehavior = True
+		self.chanInd = chanInd
 
 
 		self.savedChords = [{} for i in range(100)]
@@ -93,6 +94,7 @@ class Spatializer:
 		msg.setAddress("/moduleLights")
 		msg.append(key)
 		msg.append(color)
+		msg.append(self.chanInd)
 		self.scClient.send(msg)
 
 	def resolveOnOff(self, note, keyOnOff, launchpadKey):
