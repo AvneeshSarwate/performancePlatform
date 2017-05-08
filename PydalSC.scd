@@ -1,10 +1,11 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
+python_FH_OSCport = NetAddr("localhost", 13371);
 
 //TODO: implement tempoclock per channel (with synched beats)
 //masterTempoClock = TempoClock.new(1);
@@ -13,6 +14,7 @@ chanBackupPatMap = Dictionary();
 channelInd = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
+channelTypeMap = Dictionary();
 
 //TODO - parametrize this
 midiChannel = 0;
@@ -35,36 +37,40 @@ drumTypes["aud"] = 108;
 
 //msg[1] is the channel being played on
 //msg[2] is the string pattern getting played
+//msg[3] is the total length in beats of the pattern
+//msg[4] is the "type" of the pattern
 startPattern = {|msg, time, addr, recvPort|
-	//parse string to pattern
-	var patternList, loopFrac, ind, startDelay, chanClock;
-	["PLAY START", msg[2]].postln;
-	patternList = patternRead.(msg[2].asString);
+    //parse string to pattern
+    var patternList, loopFrac, ind, startDelay, chanClock;
+    ["PLAY START", msg[2], masterTempoClock.beats].postln;
+    patternList = patternRead.(msg[2].asString);
 
-	//save pattern to map
-	channelPatternMap[msg[1]] = timeListToDurationList.(patternList);
-	chanBackupPatMap[msg[1]] = [];
+    //save pattern to map
+    channelPatternMap[msg[1]] = timeListToDurationList.(patternList, msg[3].asFloat);
+    chanBackupPatMap[msg[1]] = [];
 
-	//create channel tempo clock if needed
-	if(tempoClockMap.keys.includes(msg[1]).not,
-		{
-			chanClock = TempoClock.new(masterTempoClock.tempo, masterTempoClock.beats);
-			tempoClockMap[msg[1]] = chanClock;
-			chanClock.beats = masterTempoClock.beats;
-		},
-		{chanClock = tempoClockMap[msg[1]]}
-	);
+    channelTypeMap[msg[1]] = msg[4].asSymbol;
 
-	chanClock.clear;
+    //create channel tempo clock if needed
+    if(tempoClockMap.keys.includes(msg[1]).not,
+        {
+            chanClock = TempoClock.new(masterTempoClock.tempo, masterTempoClock.beats);
+            tempoClockMap[msg[1]] = chanClock;
+            chanClock.beats = masterTempoClock.beats;
+        },
+        {chanClock = tempoClockMap[msg[1]]}
+    );
 
-	tempoClockMap.values.do({|v| v.beats.postln;});
+    chanClock.clear;
 
-	/*channelInd[msg[1]] = 0;
-	chanClock.sched(chanClock.timeToNextBeat, playStepGenerator.(msg[1]));*/
+    tempoClockMap.values.do({|v| v.beats.postln;});
 
-	channelInd[msg[1]] = 0;
+    /*channelInd[msg[1]] = 0;
+    chanClock.sched(chanClock.timeToNextBeat, playStepGenerator.(msg[1]));*/
 
-	loopStartFunctions[msg[1]] = {chanClock.sched(0, playStepGenerator.(msg[1]))};
+    channelInd[msg[1]] = 0;
+
+    loopStartFunctions[msg[1]] = {chanClock.sched(0, playStepGenerator.(msg[1]))};
 };
 OSCFunc(startPattern, "/pydalPlay");
 
@@ -79,7 +85,7 @@ playStepGenerator = {|i|
 			var step = patList[ind];
 			var dur = step[0];
 
-			step[1].do({|samp| sendSample.(samp)});
+			step[1].do({|samp| sendSample.(samp, i)});
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
@@ -175,18 +181,28 @@ timeListToDurationList = {|oldList|
 	pList
 };
 
-sendSample = {|drumStr|
-	var drumInd, drumType;
-	drumInd = drumStr.split($:)[1];
-	drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
-	drumType = drumTypes[drumStr.split($:)[0]].asInteger;
+sendSample = {|drumStr, chan|
+    if(channelTypeMap[chan] == 'pydal', {
+        var drumInd, drumType;
+        drumInd = drumStr.split($:)[1];
+        drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
+        drumType = drumTypes[drumStr.split($:)[0]].asInteger;
 
-	//todo - send cc map stuff if applicable
-	Task({
-		midiOut.noteOn(midiChannel, drumType+drumInd); //maybe add velocity based on gain?
-		0.001.wait;
-		midiOut.noteOff(midiChannel, drumType+drumInd);
-	}).play;
+        //todo - send cc map stuff if applicable
+        Task({
+            midiOut.noteOn(midiChannel, drumType+drumInd); //maybe add velocity based on gain?
+            0.001.wait;
+            midiOut.noteOff(midiChannel, drumType+drumInd);
+        }).play;
+    });
+
+    //aa is top-left, but remapped to coordinates where 0,0 is bottom-left, to match chordScenePad
+    if(channelTypeMap[chan] == 'chord', {
+        var rowChar = "hgfedcba";
+        var colChar = "abcdefgh";
+        var ind = rowChar.find(drumStr[0])*10 + colChar.find(drumStr[1]);
+        python_FH_OSCport.sendMsg("/playChord", ind);
+    });
 };
 
 )

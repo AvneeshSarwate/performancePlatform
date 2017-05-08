@@ -245,7 +245,6 @@ newKeysSetPadLights = {|ctrlChanInd|
             if(moduleLight.isNil.not, {setLight.(ind, moduleLight)});
 		});
 	});
-    //TODO - modularize hyperkeyboardlights - set lights from ~moduleLightsPerChannel
 };
 //---------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
@@ -301,7 +300,6 @@ a = {|vel, note, chan, port|
     if((chan == 0) && (~lightIndex == lightIndex), {
         ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 		if(pads.includes(note), {
-			//TODO newKeys - new note map, new channel
 			var chan, newNote;
 			if(playingNewKeys,
 				{
@@ -625,7 +623,6 @@ controlHandler = {|vel, note, chan, port|
 		var now = TempoClock.beats;
 		if((now - lastTap) < 2, {masterClockOSCport.sendMsg("/uploadTempo", now - lastTap, alignTempo)});
 		lastTap = now;
-		//TODO - send tap info to master clock
 	});
 	if((note == tempoalignTempoButton) && (vel == 127), {
 		alignTempo = alignTempo.not;
@@ -680,7 +677,6 @@ controlHandler = {|vel, note, chan, port|
 		if(recordingState == 3,
 			{
 				//save the recorded buffer to the appropriate bank
-				//todo bug: stop and free the existing task in this bank
 				if(thisBank[3] != nil, {
 					thisBank[3].stop;
 					thisBank[3].free;
@@ -723,7 +719,6 @@ controlHandler = {|vel, note, chan, port|
 								//TODO: this won't kill notes of an instrument thats not on this channel
 								//TODO: with newKeys, should generalize coloring of loop banks
 								//midiOut.allNotesOff(thisBank[1]);
-								//todo: if algLooping, start algMelodyTask instead (no longer relevant?)
 								if(thisBank[5].isNil, {thisBank[3].start}, {thisBank[5].start});
 								thisBank[2] = true;
 								playingBanks.add(note);
@@ -1077,11 +1072,11 @@ moduleLights = {|msg, time, addr, recvPort|
 		if(msg[i+1] > 0,
 			{
                 if(playingNewKeys && (controlChanInd == msg[3].asInt), {setLight.(msg[i], msg[i+1])});
-                ~moduleLightsPerChannel[controlChanInd][msg[i]] = msg[i+1];
+                ~moduleLightsPerChannel[msg[3].asInt][msg[i]] = msg[i+1];
             },
 			{
                 if(playingNewKeys && (controlChanInd == msg[3].asInt), {setLight.(msg[i], padIndToColor[msg[i]])});
-                ~moduleLightsPerChannel[controlChanInd][msg[i]] = nil;
+                ~moduleLightsPerChannel[msg[3].asInt][msg[i]] = nil;
             }
 		);
 	})

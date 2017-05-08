@@ -94,6 +94,7 @@ followHandler = {|msg, time, addr, recvPort|
 		abletonOut.control(0, ccNum+1, msg[3]);
         ["SENT", "/space/" ++ (msg[1].asInt/3).floor ++ "/" ++ ((msg[1].asInt)%3), msg[2]/127, msg[3]/127].postln;
         ipadPort.sendMsg("/space/" ++ (msg[1].asInt/3).floor ++ "/" ++ (msg[1].asInt%3), msg[2]/127, msg[3]/127);
+        nil;
     });
 };
 OSCFunc(followHandler, "/xyFollowing");
@@ -149,6 +150,6 @@ var twiddle = {|inst, padNum, xy|
 		midiOut.control(0, ccNum+xy, 127);
 	}).play;
 };
-twiddle.value(3, 2, 0);
+twiddle.value(3, 2, 1);
 )
 

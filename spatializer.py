@@ -14,6 +14,7 @@ class Spatializer:
 		self.scClient.connect( ('127.0.0.1', 57120) )
 		self.broadcastClient = OSC.OSCClient()
 		self.broadcastClient.connect( ('127.0.0.1', 34345) ) #currently "broadcasting" to just Pydal, for safety
+		self.broadcasting = False
 		self.sustaining = True
 		self.onNotes = {} #maps note to midi key
 		self.normalForwardingBehavior = True
@@ -71,6 +72,8 @@ class Spatializer:
 				del self.noteToChanMap[note]
 
 	def sendNote(self, channel, note, vel, onOff):
+		if self.broadcasting:
+			return
 		msg = OSC.OSCMessage()
 		msg.setAddress("/spatializePlay")
 		msg.append(channel)
@@ -80,6 +83,8 @@ class Spatializer:
 		self.scClient.send(msg)
 
 	def broadcastNote(self, channel, note, vel, onOff):
+		if not self.broadcasting:
+			return
 		msg = OSC.OSCMessage()
 		msg.setAddress("/broadcastNoteSelector")
 		msg.append(channel)
@@ -157,7 +162,7 @@ class Spatializer:
 		msg = OSC.OSCMessage()
 		msg.setAddress("/chordPadIndFwd")
 		msg.append(stuff[0])
-		self.superColliderClient.send(msg)
+		self.fhInstance.superColliderClient.send(msg)
 
 	def saveChordHandler(self, addr, tags, stuff, source):
 		self.saveChord(int(stuff[0]))

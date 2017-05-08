@@ -124,6 +124,8 @@ class PydalChannel:
 		msg.setAddress("/pydalPlay")
 		msg.append(self.num)
 		msg.append(renderStr)
+		msg.append(pat.frac)
+		msg.append(pat.type)
 		self.superColliderClient.send(msg)
 
 	def stop(self):

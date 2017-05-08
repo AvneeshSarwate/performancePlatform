@@ -1,7 +1,6 @@
 (//tempoclock with beat set to 1 cycle length
 var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi, noteDuration;
 
-//MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 midiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
@@ -186,6 +185,7 @@ timeListToDurationList = {|oldList|
 			});
 
 	});
+    //todo - backport the bugfix from PLOrk version that fixes bug w/ patterns where hit falls on even int time
 	pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
 	pList
 };

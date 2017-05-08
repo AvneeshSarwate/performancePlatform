@@ -54,6 +54,8 @@ def isMaxSymbol(s):
     return re.match('^[a-d]:[0-9](\.[0-9]+)?(_[0-9](\.[0-9]+)?)?$', s) or s == "~"
 def isArpeggiatorSymbol(s):
     return s.isdigit()
+def isChordSeqSymbol(s):
+    return re.match('^[a-h][a-h]$')
 
 
 symbolMatchers = {}
@@ -61,12 +63,15 @@ symbolMatchers['pydal'] = isPydalSymbol
 symbolMatchers['sample'] = isSampleSymbol
 symbolMatchers['arp'] = isArpeggiatorSymbol
 symbolMatchers['max'] = isMaxSymbol
+symbolMatchers['chord'] = isChordSeqSymbol
 
 
 def parse(inputStr, symbolKey = 'pydal'):
     tokens = tokenize(inputStr)
     symbolMatcher = symbolMatchers[symbolKey]
-    return parseExpression(tokens, 0, symbolMatcher)[0]
+    node = parseExpression(tokens, 0, symbolMatcher)[0]
+    node.type = symbolKey
+    return node
 
 
 

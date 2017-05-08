@@ -21,7 +21,6 @@ OSCFunc({|msg, time, addr, recvPort|
 		tempo = newTempo;
 		broadcastOSCport.sendMsg("/masterClockTempo", 60.0/tempo, false); //don't worry about beat alignment for now
 	});
-
 }, "/maxLink");
 
 
