@@ -55,7 +55,7 @@ def isMaxSymbol(s):
 def isArpeggiatorSymbol(s):
     return s.isdigit()
 def isChordSeqSymbol(s):
-    return re.match('^[a-h][a-h]$')
+    return re.match('^[a-h][a-h]$', s)
 
 
 symbolMatchers = {}

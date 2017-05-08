@@ -93,7 +93,7 @@ playStepGenerator = {|i|
 
 			//if last step (or < 20 ms from end?), set backupPat to actual pattern
 			if(ind == (patList.size-1), {
-				//"DID BACKUP".postln;
+				"DID BACKUP".postln;
 				channelPatternMap[i] = chanBackupPatMap[i]
 			});
 
@@ -113,10 +113,11 @@ playStepGenerator = {|i|
 
 //msg[1] is the channel being played on
 //msg[2] is the backup pattern
+//msg[3] is the total length in beats of the pattern
 recieveBackupPattern = {|msg, time, addr, recvPort|
 	//parse string and save it to backupmap
-	//["GOT BACKUP", msg[2]].postln;
-	chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString));
+	["GOT BACKUP", msg[2]].postln;
+    chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString),  msg[3].asFloat);
 };
 OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 
@@ -168,17 +169,18 @@ patternRead = {|patternStr|
 	patternList
 };
 
-timeListToDurationList = {|oldList|
-	var pList = List.new;
-	if(oldList.size > 1,
-		{
-			(0..oldList.size-2).do({|i|
-				pList.add([oldList[i+1][0] - oldList[i][0], oldList[i][1]]);
-			});
+timeListToDurationList = {|oldList, totalLength|
+    var pList = List.new;
+    if(oldList.size > 1,
+        {
+            (0..oldList.size-2).do({|i|
+                pList.add([oldList[i+1][0] - oldList[i][0], oldList[i][1]]);
+            });
 
-	});
-	pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
-	pList
+    });
+    pList.add([totalLength - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
+
+    pList
 };
 
 sendSample = {|drumStr, chan|
