@@ -227,6 +227,7 @@ newKeysSetPadLights = {|ctrlChanInd|
 			var isRoot = (note%12) == (root%12);
 			var floorRoot = note - (((note%12) - (root%12)) % 12);
 			var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
+            var moduleLight;
 			["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
 			if(isInScale && isRoot.not, {
 				setLight.(ind, color1[ctrlChanInd]);
@@ -240,7 +241,8 @@ newKeysSetPadLights = {|ctrlChanInd|
 				setLight.(ind, 0);
 				padIndToColor[ind] = 0;
 			});
-            if(~moduleLightsPerChannel[ctrlChanInd].isNil.not, {setLight.(ind, ~moduleLightsPerChannel[ctrlChanInd][ind]);
+            moduleLight = ~moduleLightsPerChannel[ctrlChanInd][ind];
+            if(moduleLight.isNil.not, {setLight.(ind, moduleLight)});
 		});
 	});
     //TODO - modularize hyperkeyboardlights - set lights from ~moduleLightsPerChannel
@@ -1074,11 +1076,11 @@ moduleLights = {|msg, time, addr, recvPort|
 	(1,3..(msg.size-2)).do({|i|
 		if(msg[i+1] > 0,
 			{
-                if(playingNewKeys && (controlChanInd == msg[3].asInd), {setLight.(msg[i], msg[i+1])});
+                if(playingNewKeys && (controlChanInd == msg[3].asInt), {setLight.(msg[i], msg[i+1])});
                 ~moduleLightsPerChannel[controlChanInd][msg[i]] = msg[i+1];
             },
 			{
-                if(playingNewKeys && (controlChanInd == msg[3].asInd), {setLight.(msg[i], padIndToColor[msg[i]])});
+                if(playingNewKeys && (controlChanInd == msg[3].asInt), {setLight.(msg[i], padIndToColor[msg[i]])});
                 ~moduleLightsPerChannel[controlChanInd][msg[i]] = nil;
             }
 		);
