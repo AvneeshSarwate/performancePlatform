@@ -25,7 +25,9 @@ class Pydal:
 		return PydalChannel(num, self.superColliderServer, self.superColliderClient)
 
 	def newArpeggiatorChannel(self, midiChannel):
-		return ArpeggiatorChannel(self.numArpeggiatorChannels, self.superColliderServer, self.superColliderClient, midiChannel)
+		arpChan = ArpeggiatorChannel(self.numArpeggiatorChannels, self.superColliderServer, self.superColliderClient, midiChannel)
+		self.numArpeggiatorChannels += 1
+		return arpChan
 
 	#num is the BPM
 	def setTempo(self, num):
@@ -156,6 +158,7 @@ class ArpeggiatorChannel:
 		msg.append(self.num)
 		msg.append(renderStr)
 		msg.append(self.midiChannel)
+		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
 	def play(self, pat):
@@ -167,6 +170,7 @@ class ArpeggiatorChannel:
 		msg.append(self.num)
 		msg.append(renderStr)
 		msg.append(self.midiChannel)
+		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
 	def stop(self):

@@ -14,26 +14,29 @@ channelToMidiChannel = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
 
-//TODO: THIS (onNotes, onNotesList) WILL NOT WORK FOR MULTIPLE MIDI CHANNELS AT ONCE (the rest probably will, but check it)
-onNotes = Dictionary();
-onNotesList = List();
+onNotes = Dictionary.new;
+(0..16).do({|i| onNotes[i] = Dictionary.new});
+onNotesList = Dictionary.new;
+(0..16).do({|i| onNotesList[i] = List()});
 
 noteDuration = 0.25;
 
-//msg is [addr, note, vel, onOff]
+//TODO - should this be midiChannel or arpeggiatorChannelInd?
+//msg is [addr, note, vel, onOff, midiChannel]
 noteForwardHandler = {|msg, time, addr, recvPort|
+    var midiChan = msg[4].asInt;
 	["onOff message", msg].postln;
 	if(msg[3].asString == "on",
 		{
-			onNotes[msg[1].asInt] = msg[2].asInt;
-			onNotesList.add(msg[1].asInt);
-			onNotesList.sort();
+            onNotes[midiChan][msg[1].asInt] = msg[2].asInt;
+			onNotesList[midiChan].add(msg[1].asInt);
+			onNotesList[midiChan].sort();
 			["FWD ON", msg[1].asInt].postln;
 		},
 		{
-			onNotes.removeAt(msg[1].asInt);
-			onNotesList.remove(msg[1].asInt);
-			onNotesList.sort();
+			onNotes[midiChan].removeAt(msg[1].asInt);
+			onNotesList[midiChan].remove(msg[1].asInt);
+			onNotesList[midiChan].sort();
 			["FWD OFF", msg[1].asInt].postln;
 		}
 	);
@@ -44,6 +47,7 @@ OSCFunc(noteForwardHandler, "/forwardNotes");
 //msg[1] is the pydal channel being played on
 //msg[2] is the string pattern getting played
 //msg[3] is the midi channel being played on
+//msg[4] is the total pattern length
 startPattern = {|msg, time, addr, recvPort|
 	//parse string to pattern
 	var patternList, loopFrac, ind, startDelay, chanClock;
@@ -52,7 +56,7 @@ startPattern = {|msg, time, addr, recvPort|
 	channelToMidiChannel[msg[1]] = msg[3].asInt;
 
 	//save pattern to map
-	channelPatternMap[msg[1]] = timeListToDurationList.(patternList);
+    channelPatternMap[msg[1]] = timeListToDurationList.(patternList, msg[4].asFloat);
 	chanBackupPatMap[msg[1]] = [];
 
 	//create channel tempo clock if needed
@@ -118,10 +122,12 @@ playStepGenerator = {|i|
 
 //msg[1] is the pydal channel being played on
 //msg[2] is the backup pattern
+//msg[3] is the midi channel being played on
+//msg[4] is the total pattern length
 recieveBackupPattern = {|msg, time, addr, recvPort|
 	//parse string and save it to backupmap
 	//["GOT BACKUP", msg[2]].postln;
-	chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString));
+    chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString), msg[4].asFloat);
 };
 OSCFunc(recieveBackupPattern, "/arpeggiatorSendUpdate");
 
@@ -176,26 +182,26 @@ patternRead = {|patternStr|
 	patternList
 };
 
-timeListToDurationList = {|oldList|
-	var pList = List.new;
-	if(oldList.size > 1,
-		{
-			(0..oldList.size-2).do({|i|
-				pList.add([oldList[i+1][0] - oldList[i][0], oldList[i][1]]);
-			});
+timeListToDurationList = {|oldList, totalLength|
+    var pList = List.new;
+    if(oldList.size > 1,
+        {
+            (0..oldList.size-2).do({|i|
+                pList.add([oldList[i+1][0] - oldList[i][0], oldList[i][1]]);
+            });
 
-	});
-    //todo - backport the bugfix from PLOrk version that fixes bug w/ patterns where hit falls on even int time
-	pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
-	pList
+    });
+    pList.add([totalLength - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
+
+    pList
 };
 
 sendSample = {|noteStr, midiChannel, ind|
-	[noteStr, ind, noteStr.isNil].postln;
-	if(onNotesList.size > 0, {
+	[noteStr, ind, noteStr.isNil, midiChannel.isNil].postln;
+	if(onNotesList[midiChannel].size > 0, {
 		var noteInd = noteStr.asInt;
-		var newNote = onNotesList[noteInd % onNotesList.size];
-		var newNoteVel = onNotes[newNote];
+		var newNote = onNotesList[midiChannel][noteInd % onNotesList.size];
+		var newNoteVel = onNotes[midiChannel][newNote];
 
 		//todo - send cc map stuff if applicable
 		Task({

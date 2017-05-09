@@ -228,7 +228,7 @@ newKeysSetPadLights = {|ctrlChanInd|
 			var floorRoot = note - (((note%12) - (root%12)) % 12);
 			var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
             var moduleLight;
-			["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
+			//["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
 			if(isInScale && isRoot.not, {
 				setLight.(ind, color1[ctrlChanInd]);
 				padIndToColor[ind] = color1[ctrlChanInd];
@@ -801,7 +801,9 @@ controlHandler = {|vel, note, chan, port|
 	//if alg button, add/remove from list depending on button up/down
 	if((note == cycleLight_BUTTON) && (vel !=0), {
         // ["MULTILOOP BUTTON CYCLE HIT", ~lightIndex, lightIndex].postln;
-        if(~cycling, {cycleLight.()})
+        //if(~cycling, {cycleLight.()})
+        if(~truncateLoop, {setLight.(cycleLight_BUTTON, 45)}, {setLight.(cycleLight_BUTTON, 0)});
+        ~truncateLoop = ~truncateLoop.not; //light on means NOT TRUNCATING
     });
 };
 controlHandlerWrapper = {|vel, note, chan, port|

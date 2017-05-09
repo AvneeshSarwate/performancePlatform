@@ -23,8 +23,8 @@ class Spatializer:
 
 		self.savedChords = [{} for i in range(100)]
 		self.fhInstance = fhInstance
-		self.fhInstance.superColliderServer.addMsgHandler("/saveChord", self.saveChordHandler)
-		self.fhInstance.superColliderServer.addMsgHandler("/playChord", self.playChordHandler)
+		self.fhInstance.superColliderServer.addMsgHandler("/saveChord-"+str(chanInd), self.saveChordHandler)
+		self.fhInstance.superColliderServer.addMsgHandler("/playChord-"+str(chanInd), self.playChordHandler)
 		self.fhInstance.superColliderServer.addMsgHandler("/utilityButton", self.handleFaderSave)
 
 		#NOTE: using channelSeparation and spatialization on same instrument will cause undefined behavior
@@ -86,7 +86,7 @@ class Spatializer:
 		if not self.broadcasting:
 			return
 		msg = OSC.OSCMessage()
-		msg.setAddress("/broadcastNoteSelector")
+		msg.setAddress("/broadcastNoteSelector-"+str(self.chanInd))
 		msg.append(channel)
 		msg.append(note)
 		msg.append(vel)
@@ -158,7 +158,7 @@ class Spatializer:
 			return chan
 
 	def playChordHandler(self, addr, tags, stuff, source):
-		self.playChord(self.savedChords[int(stuff[0])])
+		self.playChord(self.savedChords[int(stuff[0])], self.chanInd)
 		msg = OSC.OSCMessage()
 		msg.setAddress("/chordPadIndFwd")
 		msg.append(stuff[0])
@@ -169,6 +169,7 @@ class Spatializer:
 
 	def saveChord(self, ind):
 		self.savedChords[ind] = self.getChord()
+		print "saved", self.chanInd, self.getChord()
 
 	def saveChordsToFile(self, filename):
 		pickle.dump(self.savedChords, open(filename, "w"))

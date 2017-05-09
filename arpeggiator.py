@@ -12,7 +12,7 @@ class Arpeggiator:
 		self.pattern = pattern
 		self.normalForwardingBehavior = True
 
-		self.pydalInstance.superColliderServer.addMsgHandler("/broadcastNoteSelector", self.noteSelectorHanlder)
+		self.pydalInstance.superColliderServer.addMsgHandler("/broadcastNoteSelector-"+str(midiChannel), self.noteSelectorHanlder)
 
 		if(useIndependentHandler):
 			self.superColliderServer = OSC.OSCServer(('127.0.0.1', 34567))
@@ -51,4 +51,5 @@ class Arpeggiator:
 		msg.append(note)
 		msg.append(vel)
 		msg.append(onOff)
+		msg.append(self.midiChannel)
 		self.pydalInstance.superColliderClient.send(msg)
