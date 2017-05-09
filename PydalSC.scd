@@ -1,5 +1,5 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
@@ -15,6 +15,7 @@ channelInd = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
 channelTypeMap = Dictionary();
+channelMetaInfo = Dictionary();
 
 //TODO - parametrize this
 midiChannel = 0;
@@ -39,6 +40,7 @@ drumTypes["aud"] = 108;
 //msg[2] is the string pattern getting played
 //msg[3] is the total length in beats of the pattern
 //msg[4] is the "type" of the pattern
+//msg[5...] is meta-pattern info (contextual per type)
 startPattern = {|msg, time, addr, recvPort|
     //parse string to pattern
     var patternList, loopFrac, ind, startDelay, chanClock;
@@ -50,6 +52,7 @@ startPattern = {|msg, time, addr, recvPort|
     chanBackupPatMap[msg[1]] = [];
 
     channelTypeMap[msg[1]] = msg[4].asSymbol;
+    channelMetaInfo[msg[1]] = msg[5..];
 
     //create channel tempo clock if needed
     if(tempoClockMap.keys.includes(msg[1]).not,
@@ -203,7 +206,7 @@ sendSample = {|drumStr, chan|
         var rowChar = "hgfedcba";
         var colChar = "abcdefgh";
         var ind = rowChar.find(drumStr[0])*10 + colChar.find(drumStr[1]);
-        python_FH_OSCport.sendMsg("/playChord", ind);
+        python_FH_OSCport.sendMsg("/playChord-" ++ channelMetaInfo[chan][0].asString, ind);
     });
 };
 

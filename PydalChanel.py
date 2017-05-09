@@ -118,7 +118,7 @@ class PydalChannel:
 		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
-	def play(self, pat):
+	def play(self, pat, metaInfo=None):
 		self.pydalPattern = pat
 		self.isPlaying = True
 		renderList = self.pydalPattern.render()
@@ -129,6 +129,8 @@ class PydalChannel:
 		msg.append(renderStr)
 		msg.append(pat.frac)
 		msg.append(pat.type)
+		if metaInfo is not None:
+			msg.append(metaInfo)
 		self.superColliderClient.send(msg)
 
 	def stop(self):

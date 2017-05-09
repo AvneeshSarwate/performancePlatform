@@ -169,7 +169,6 @@ class Spatializer:
 
 	def saveChord(self, ind):
 		self.savedChords[ind] = self.getChord()
-		print "saved", self.chanInd, self.getChord()
 
 	def saveChordsToFile(self, filename):
 		pickle.dump(self.savedChords, open(filename, "w"))
