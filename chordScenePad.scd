@@ -141,6 +141,25 @@ loadSavedSceneLights = {|msg, time, addr, recvPort|
 	});
 };
 OSCFunc(loadSavedSceneLights, "/loadChords");
+
+loadSavedSceneLights = {|msg, time, addr, recvPort|
+	msg[1].asString.split($,)
+	.collect({|str| str.asInt})
+	.do({|ind|
+		var note = indToNote.(ind);
+		if(ind > 0,
+			{
+				savedScenes[note] = true;
+				miniOut.noteOn(0, note, amber_LIGHT);
+			},
+			{
+				savedScenes[note] = true;
+				miniOut.noteOn(0, note, 0);
+			}
+		);
+	});
+};
+OSCFunc(loadSavedSceneLights, "/loadScenes");
 )
 
 (

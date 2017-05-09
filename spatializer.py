@@ -188,6 +188,13 @@ class Spatializer:
 		msg.append(chordIndexesString)
 		self.scClient.send(msg)
 
+	def mergeChordStack(self, numLevelsToMerge):
+		for i in range(numLevelsToMerge):
+			for j in range(len(self.savedChords)):
+				c = self.chordSetStack[-(i+1)][j]
+				if len(c) > 0:
+					self.savedChords = copy.deepcopy(c)
+
 	def setNoteSets(self, noteSets):
 		self.noteSets = noteSets
 		self.newNoteSets = newNoteSets = map(lambda noteSet: map(lambda degree: (self.root+degree)%12, noteSet), noteSets)
