@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isSceneNote, ccFunc, utilityButtons;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote;
 
 
 
@@ -38,7 +38,8 @@ indToNote = {|x|
 };
 
 isPadNote = {|x| noteToInd.(x) != -1};
-isSceneNote = {|x| isPadNote.(x) && (noteToInd.(x) >= 20)}; //bottom two rows are for samples
+isChordNote = {|x| isPadNote.(x) && (noteToInd.(x) >= 20)}; //bottom two rows are for scenes
+isSceneNote = {|x| isPadNote.(x) && (noteToInd.(x) < 20)};
 record_BUTTON = 8;
 green_LIGHT = 48;
 red_LIGHT = 3;
@@ -58,7 +59,7 @@ noteOnFunc = {|vel, note, chan, port|
 		miniOut.noteOn(0, record_BUTTON, if(recording, red_LIGHT, green_LIGHT));
 	});
 	if(isPadNote.(note),
-		if(isSceneNote.(note), {
+		if(isChordNote.(note), {
 			if(recording, {
 				pythonOSCport.sendMsg("/saveChord", noteToInd.(note));
 				miniOut.noteOn(0, note, amber_LIGHT);
@@ -67,12 +68,20 @@ noteOnFunc = {|vel, note, chan, port|
 			{
 				if(savedScenes[note].isNil.not, {pythonOSCport.sendMsg("/playChord", noteToInd.(note));})
 			})
-		},
-		{
-			["SCENE NOTE", note].postln;
-			miniFwdOut.noteOn(0, note, vel);
-		})
-	);
+        });
+        if(isSceneNote.(note), {
+            if(recording, {
+                pythonOSCport.sendMsg("/saveScene", noteToInd.(note));
+                miniOut.noteOn(0, note, amber_LIGHT);
+                savedScenes[note] = true;
+            },
+            {
+                if(savedScenes[note].isNil.not, {
+                    pythonOSCport.sendMsg("/playScene", noteToInd.(note));
+                });
+            })
+        });
+    );
     if(utilityButtons.includes(note), {
         pythonOSCport.sendMsg("/utilityButton", utilityButtons.indexOf(note), if(recording, 1, 0));
         if(recording, {miniOut.noteOn(0, note, amber_LIGHT)});
@@ -81,7 +90,12 @@ noteOnFunc = {|vel, note, chan, port|
 MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
 
 noteOffFunc = {|vel, note, chan, port|
-	if(isSceneNote.(note).not, {miniFwdOut.noteOff(0, note, vel);});
+	if(isChordNote.(note),
+        {
+
+        },
+        {miniFwdOut.noteOff(0, note, vel);}
+    );
 };
 MIDIFunc.noteOff(noteOffFunc, nil, nil, mini.uid);
 

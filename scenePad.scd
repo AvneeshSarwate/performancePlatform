@@ -15,8 +15,8 @@ pythonOSCport = NetAddr("localhost", 13371);
 scPort = NetAddr("localhost", 57120);
 
 
-mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
-	&& (elem.device == "Launchpad Mini")})[0];
+mini = MIDIClient.sources.select({|elem| (elem.name == "Bus 5")
+	&& (elem.device == "IAC Driver")})[0];
 
 //bottom left is 00
 noteToInd = {|x|
