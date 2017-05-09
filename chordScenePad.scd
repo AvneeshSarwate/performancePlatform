@@ -1,6 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap;
-
-
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap, numChordPadsPlaying, releaseChords, releaseChords_BUTTON;
 
 //TODO - add a "scene stack" in python in case you accidentally
 //pull up an old scene before saving the one you're working on
@@ -14,6 +12,8 @@ miniFwdOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 
 utilityButtons = (24,40..120);
+numChordPadsPlaying = 0;
+releaseChords = false;
 
 mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
 	&& (elem.device == "Launchpad Mini")})[0];
@@ -43,6 +43,7 @@ record_BUTTON = 8;
 green_LIGHT = 48;
 red_LIGHT = 3;
 amber_LIGHT = 51;
+releaseChords_BUTTON = 24;
 
 savedScenes = Dictionary.new();
 recording = false;
@@ -53,6 +54,7 @@ chordButtonChanMap = Dictionary.new;
 (50..79).do({|i| chordButtonChanMap[i] = "-1"});
 
 miniOut.noteOn(0, record_BUTTON, green_LIGHT);
+miniOut.noteOn(0, releaseChords_BUTTON, 0);
 (0..63).do({|i| miniOut.noteOn(0, ((i/8).floor * 16) + (i%8), 0)});
 
 
@@ -62,6 +64,10 @@ noteOnFunc = {|vel, note, chan, port|
 		recording = recording.not;
 		miniOut.noteOn(0, record_BUTTON, if(recording, red_LIGHT, green_LIGHT));
 	});
+    if(note == releaseChords_BUTTON, {
+       releaseChords = releaseChords.not;
+        miniOut.noteOn(0, releaseChords_BUTTON, if(releaseChords, green_LIGHT, 0));
+    });
 	if(isPadNote.(note),{
         var ind = noteToInd.(note);
 		if(isChordNote.(note), {
@@ -71,7 +77,8 @@ noteOnFunc = {|vel, note, chan, port|
 				savedScenes[note] = true;
 			},
 			{
-				if(savedScenes[note].isNil.not, {pythonOSCport.sendMsg("/playChord"++chordButtonChanMap[ind], ind);})
+				if(savedScenes[note].isNil.not, {pythonOSCport.sendMsg("/playChord"++chordButtonChanMap[ind], ind)});
+                if(releaseChords, {numChordPadsPlaying = numChordPadsPlaying+1});
 			})
         });
         if(isSceneNote.(note), {
@@ -97,7 +104,12 @@ MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
 noteOffFunc = {|vel, note, chan, port|
 	if(isChordNote.(note),
         {
-
+            if(recording.not && releaseChords, {numChordPadsPlaying = numChordPadsPlaying-1});
+            ["NUM CHORDS PLAYING", numChordPadsPlaying].postln;
+            if((numChordPadsPlaying == 0) && releaseChords && recording.not, {
+                pythonOSCport.sendMsg("/stopChord"++chordButtonChanMap[noteToInd.(note)]);
+                ["CHORD OFF", chordButtonChanMap[noteToInd.(note)]].postln;
+            });
         },
         {miniFwdOut.noteOff(0, note, vel);}
     );

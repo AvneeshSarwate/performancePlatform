@@ -25,6 +25,7 @@ class Spatializer:
 		self.fhInstance = fhInstance
 		self.fhInstance.superColliderServer.addMsgHandler("/saveChord-"+str(chanInd), self.saveChordHandler)
 		self.fhInstance.superColliderServer.addMsgHandler("/playChord-"+str(chanInd), self.playChordHandler)
+		self.fhInstance.superColliderServer.addMsgHandler("/stopChord-"+str(chanInd), self.stopChordHandler)
 		self.fhInstance.superColliderServer.addMsgHandler("/utilityButton", self.handleFaderSave)
 
 		#NOTE: using channelSeparation and spatialization on same instrument will cause undefined behavior
@@ -163,6 +164,10 @@ class Spatializer:
 		msg.setAddress("/chordPadIndFwd")
 		msg.append(stuff[0])
 		self.fhInstance.superColliderClient.send(msg)
+
+	def stopChordHandler(self, addr, tags, stuff, source):
+		for note in copy.deepcopy(self.onNotes):
+			self.handle(self.chanInd, note, 64, "on", self.onNotes[note])
 
 	def saveChordHandler(self, addr, tags, stuff, source):
 		self.saveChord(int(stuff[0]))
