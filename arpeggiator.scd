@@ -3,7 +3,7 @@ var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, dru
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 midiOut.latency = 0;
-pythonOSCport = NetAddr("localhost", 34345);
+pythonOSCport = NetAddr("localhost", 34567);
 
 //TODO: implement tempoclock per channel (with synched beats)
 //masterTempoClock = TempoClock.new(1);

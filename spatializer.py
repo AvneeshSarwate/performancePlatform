@@ -13,7 +13,7 @@ class Spatializer:
 		self.scClient = OSC.OSCClient()
 		self.scClient.connect( ('127.0.0.1', 57120) )
 		self.broadcastClient = OSC.OSCClient()
-		self.broadcastClient.connect( ('127.0.0.1', 34345) ) #currently "broadcasting" to just Pydal, for safety
+		self.broadcastClient.connect( ('127.0.0.1', 34567) ) #currently "broadcasting" to just Pydal, for safety
 		self.broadcasting = False
 		self.sustaining = True
 		self.onNotes = {} #maps note to midi key

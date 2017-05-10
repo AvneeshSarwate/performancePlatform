@@ -590,7 +590,7 @@ r = createRecordedTask;
 OSCFunc({|msg, time, addr, recvPort|
 	//msg[1] is the new BEAT DURATION (not tempo)
 	tempoClock = TempoClock.new(1/msg[1], 0);
-	t = tempoClock;
+	//t = tempoClock;
 	tempoClock.schedAbs(1, metronomeFunc);
 	"MULTILOOP ONE SHOT".postln;
 }, "/masterClockBeat").oneShot;

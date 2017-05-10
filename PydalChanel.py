@@ -6,11 +6,11 @@ import phrase
 
 class Pydal:
 	
-	def __init__(self):
+	def __init__(self, port=('127.0.0.1', 34345)):
 		self.superColliderClient = OSC.OSCClient()
 		self.superColliderClient.connect( ('127.0.0.1', 57120) ) 
 
-		self.superColliderServer = OSC.OSCServer(('127.0.0.1', 34345))
+		self.superColliderServer = OSC.OSCServer(port)
 		self.serverThread = threading.Thread(target=self.superColliderServer.serve_forever)
 		self.serverThread.daemon = False
 		self.serverThread.start()
@@ -43,17 +43,18 @@ def read(rawStr, frac = 1.0, symbolKey = 'pydal'):
 	return node
 	#return PydalStringPattern(rawStr)
 
-pydalInstance = Pydal()
+#pydalInstance = Pydal()
+def getInstance(port=('127.0.0.1', 34345)):
+	return Pydal(port)
 
+# def tempo(num):
+# 	pydalInstance.setTempo(num)
 
-def tempo(num):
-	pydalInstance.setTempo(num)
+# def newChannel(num):
+# 	return pydalInstance.newChannel(num)
 
-def newChannel(num):
-	return pydalInstance.newChannel(num)
-
-def end():
-	pydalInstance.end()
+# def end():
+# 	pydalInstance.end()
 
 
 #this is the return object from a Pydal "function"

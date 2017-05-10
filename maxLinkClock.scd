@@ -3,11 +3,15 @@ var masterTempoClock, broadcastOSCport, tempo;
 
 MIDIClient.init;
 MIDIIn.connectAll;
+~lightIndexes = List.new;
+~lightIndex = nil;
+~lock = Semaphore(1);
+~cycling = true;
 
 masterTempoClock = TempoClock.new(1);
 broadcastOSCport = NetAddr("localhost", 57120);
 
-masterTempoClock.sched(0, {broadcastOSCport.sendMsg("/masterClockBeat", masterTempoClock.beatDur); 1});
+//masterTempoClock.sched(0, {broadcastOSCport.sendMsg("/masterClockBeat", masterTempoClock.beatDur); 1});
 
 //msg[1] is the new tempo
 OSCFunc({|msg, time, addr, recvPort|
