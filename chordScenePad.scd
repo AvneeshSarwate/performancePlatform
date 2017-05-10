@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap, numChordPadsPlaying, releaseChords, releaseChords_BUTTON, tempoClock, loopRecordBuffer, recordingLoop, metronomeFunc, bankNotes, recordingStartBeat, bankInfo;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap, numChordPadsPlaying, releaseChords, releaseChords_BUTTON, tempoClock, loopRecordBuffer, tempLoopTask, createLoopTask, recordingLoop, metronomeFunc, bankNotes, recordingStartBeat, recordingEndBeat, bankInfo, loopRecord_BUTTON, masterClockTempoHandler;
 
 //TODO - add a "scene stack" in python in case you accidentally
 //pull up an old scene before saving the one you're working on
@@ -46,7 +46,7 @@ amber_LIGHT = 51;
 releaseChords_BUTTON = 24;
 
 loopRecord_BUTTON = 40;
-//states for recordLoop: 0 - not recording (green), 1 - recording to start on next beat
+//states for recordingLoop: 0 - not recording (green), 1 - recording to start on next beat
 //2 - recording (red flash), 3 - buffer on deck (green flash)
 recordingLoop = 0;
 loopRecordBuffer = List();
@@ -56,16 +56,23 @@ metronomeFunc = {
         recordingStartBeat = tempoClock.beats;
     });
     Task({
-        miniOut.noteOn(0, loopRecord_BUTTON, red_LIGHT);
+        if(recordingLoop == 2, {miniOut.noteOn(0, loopRecord_BUTTON, red_LIGHT)});
+        if(recordingLoop == 3, {miniOut.noteOn(0, loopRecord_BUTTON, green_LIGHT)});
+
         (0..3).do({|i|
             if(bankInfo[i][0], {miniOut.noteOn(0, bankNotes[i], green_LIGHT)})
         });
+
         0.5.wait;
-        miniOut.noteOn(0, loopRecord_BUTTON, 0);
+
+        if([2,3].includes(recordingLoop), {miniOut.noteOn(0, loopRecord_BUTTON, 0)});
+
         (0..3).do({|i|
             if(bankInfo[i][0], {miniOut.noteOn(0, bankNotes[i], 0)})
         });
+
         0.49.wait;
+
         (0..3).do({|i|
             if(bankInfo[i][0], {miniOut.noteOn(0, bankNotes[i], green_LIGHT)})
         });
@@ -77,35 +84,44 @@ createLoopTask = {|oldRecBuf, startBeat, endBeat|
     var timeAfterLastHit;
     var newTask;
 
-    recBuf.do({|hit| if(hit[0] < startBeat, {hit[0] = startBeat}) });
+    ["START CHORD TIMING RECALC"].postln;
 
+    recBuf.do({|hit| if(hit[0] < startBeat, {hit[0] = startBeat}) });
+    ["BBB", recBuf].postln;
     if(~truncateLoop,
 		{timeAfterLastHit = (recBuf[recBuf.size-1][0].ceil - recBuf[recBuf.size-1][0])},
 		{timeAfterLastHit = endBeat - recBuf[recBuf.size-1][0]}
 	);
-
+    ["CCC", recBuf].postln;
     (recBuf.size-1..1).do({|i| recBuf[i][0] = recBuf[i][0] - recBuf[i-1][0]});
 	recBuf[0][0] = recBuf[0][0] - startBeat;
-
+    ["DDD", recBuf].postln;
     recBuf.add([timeAfterLastHit]);
 
     newTask = Task({
         var ind = 0;
         {
+            //recBuf[ind].postln;
             recBuf[ind][0].wait;
-            if(recBuf.size > 1, {pythonOSCport.sendRaw(refBuf[ind][1..].asArray.asRawOSC)});
+            if(recBuf[ind].size > 1, {
+                //[ind, recBuf[ind]].postln;
+                pythonOSCport.sendRaw(recBuf[ind][1..].asArray.asRawOSC);
+            });
             ind = (ind+1) % recBuf.size;
         }.loop;
     }, tempoClock);
-    newTask.play;
+    tempoClock.sched(tempoClock.timeToNextBeat, {newTask.play});
+    "EEE".postln;
     newTask
 };
+~cr = createLoopTask;
 bankNotes = [72, 88, 104, 120];
+bankNotes.do({|n| miniOut.noteOn(0, n, 0)});
 bankInfo = [[false, nil], [false, nil], [false, nil], [false, nil]];
 
 recordingStartBeat = 0;
 recordingEndBeat = 0;
-tempLoopTask = Task();
+tempLoopTask = nil;
 
 savedScenes = Dictionary.new();
 recording = false;
@@ -125,6 +141,7 @@ miniOut.noteOn(0, releaseChords_BUTTON, 0);
 OSCFunc({|msg, time, addr, recvPort|
 	//msg[1] is the new BEAT DURATION (not tempo)
 	tempoClock = TempoClock.new(1/msg[1], 0);
+    ~tc = tempoClock;
     tempoClock.schedAbs(1, metronomeFunc);
 }, "/masterClockBeat").oneShot;
 
@@ -140,32 +157,35 @@ OSCFunc(masterClockTempoHandler, "/masterClockTempo");
 noteOnFunc = {|vel, note, chan, port|
 	["NOTE ON ENTERED", note].postln;
 	if(note == loopRecord_BUTTON,{
-        if(recordLoop == 0, {recordLoop = 1});
-        if(recordLoop == 3, {
+        if(recordingLoop == 0, {recordingLoop = 1});
+        if(recordingLoop == 3, {
             loopRecordBuffer.clear;
-            recordLoop = 0;
+            recordingLoop = 0;
             tempLoopTask.stop;
             tempLoopTask.free;
             miniOut.noteOn(0, loopRecord_BUTTON, green_LIGHT);
         });
-        if(recordLoop == 2, {
+        if(recordingLoop == 2, {
             recordingEndBeat = tempoClock.beats.ceil;
             tempLoopTask = createLoopTask.(loopRecordBuffer, recordingStartBeat, recordingEndBeat);
-            recordLoop = 3;
+            recordingLoop = 3;
         });
 	});
     if(bankNotes.includes(note), {
         var selectedBank = bankInfo[bankNotes.indexOf(note)];
-        if(recordLoop == 2,
+        if(recordingLoop == 3,
             {
                 tempoClock.sched(tempoClock.timeToNextBeat, {
                     if(selectedBank[1].isNil.not, {
                         selectedBank[1].stop;
                         selectedBank[1].free;
-                    })
+                    });
                     selectedBank[1] = tempLoopTask;
                     selectedBank[0] = true;
                 });
+                recordingLoop = 0;
+                miniOut.noteOn(0, loopRecord_BUTTON, green_LIGHT);
+                loopRecordBuffer.clear;
             },
             {
                 if(selectedBank[1].isNil.not, {
@@ -196,7 +216,10 @@ noteOnFunc = {|vel, note, chan, port|
 			{
 				if(savedScenes[note].isNil.not, {
                     pythonOSCport.sendMsg("/playChord"++chordButtonChanMap[ind], ind);
-                    if(recordingLoop == 1, {loopRecordBuffer.add([tempoClock.beats, "/playChord"++chordButtonChanMap[ind], ind])});
+                    if([1,2].includes(recordingLoop), {
+                        loopRecordBuffer.add([tempoClock.beats, "/playChord"++chordButtonChanMap[ind], ind]);
+                        "ADDED PLAY".postln;
+                    });
                 });
                 if(releaseChords, {numChordPadsPlaying = numChordPadsPlaying+1});
 			})
@@ -225,11 +248,14 @@ noteOffFunc = {|vel, note, chan, port|
 	if(isChordNote.(note),
         {
             if(recording.not && releaseChords, {numChordPadsPlaying = numChordPadsPlaying-1});
-            ["NUM CHORDS PLAYING", numChordPadsPlaying].postln;
+            //["NUM CHORDS PLAYING", numChordPadsPlaying].postln;
             if((numChordPadsPlaying == 0) && releaseChords && recording.not, {
                 pythonOSCport.sendMsg("/stopChord"++chordButtonChanMap[noteToInd.(note)]);
-                if(recordingLoop == 1, {loopRecordBuffer.add([tempoClock.beats, "/stopChord"++chordButtonChanMap[noteToInd.(note)]])});
-                ["CHORD OFF", chordButtonChanMap[noteToInd.(note)]].postln;
+                if([1,2].includes(recordingLoop), {
+                    loopRecordBuffer.add([tempoClock.beats, "/stopChord"++chordButtonChanMap[noteToInd.(note)]]);
+                    "ADDED STOP".postln;
+                });
+                //["CHORD OFF add addition", chordButtonChanMap[noteToInd.(note)]].postln;
             });
         },
         {miniFwdOut.noteOff(0, note, vel);}
@@ -282,6 +308,55 @@ loadSavedSceneLights = {|msg, time, addr, recvPort|
 };
 OSCFunc(loadSavedSceneLights, "/loadScenes");
 )
+
+
+///////////////===================
+
+
+(
+~cr = {|oldRecBuf, startBeat, endBeat|
+    var recBuf = List.newFrom(oldRecBuf);
+    var timeAfterLastHit;
+    var newTask;
+
+    ["START CHORD TIMING RECALC"].postln;
+
+    recBuf.do({|hit| if(hit[0] < startBeat, {hit[0] = startBeat}) });
+    ["BBB", recBuf].postln;
+    if(~truncateLoop,
+		{timeAfterLastHit = (recBuf[recBuf.size-1][0].ceil - recBuf[recBuf.size-1][0])},
+		{timeAfterLastHit = endBeat - recBuf[recBuf.size-1][0]}
+	);
+    ["CCC", recBuf].postln;
+    (recBuf.size-1..1).do({|i| recBuf[i][0] = recBuf[i][0] - recBuf[i-1][0]});
+	recBuf[0][0] = recBuf[0][0] - startBeat;
+    ["DDD", recBuf].postln;
+    recBuf.add([timeAfterLastHit]);
+
+    newTask = Task({
+        var ind = 0;
+        {
+            recBuf[ind].postln;
+            recBuf[ind][0].wait;
+            if(recBuf.size > 1, {
+                [ind, recBuf[ind]].postln;
+                pythonOSCport.sendRaw(recBuf[ind][1..].asArray.asRawOSC);
+            });
+            ind = (ind+1) % recBuf.size;
+        }.loop;
+    }, ~tc);
+    newTask.play;
+    "EEE".postln;
+    newTask
+};
+)
+
+
+
+
+
+
+
 
 (
 var indToNote = {|x|

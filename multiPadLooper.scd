@@ -1069,7 +1069,7 @@ TODO - add event broadcasting for multiPadLooper color state change.
 });
 //msg = [addr, key, color, chanInd]
 moduleLights = {|msg, time, addr, recvPort|
-	["MODULE LIGHTS", msg].postln;
+	//["MODULE LIGHTS", msg].postln;
 	(1,3..(msg.size-2)).do({|i|
 		if(msg[i+1] > 0,
 			{
