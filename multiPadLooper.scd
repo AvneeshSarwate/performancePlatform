@@ -298,7 +298,7 @@ launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 [launchPad, MIDIClient.sources[2]].postln;
 a = {|vel, note, chan, port|
     if((chan == 0) && (~lightIndex == lightIndex), {
-        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
+        //["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 		if(pads.includes(note), {
 			var chan, newNote;
 			if(playingNewKeys,
@@ -324,7 +324,7 @@ padOn = MIDIFunc.noteOn(a, nil, nil, launchPad.uid);
 
 b = {|vel, note, chan, port|
 	if((chan == 0) && (~lightIndex == lightIndex), {
-        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
+        //["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 		if(pads.includes(note), {
 			var chan, newNote;
 			if(playingNewKeys,
@@ -809,7 +809,7 @@ controlHandler = {|vel, note, chan, port|
 controlHandlerWrapper = {|vel, note, chan, port|
     ~lock.wait;
     if((chan == 0) && (~lightIndex == lightIndex) && (vel != 0), {
-        ["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex, SystemClock.beats].postln;
+        //["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex, SystemClock.beats].postln;
         controlHandler.(vel, note, chan, port)
     });
     ~lock.signal;

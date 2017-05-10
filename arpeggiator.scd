@@ -200,9 +200,9 @@ sendSample = {|noteStr, midiChannel, ind|
 	[noteStr, ind, noteStr.isNil, midiChannel.isNil].postln;
 	if(onNotesList[midiChannel].size > 0, {
 		var noteInd = noteStr.asInt;
-		var newNote = onNotesList[midiChannel][noteInd % onNotesList.size];
+        var newNote = onNotesList[midiChannel][noteInd % onNotesList[midiChannel].size];
 		var newNoteVel = onNotes[midiChannel][newNote];
-
+        [noteInd, newNote, newNoteVel].postln;
 		//todo - send cc map stuff if applicable
 		Task({
 			midiOut.noteOn(midiChannel, newNote, newNoteVel); //maybe add velocity based on gain?
@@ -212,6 +212,17 @@ sendSample = {|noteStr, midiChannel, ind|
 	});
 };
 
+
 )
 //===========================================================================
 //scratch code below
+
+
+(
+
+a = List.new;
+a.add(5);
+a.add(6);
+a.remove(5);
+a.size
+)

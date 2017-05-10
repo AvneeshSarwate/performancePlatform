@@ -1,4 +1,4 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap, numChordPadsPlaying, releaseChords, releaseChords_BUTTON, tempoClock, loopRecordBuffer, tempLoopTask, createLoopTask, recordingLoop, metronomeFunc, bankNotes, recordingStartBeat, recordingEndBeat, bankInfo, loopRecord_BUTTON, masterClockTempoHandler;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap, numChordPadsPlaying, releaseChords, releaseChords_BUTTON, tempoClock, loopRecordBuffer, tempLoopTask, createLoopTask, recordingLoop, metronomeFunc, bankNotes, recordingStartBeat, recordingEndBeat, bankInfo, loopRecord_BUTTON, masterClockTempoHandler, divider;
 
 //TODO - add a "scene stack" in python in case you accidentally
 //pull up an old scene before saving the one you're working on
@@ -127,9 +127,10 @@ savedScenes = Dictionary.new();
 recording = false;
 
 chordButtonChanMap = Dictionary.new;
+divider = 21;
 (0..128).do({|i| chordButtonChanMap[i] = ""});
-(20..49).do({|i| chordButtonChanMap[i] = "-0"});
-(50..79).do({|i| chordButtonChanMap[i] = "-1"});
+(20..(divider-1)).do({|i| chordButtonChanMap[i] = "-0"});
+(divider..79).do({|i| chordButtonChanMap[i] = "-1"});
 
 miniOut.noteOn(0, record_BUTTON, green_LIGHT);
 miniOut.noteOn(0, loopRecord_BUTTON, green_LIGHT);
