@@ -127,7 +127,7 @@ savedScenes = Dictionary.new();
 recording = false;
 
 chordButtonChanMap = Dictionary.new;
-divider = 50;
+divider = 20;
 (0..128).do({|i| chordButtonChanMap[i] = ""});
 (20..(divider-1)).do({|i| chordButtonChanMap[i] = "-0"});
 (divider..79).do({|i| chordButtonChanMap[i] = "-1"});
