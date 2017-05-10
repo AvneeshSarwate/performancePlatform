@@ -1,5 +1,5 @@
 (//tempoclock with beat set to 1 cycle length
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi, noteDuration;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi, noteDuration, midiChanToDur;
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 midiOut.latency = 0;
@@ -13,6 +13,7 @@ channelInd = Dictionary();
 channelToMidiChannel = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
+midiChanToDur = Dictionary();
 
 onNotes = Dictionary.new;
 (0..16).do({|i| onNotes[i] = Dictionary.new});
@@ -20,6 +21,7 @@ onNotesList = Dictionary.new;
 (0..16).do({|i| onNotesList[i] = List()});
 
 noteDuration = 0.25;
+(0..3).do({|i| midiChanToDur[i] = 0.25});
 
 //TODO - should this be midiChannel or arpeggiatorChannelInd?
 //msg is [addr, note, vel, onOff, midiChannel]
@@ -167,8 +169,10 @@ masterClockBeat = {|msg, time, addr, recvPort|
 };
 OSCFunc(masterClockBeat, "/masterClockBeat");
 
+// msg[1] is duration, msg[2] is midi channel for that duration
 OSCFunc({|msg, time, addr, recvPort|
     noteDuration = msg[1].asFloat;
+    midiChanToDur[msg[2].asInt] = msg[1].asFloat;
 }, "/noteDuration");
 
 patternRead = {|patternStr|
@@ -206,7 +210,8 @@ sendSample = {|noteStr, midiChannel, ind|
 		//todo - send cc map stuff if applicable
 		Task({
 			midiOut.noteOn(midiChannel, newNote, newNoteVel); //maybe add velocity based on gain?
-			noteDuration.wait;
+			//noteDuration.wait;
+            midiChanToDur[midiChannel].wait;
 			midiOut.noteOff(midiChannel, newNote, newNoteVel);
 		}).play;
 	});

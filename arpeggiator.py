@@ -25,6 +25,7 @@ class Arpeggiator:
 		msg = OSC.OSCMessage()
 		msg.setAddress("/noteDuration")
 		msg.append(duration)
+		msg.append(self.midiChannel)
 		self.pydalInstance.superColliderClient.send(msg)
 
 	def noteSelectorHanlder(self, addr, tags, stuff, source):
