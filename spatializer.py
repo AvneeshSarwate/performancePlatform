@@ -20,6 +20,7 @@ class Spatializer:
 		self.normalForwardingBehavior = True
 		self.chanInd = chanInd
 		self.debug = False
+		self.swappingChords = False
 
 
 		self.savedChords = [{} for i in range(100)]
@@ -127,8 +128,11 @@ class Spatializer:
 
 	#chord is (midiNote -> launchpadKey) map
 	def playChord(self, chord, channel=1):
-		self.toggleChord(self.onNotes, channel)
-		self.toggleChord(chord, channel)
+		if self.swappingChords:
+			self.swapChord(chord, channel)
+		else:
+			self.toggleChord(self.onNotes, channel)
+			self.toggleChord(chord, channel)
 
 	def toggleChord(self, chrd, channel):
 		noteChangeInfo = []
@@ -138,6 +142,25 @@ class Spatializer:
 				noteChangeInfo.append(info)
 			msg = OSC.OSCMessage()
 			msg.setAddress("/broadcastNoteSelector-"+str(self.chanInd))
+			msg.append(0) #swappingChords Flag
+			for i in noteChangeInfo:
+				msg.append(i)
+			self.broadcastClient.send(msg)
+		if self.debug:
+			print "broadcasted", noteChangeInfo
+
+	def swapChord(self, chrd, channel):
+		noteChangeInfo = []
+		if len(chrd) > 0:
+			for note in copy.deepcopy(self.onNotes):
+				info = self.handle(channel, note, 64, "on", self.onNotes[note], handlingChord=True)
+				noteChangeInfo.append(info)
+			for note in copy.deepcopy(chrd):
+				info = self.handle(channel, note, 64, "on", chrd[note], handlingChord=True)
+				noteChangeInfo.append(info)
+			msg = OSC.OSCMessage()
+			msg.setAddress("/broadcastNoteSelector-"+str(self.chanInd))
+			msg.append(1) #swapping chords flag
 			for i in noteChangeInfo:
 				msg.append(i)
 			self.broadcastClient.send(msg)

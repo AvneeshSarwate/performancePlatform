@@ -34,12 +34,16 @@ class Arpeggiator:
 			self.handle(stuff[0], stuff[1], stuff[2], stuff[3], None, True)
 		else:
 			noteInfo = []
-			for i in range(0, len(stuff), 4):
-				chan = stuff[i]
-				note = stuff[i+1]
-				vel = stuff[i+2]
-				onOff = stuff[i+3]
-
+			swapChord = stuff[0]
+			msgTrim = stuff[1:]
+			print msgTrim, range(0, len(msgTrim), 4)
+			oldNumOnNotes = len(self.onNotes)
+			for i in range(0, len(msgTrim), 4):
+				chan = msgTrim[i]
+				note = msgTrim[i+1]
+				vel = msgTrim[i+2]
+				onOff = msgTrim[i+3]
+				print "INDEX CHECK", i
 				noteInfo.append((note, vel, onOff))
 
 				if onOff == "on":
@@ -48,7 +52,7 @@ class Arpeggiator:
 				if onOff == "off" and note in self.onNotes:
 					del self.onNotes[note]
 					
-
+			print "POST NOTE UPDATE"
 			if len(self.onNotes) == 0:
 				self.channel.stop()
 				if self.debug:
@@ -57,7 +61,8 @@ class Arpeggiator:
 			self.sendChordUpdate(noteInfo)
 
 			if len(self.onNotes) > 0:
-				self.channel.play(self.pattern)
+				if not swapChord or oldNumOnNotes == 0:
+					self.channel.play(self.pattern)
 				if self.debug:
 					print "arp on", self.onNotes, noteInfo
 
