@@ -19,6 +19,7 @@ class Spatializer:
 		self.onNotes = {} #maps note to midi key
 		self.normalForwardingBehavior = True
 		self.chanInd = chanInd
+		self.debug = False
 
 
 		self.savedChords = [{} for i in range(100)]
@@ -62,7 +63,7 @@ class Spatializer:
 			msg = OSC.OSCMessage()
 			self.sendNote(newChannel, note, vel, onOff) #todo: should this be in the handling conditional?
 			if handlingChord:
-				return (note, vel, keyOnOff, newChannel)
+				return (newChannel, note, vel, onOff)
 			else:
 				self.broadcastNote(newChannel, note, vel, onOff)
 
@@ -126,8 +127,12 @@ class Spatializer:
 
 	#chord is (midiNote -> launchpadKey) map
 	def playChord(self, chord, channel=1):
-		def toggleChord(chrd):
-			noteChangeInfo = []
+		self.toggleChord(self.onNotes, channel)
+		self.toggleChord(chord, channel)
+
+	def toggleChord(self, chrd, channel):
+		noteChangeInfo = []
+		if len(chrd) > 0:
 			for note in copy.deepcopy(chrd):
 				info = self.handle(channel, note, 64, "on", chrd[note], handlingChord=True)
 				noteChangeInfo.append(info)
@@ -136,9 +141,8 @@ class Spatializer:
 			for i in noteChangeInfo:
 				msg.append(i)
 			self.broadcastClient.send(msg)
-
-		toggleChord(self.onNotes)
-		toggleChord(chord)
+		if self.debug:
+			print "broadcasted", noteChangeInfo
 
 
 	def getChan(self, note, channel, onOff):
@@ -178,8 +182,7 @@ class Spatializer:
 		self.fhInstance.superColliderClient.send(msg)
 
 	def stopChordHandler(self, addr, tags, stuff, source):
-		for note in copy.deepcopy(self.onNotes):
-			self.handle(self.chanInd, note, 64, "on", self.onNotes[note])
+		self.toggleChord(self.onNotes, self.chanInd)
 
 	def saveChordHandler(self, addr, tags, stuff, source):
 		self.saveChord(int(stuff[0]))

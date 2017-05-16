@@ -49,9 +49,10 @@ OSCFunc(noteForwardHandler, "/forwardNotes");
 //TODO - should this be midiChannel or arpeggiatorChannelInd?
 //msg is [addr, midiChannel, [note, vel, onOff.. ]
 noteForwardHandler = {|msg, time, addr, recvPort|
-    lock.wait;
+
     var midiChan = msg[0].asInt;
 	["onOff message", msg].postln;
+    lock.wait;
     (0..(((msg.size-2)/3)-1)).do({|i|
         var ind = (i*3)+2;
         if(msg[ind+2].asString == "on",å
@@ -67,9 +68,10 @@ noteForwardHandler = {|msg, time, addr, recvPort|
             }
         );
     });
+    "DONE UPDATING CHORD".postln;
     lock.signal;
 };
-OSCFunc(noteForwardHandler, "/forwardNotes");
+OSCFunc(noteForwardHandler, "/forwardChord");
 
 
 //msg[1] is the pydal channel being played on

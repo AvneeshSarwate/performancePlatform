@@ -11,6 +11,7 @@ class Arpeggiator:
 		self.channel = pydalInstance.newArpeggiatorChannel(midiChannel)
 		self.pattern = pattern
 		self.normalForwardingBehavior = True
+		self.debug = False
 
 		self.pydalInstance.superColliderServer.addMsgHandler("/broadcastNoteSelector-"+str(midiChannel), self.noteSelectorHanlder)
 
@@ -33,7 +34,7 @@ class Arpeggiator:
 			self.handle(stuff[0], stuff[1], stuff[2], stuff[3], None, True)
 		else:
 			noteInfo = []
-			for i in range(0, len(stuff), 4)
+			for i in range(0, len(stuff), 4):
 				chan = stuff[i]
 				note = stuff[i+1]
 				vel = stuff[i+2]
@@ -50,11 +51,15 @@ class Arpeggiator:
 
 			if len(self.onNotes) == 0:
 				self.channel.stop()
+				if self.debug:
+					print "arp off", self.onNotes, noteInfo
 
 			self.sendChordUpdate(noteInfo)
 
-			if len(self.onNotes) == 1:
+			if len(self.onNotes) > 0:
 				self.channel.play(self.pattern)
+				if self.debug:
+					print "arp on", self.onNotes, noteInfo
 
 
 	def handle(self, chan, note, vel, onOff, launchpadKey, callFromModifiedBehavior=False):
@@ -73,7 +78,7 @@ class Arpeggiator:
 				self.sendNoteUpdate(note, vel, onOff)
 
 	# noteInfoList is [(note, vel, onOff)]
-	def sendChordUpdate(self, noteInfoList)
+	def sendChordUpdate(self, noteInfoList):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/forwardChord")
 		msg.append(self.midiChannel)
