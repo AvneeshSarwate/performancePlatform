@@ -235,7 +235,7 @@ timeListToDurationList = {|oldList, totalLength|
 
 sendSample = {|noteStr, midiChannel, ind|
 	[noteStr, ind, noteStr.isNil, midiChannel.isNil].postln;
-	if(onNotesList[midiChannel].size > 0, {
+    if((onNotesList[midiChannel].size > 0) && (noteStr.asSymbol != '~'), {
 		var noteInd = noteStr.asInt;
         var newNote = onNotesList[midiChannel][noteInd % onNotesList[midiChannel].size];
 		var newNoteVel = onNotes[midiChannel][newNote];
