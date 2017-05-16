@@ -53,9 +53,9 @@ def isSampleSymbol(s):
 def isMaxSymbol(s):
     return re.match('^[a-d]:[0-9](\.[0-9]+)?(_[0-9](\.[0-9]+)?)?$', s) or s == "~"
 def isArpeggiatorSymbol(s):
-    return s.isdigit()
+    return s.isdigit() or s == "~"
 def isChordSeqSymbol(s):
-    return re.match('^[a-h][a-h]$', s)
+    return re.match('^[a-h][a-h]$', s) or s == "~"
 
 
 symbolMatchers = {}

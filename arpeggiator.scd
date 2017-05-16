@@ -119,6 +119,13 @@ playStepGenerator = {|i|
 	var playStep = {
 		//if list len == 0, exit
 		var retVal = nil;
+
+        //if last step (or < 20 ms from end?), set backupPat to actual pattern
+        if((channelInd[i] == 0) && (chanBackupPatMap[i].size > 0), {
+            //"LOADED BACKUP".postln;
+            channelPatternMap[i] = chanBackupPatMap[i]
+        });
+
 		if(channelPatternMap[i].size != 0, {
 			var ind = channelInd[i];
 			var patList = channelPatternMap[i];
@@ -131,13 +138,7 @@ playStepGenerator = {|i|
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
-			if(ind == (patList.size-2), {pythonOSCport.sendMsg("/arpeggiatorGetUpdate-"++i)});
-
-			//if last step (or < 20 ms from end?), set backupPat to actual pattern
-			if(ind == (patList.size-1), {
-				//"DID BACKUP".postln;
-				channelPatternMap[i] = chanBackupPatMap[i]
-			});
+			if(ind == (patList.size-1), {pythonOSCport.sendMsg("/arpeggiatorGetUpdate-"++i)});
 
 			//update indexes appropriately
 			channelInd[i] = (ind+1)%patList.size;
@@ -169,6 +170,7 @@ OSCFunc(recieveBackupPattern, "/arpeggiatorSendUpdate");
 stopPattern = {|msg, time, addr, recvPort|
 	if(channelPatternMap.keys.includes(msg[1]), {channelPatternMap[msg[1]] = []});
 	["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
+    tempoClockMap[msg[1]].clear();
 };
 OSCFunc(stopPattern, "/arpeggiatorStop");
 
