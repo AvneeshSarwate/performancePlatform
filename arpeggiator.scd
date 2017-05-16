@@ -1,5 +1,5 @@
 (//tempoclock with beat set to 1 cycle length
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi, noteDuration, midiChanToDur;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi, noteDuration, midiChanToDur, lock;
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 midiOut.latency = 0;
@@ -14,6 +14,7 @@ channelToMidiChannel = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
 midiChanToDur = Dictionary();
+lock = Semaphore(1);
 
 onNotes = Dictionary.new;
 (0..16).do({|i| onNotes[i] = Dictionary.new});
@@ -42,6 +43,31 @@ noteForwardHandler = {|msg, time, addr, recvPort|
 			["FWD OFF", msg[1].asInt].postln;
 		}
 	);
+};
+OSCFunc(noteForwardHandler, "/forwardNotes");
+
+//TODO - should this be midiChannel or arpeggiatorChannelInd?
+//msg is [addr, midiChannel, [note, vel, onOff.. ]
+noteForwardHandler = {|msg, time, addr, recvPort|
+    lock.wait;
+    var midiChan = msg[0].asInt;
+	["onOff message", msg].postln;
+    (0..(((msg.size-2)/3)-1)).do({|i|
+        var ind = (i*3)+2;
+        if(msg[ind+2].asString == "on",å
+            {
+                onNotes[midiChan][msg[ind].asInt] = msg[ind+1].asInt;
+                onNotesList[midiChan].add(msg[ind].asInt);
+                onNotesList[midiChan].sort();
+            },
+            {
+                onNotes[midiChan].removeAt(msg[ind].asInt);
+                onNotesList[midiChan].remove(msg[ind].asInt);
+                onNotesList[midiChan].sort();
+            }
+        );
+    });
+    lock.signal;
 };
 OSCFunc(noteForwardHandler, "/forwardNotes");
 
@@ -96,7 +122,9 @@ playStepGenerator = {|i|
 			var step = patList[ind];
 			var dur = step[0];
 
+            lock.wait;
 			step[1].do({|samp| sendSample.(samp, channelToMidiChannel[i], ind)});
+            lock.signal;
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?

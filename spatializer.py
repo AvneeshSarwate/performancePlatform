@@ -53,15 +53,18 @@ class Spatializer:
 			self.fhInstance.superColliderClient.send(msg)
 
 
-	def handle(self, channel, note, vel, keyOnOff, launchpadKey, callFromModifiedBehavior=False):
+	def handle(self, channel, note, vel, keyOnOff, launchpadKey, callFromModifiedBehavior=False, handlingChord=False):
 		if self.normalForwardingBehavior or callFromModifiedBehavior:
 			onOff = self.resolveOnOff(note, keyOnOff, launchpadKey)
 			if onOff is None:
 				return
 			newChannel = self.getChan(note, channel, onOff)
 			msg = OSC.OSCMessage()
-			self.sendNote(newChannel, note, vel, onOff)
-			self.broadcastNote(newChannel, note, vel, onOff)
+			self.sendNote(newChannel, note, vel, onOff) #todo: should this be in the handling conditional?
+			if handlingChord:
+				return (note, vel, keyOnOff, newChannel)
+			else:
+				self.broadcastNote(newChannel, note, vel, onOff)
 
 	def heldNotesOff(self, chan):
 		for note in self.onNotes:
@@ -123,10 +126,19 @@ class Spatializer:
 
 	#chord is (midiNote -> launchpadKey) map
 	def playChord(self, chord, channel=1):
-		for note in copy.deepcopy(self.onNotes):
-			self.handle(channel, note, 64, "on", self.onNotes[note])
-		for note in chord:
-			self.handle(channel, note, 64, "on", chord[note])
+		def toggleChord(chrd):
+			noteChangeInfo = []
+			for note in copy.deepcopy(chrd):
+				info = self.handle(channel, note, 64, "on", chrd[note], handlingChord=True)
+				noteChangeInfo.append(info)
+			msg = OSC.OSCMessage()
+			msg.setAddress("/broadcastNoteSelector-"+str(self.chanInd))
+			for i in noteChangeInfo:
+				msg.append(i)
+			self.broadcastClient.send(msg)
+
+		toggleChord(self.onNotes)
+		toggleChord(chord)
 
 
 	def getChan(self, note, channel, onOff):
