@@ -55,6 +55,7 @@ noteForwardHandler = {|msg, time, addr, recvPort|
     lock.wait;
     (0..(((msg.size-2)/3)-1)).do({|i|
         var ind = (i*3)+2;
+        ["CHORD PIECE", ind].postln;
         if(msg[ind+2].asString == "on",å
             {
                 onNotes[midiChan][msg[ind].asInt] = msg[ind+1].asInt;
