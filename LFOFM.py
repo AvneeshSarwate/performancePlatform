@@ -15,6 +15,14 @@ class WavePlayer:
 		self.superColliderClient.connect( ('127.0.0.1', 57120) ) 
 
 
+	def plotWave(self, wave, start, end):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/plotWave")
+		msg.append(str(wave))
+		msg.append(start)
+		msg.append(end)
+		self.superColliderClient.send(msg)
+
 	#utility func to make succint keyword methods 
 	def keyWordWaveAdress(self, keyWord, bufferNum, wave):
 		if wave == 0:

@@ -44,6 +44,7 @@ green_LIGHT = 48;
 red_LIGHT = 3;
 amber_LIGHT = 51;
 releaseChords_BUTTON = 24;
+if(~truncateLoop.isNil, {~truncateLoop = true});
 
 loopRecord_BUTTON = 40;
 //states for recordingLoop: 0 - not recording (green), 1 - recording to start on next beat
@@ -127,10 +128,11 @@ savedScenes = Dictionary.new();
 recording = false;
 
 chordButtonChanMap = Dictionary.new;
-divider = 50;
+~chordButtonChanMap = chordButtonChanMap;
+divider = 80;
 (0..128).do({|i| chordButtonChanMap[i] = ""});
-(20..(divider-1)).do({|i| chordButtonChanMap[i] = "-0"});
-(divider..79).do({|i| chordButtonChanMap[i] = "-2"});
+(20..(divider-1)).do({|i| chordButtonChanMap[i] = "-1"});
+//(divider..79).do({|i| chordButtonChanMap[i] = "-1"});
 
 miniOut.noteOn(0, record_BUTTON, green_LIGHT);
 miniOut.noteOn(0, loopRecord_BUTTON, green_LIGHT);
@@ -159,6 +161,7 @@ noteOnFunc = {|vel, note, chan, port|
 	["NOTE ON ENTERED", note].postln;
 	if(note == loopRecord_BUTTON,{
         if(recordingLoop == 0, {recordingLoop = 1});
+        "NOT REC LOOP 0".postln;
         if(recordingLoop == 3, {
             loopRecordBuffer.clear;
             recordingLoop = 0;
@@ -166,11 +169,13 @@ noteOnFunc = {|vel, note, chan, port|
             tempLoopTask.free;
             miniOut.noteOn(0, loopRecord_BUTTON, green_LIGHT);
         });
+        "NOT REC LOOP 3".postln;
         if(recordingLoop == 2, {
             recordingEndBeat = tempoClock.beats.ceil;
             tempLoopTask = createLoopTask.(loopRecordBuffer, recordingStartBeat, recordingEndBeat);
             recordingLoop = 3;
         });
+        "NOT REC LOOP 2".postln;
 	});
     if(bankNotes.includes(note), {
         var selectedBank = bankInfo[bankNotes.indexOf(note)];

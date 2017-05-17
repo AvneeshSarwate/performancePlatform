@@ -117,7 +117,7 @@ class Spatializer:
 					return "off"
 				else:
 					self.onNotes[note] = launchpadKey
-					self.sendKeyColor(launchpadKey, 21)
+					self.sendKeyColor(launchpadKey, 3)
 					return "on"
 		else:
 			if not note in self.onNotes:
