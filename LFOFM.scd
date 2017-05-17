@@ -1,5 +1,5 @@
 (
-var midiOut, channelMap, startWaveHandler, stopWaveHandler, startWave, stopWave, masterTempoClock, maxOSCport;
+var midiOut, channelMap, startWaveHandler, stopWaveHandler, startWave, stopWave, masterTempoClock, maxOSCport, scPort;
 var sinwav = {|fr,ph,am,sh, time| (sin((pi*fr*time)+ph)*am)+sh};
 var coswav = {|fr,ph,am,sh, time| (cos((pi*fr*time)+ph)*am)+sh};
 
@@ -43,6 +43,7 @@ midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
 
 maxOSCport = NetAddr("localhost", 5432);
+scPort = NetAddr("127.0.0.1", 57120);
 
 //TODO: move variable instations to near the functions that use them
 OSCFunc({|msg, time, addr, recvPort|
@@ -53,7 +54,8 @@ OSCFunc({|msg, time, addr, recvPort|
 //cc ind -> waveTask
 channelMap = Dictionary.new;
 ~chanDebugMap = Dictionary.new;
-//msg[1] is cc ind, msg[2] is calcString, msg[3] is "OSC" or "midi"
+//msg[1] is cc ind, msg[2] is calcString, msg[3] is "OSC" or "midi",
+//msg[4] is "max" or "sc" port, msg [5...] is meta info for OSC waves
 startWave = {|msg, time, addr, recvPort|
     var waveTask = Task({
         var func = createCalcFunc.(msg[2].asString);
@@ -70,8 +72,9 @@ startWave = {|msg, time, addr, recvPort|
                 },
                 //else its "osc"
                 {
+                    var port = if(msg[4].asSymbol == 'max', maxPort, scPort);
                     [ccIndOrWaveAddr.asString, func.(masterTempoClock.beats)].postln;
-                    maxOSCport.sendMsg(ccIndOrWaveAddr.asString, func.(masterTempoClock.beats))
+                    port.sendRaw(([ccIndOrWaveAddr.asString, func.(masterTempoClock.beats)]++[msg[5]]).asArray.asRawOSC)
                 }
             );
             0.02.wait;

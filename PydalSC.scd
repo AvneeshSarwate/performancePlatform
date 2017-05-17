@@ -1,5 +1,5 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
@@ -114,6 +114,45 @@ playStepGenerator = {|i|
 	playStep
 };
 
+
+//msg[1] is the channel to change the clock to
+//msg[2] is the tempo (in bmp)
+changeChannelTempo = {|msg, time, addr, recvPort|
+    //create channel tempo clock if needed
+    if(tempoClockMap.keys.includes(msg[1]),{
+        tempoClockMap[msg[1]].tempo = msg[2].asFloat/60;
+    });
+};
+OSCFunc(recieveBackupPattern, "/changeChannelTempo");
+
+
+//msg[1] is type of sync "phase, tempo, both"
+//msg[2] is key of clock to sync to
+//msg[2...] is keys of other clocks to sync
+syncClocks = {|msg, time, addr, recvPort|
+    //create channel tempo clock if needed
+    if(tempoClockMap.keys.includes(msg[2]),{
+        var refClock = tempoClockMap[msg[2]];
+        msg[2..].do({|key|
+           if(tempoClockMap.keys.includes(key), {
+                clockToSync = tempoClockMap[key];
+                if(['tempo', 'both']includes(msg[1].asSymbol), {clockToSync.tempo = refClock.tempo});
+                if(['phase', 'both']includes(msg[1].asSymbol), {
+                    clockToSync.clear;
+                    clockToSync.beats = refClock.beats;
+                    channelInd[key] = 0;
+                    clockToSync.sched(refClock.timeToNextBeat, playStepGenerator.(key));
+                });
+            });
+        });
+        if(['phase', 'both']includes(msg[1].asSymbol), {
+            refClock.clear;
+            channelInd[key] = 0;
+            refClock.sched(refClock.timeToNextBeat, playStepGenerator.(key));
+        });
+    });
+};
+OSCFunc(recieveBackupPattern, "/syncClocks");
 
 //msg[1] is the channel being played on
 //msg[2] is the backup pattern
