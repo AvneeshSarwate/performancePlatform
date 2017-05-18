@@ -54,12 +54,13 @@ OSCFunc({|msg, time, addr, recvPort|
 //cc ind -> waveTask
 channelMap = Dictionary.new;
 ~chanDebugMap = Dictionary.new;
-//msg[1] is cc ind, msg[2] is calcString, msg[3] is "OSC" or "midi",
-//msg[4] is "max" or "sc" port, msg [5...] is meta info for OSC waves
+//msg[1] is cc ind and/or waveKey, msg[2] is calcString, msg[3] is "OSC" or "midi",
+//msg[4] is "max" or "sc" port, msg[5] is OSC addr, msg [6...] is meta info for OSC waves
 startWave = {|msg, time, addr, recvPort|
     var waveTask = Task({
         var func = createCalcFunc.(msg[2].asString);
         var ccIndOrWaveAddr = msg[1];
+        var oscAddr = msg[5].asString;
         ~debugf = func;
         ["WAVE TASK STARTED", msg[3].asString].postln;
         {
@@ -72,9 +73,9 @@ startWave = {|msg, time, addr, recvPort|
                 },
                 //else its "osc"
                 {
-                    var port = if(msg[4].asSymbol == 'max', maxPort, scPort);
-                    [ccIndOrWaveAddr.asString, func.(masterTempoClock.beats)].postln;
-                    port.sendRaw(([ccIndOrWaveAddr.asString, func.(masterTempoClock.beats)]++[msg[5]]).asArray.asRawOSC)
+                    var port = if(msg[4].asSymbol == 'max', maxOSCport, scPort);
+                    //[oscAddr, func.(masterTempoClock.beats)].postln;
+                    port.sendRaw(([oscAddr, func.(masterTempoClock.beats)]++[msg[6]]).asArray.asRawOSC)
                 }
             );
             0.02.wait;

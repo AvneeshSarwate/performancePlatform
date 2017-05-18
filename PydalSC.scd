@@ -115,13 +115,13 @@ playStepGenerator = {|i|
 };
 
 
-//msg[1] is the channel to change the clock to
-//msg[2] is the tempo (in bmp)
+//msg[1] is the tempo (in bmp)
+//msg[2] is the channel to change the clock to
 changeChannelTempo = {|msg, time, addr, recvPort|
     //create channel tempo clock if needed
-    [msg, tempoClockMap.keys].postln;
-    if(tempoClockMap.keys.includes(msg[1]),{
-        tempoClockMap[msg[1]].tempo = msg[2].asFloat/60;
+    //[msg, tempoClockMap.keys].postln;
+    if(tempoClockMap.keys.includes(msg[2]),{
+        tempoClockMap[msg[2]].tempo = msg[1].asFloat/60;
     });
 };
 OSCFunc(changeChannelTempo, "/changeChannelTempo");

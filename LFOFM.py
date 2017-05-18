@@ -46,13 +46,14 @@ class WavePlayer:
 		msg.append("midi")
 		self.superColliderClient.send(msg)
 
-	def startWaveOSC(self, waveAddr, wave, maxOrSC="max", metaInfo=None):
+	def startWaveOSC(self, waveKey, waveAddr, wave, maxOrSC="max", metaInfo=None):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/startWave")
-		msg.append(waveAddr)
+		msg.append(waveKey)
 		msg.append(str(wave))
 		msg.append("osc")
 		msg.append(maxOrSC)
+		msg.append(waveAddr)
 		if metaInfo is not None:
 			msg.append(metaInfo)
 		self.superColliderClient.send(msg)
