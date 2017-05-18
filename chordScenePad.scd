@@ -1,9 +1,5 @@
-(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap, numChordPadsPlaying, releaseChords, releaseChords_BUTTON, tempoClock, loopRecordBuffer, tempLoopTask, createLoopTask, recordingLoop, metronomeFunc, bankNotes, recordingStartBeat, recordingEndBeat, bankInfo, loopRecord_BUTTON, masterClockTempoHandler, divider;
+(var miniOut, mini, pythonOSCport, noteToInd, noteToXY, isPadNote, record_BUTTON, green_LIGHT, red_LIGHT, amber_LIGHT, savedScenes, recording, noteOnFunc, loadSavedSceneLights, indToNote, miniFwdOut, noteOffFunc, isChordNote, ccFunc, utilityButtons, isSceneNote, chordButtonChanMap, numChordPadsPlaying, releaseChords, releaseChords_BUTTON, tempoClock, loopRecordBuffer, tempLoopTask, createLoopTask, recordingLoop, metronomeFunc, bankNotes, recordingStartBeat, recordingEndBeat, bankInfo, loopRecord_BUTTON, masterClockTempoHandler, divider, resetButtonDestinations;
 
-//TODO - add a "scene stack" in python in case you accidentally
-//pull up an old scene before saving the one you're working on
-
-//TODO - add a "load file" way to populate the correct lights
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 miniOut.latency = 0;
@@ -139,6 +135,19 @@ miniOut.noteOn(0, loopRecord_BUTTON, green_LIGHT);
 miniOut.noteOn(0, releaseChords_BUTTON, 0);
 (0..63).do({|i| miniOut.noteOn(0, ((i/8).floor * 16) + (i%8), 0)});
 
+// msg[1..] is repeated list of addrs, where msg[1+ind] is addr of that pad ind
+resetButtonDestinations = {|msg, time, addr, recvPort|
+    (0..7).do({|i|
+        (0..7).do({|j|
+            var ind = (i*10)+j;
+            miniOut.noteOn(0, indToNote.(ind), 0);
+            chordButtonChanMap[ind] = msg[ind+1];
+            [ind, msg[ind+1]
+        });
+    });
+};
+OSCFunc(resetButtonDestinations, "/resetButtonDestinations");
+~cbm = chordButtonChanMap;
 
 //TODO: move variable instations to near the functions that use them
 OSCFunc({|msg, time, addr, recvPort|
@@ -212,6 +221,8 @@ noteOnFunc = {|vel, note, chan, port|
         miniOut.noteOn(0, releaseChords_BUTTON, if(releaseChords, green_LIGHT, 0));
     });
 	if(isPadNote.(note),{
+        //TODO - refactor this to simply use chordButtonChanMap as whole address,
+        //removing chord/scene distinction. this will allow you to also record scene changes
         var ind = noteToInd.(note);
 		if(isChordNote.(note), {
 			if(recording, {
@@ -359,8 +370,22 @@ OSCFunc(loadSavedSceneLights, "/loadScenes");
 
 
 
-
-
+(
+var indToNote = {|x|
+	var note = -1;
+	var col = x % 10;
+	var row = ((x - col)/10).asInt;
+	var midiRow = (7-row) * 16;
+	if((col < 8) && (row < 8), {note = midiRow + col});
+	note;
+};
+(0..7).do({|i|
+    (0..7).do({|j|
+        var ind = (i*10)+j;
+        [ind, ~cbm[ind]].postln;
+    });
+});
+)
 
 
 

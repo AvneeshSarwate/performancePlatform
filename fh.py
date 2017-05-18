@@ -99,6 +99,11 @@ class FH:
 	def loopPlay(self, addr, tags, stuff, source):
 		self.loopInfo[stuff[0]][stuff[1]]["playing"] = stuff[2]
 
+	def resetButtonDestinations(self, destList):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/resetButtonDestinations")
+		msg.append(destList)
+		self.superColliderClient.send(msg)
 
 	@staticmethod 
 	def stringToHitList(loopString):
