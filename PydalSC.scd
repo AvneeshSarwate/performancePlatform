@@ -1,5 +1,5 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks;
 
 //MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
@@ -119,57 +119,59 @@ playStepGenerator = {|i|
 //msg[2] is the tempo (in bmp)
 changeChannelTempo = {|msg, time, addr, recvPort|
     //create channel tempo clock if needed
+    [msg, tempoClockMap.keys].postln;
     if(tempoClockMap.keys.includes(msg[1]),{
         tempoClockMap[msg[1]].tempo = msg[2].asFloat/60;
     });
 };
-OSCFunc(recieveBackupPattern, "/changeChannelTempo");
+OSCFunc(changeChannelTempo, "/changeChannelTempo");
 
 
 //msg[1] is type of sync "phase, tempo, both"
 //msg[2] is key of clock to sync to
-//msg[2...] is keys of other clocks to sync
+//msg[3...] is keys of other clocks to sync
 syncClocks = {|msg, time, addr, recvPort|
     //create channel tempo clock if needed
-    if(tempoClockMap.keys.includes(msg[2]),{
-        var refClock = tempoClockMap[msg[2]];
-        msg[2..].do({|key|
+    if(tempoClockMap.keys.includes(msg[2]) || (msg[2].asSymbol == 'master'),{
+        var refClock = if(msg[2].asSymbol == 'master', masterTempoClock, tempoClockMap[msg[2]]);
+        msg[3..].do({|key|
            if(tempoClockMap.keys.includes(key), {
-                clockToSync = tempoClockMap[key];
-                if(['tempo', 'both']includes(msg[1].asSymbol), {clockToSync.tempo = refClock.tempo});
-                if(['phase', 'both']includes(msg[1].asSymbol), {
+                var clockToSync = tempoClockMap[key];
+                if(['tempo', 'both'].includes(msg[1].asSymbol), {clockToSync.tempo = refClock.tempo});
+                if(['phase', 'both'].includes(msg[1].asSymbol), {
                     clockToSync.clear;
                     clockToSync.beats = refClock.beats;
                     channelInd[key] = 0;
-                    clockToSync.sched(refClock.timeToNextBeat, playStepGenerator.(key));
+                    if(chanBackupPatMap[key].isNil.not, {clockToSync.sched(refClock.timeToNextBeat, playStepGenerator.(key))});
                 });
             });
         });
-        if(['phase', 'both']includes(msg[1].asSymbol), {
+        if(['phase', 'both'].includes(msg[1].asSymbol), {
+            var refKey = msg[2];
             refClock.clear;
-            channelInd[key] = 0;
-            refClock.sched(refClock.timeToNextBeat, playStepGenerator.(key));
+            channelInd[refKey] = 0;
+            if(chanBackupPatMap[refKey].isNil.not, {refClock.sched(refClock.timeToNextBeat, playStepGenerator.(refKey))});
         });
     });
 };
-OSCFunc(recieveBackupPattern, "/syncClocks");
+OSCFunc(syncClocks, "/syncClocks");
 
 //msg[1] is the channel being played on
 //msg[2] is the backup pattern
 //msg[3] is the total length in beats of the pattern
 recieveBackupPattern = {|msg, time, addr, recvPort|
 	//parse string and save it to backupmap
-	["GOT BACKUP", msg[2]].postln;
+	//["GOT BACKUP", msg[2]].postln;
     chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString),  msg[3].asFloat);
 };
 OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
-
 
 //msg[1] is ind of channel to stop
 stopPattern = {|msg, time, addr, recvPort|
 	if(channelPatternMap.keys.includes(msg[1]), {channelPatternMap[msg[1]] = []});
 	["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
     masterTempoClock.sched(masterTempoClock.timeToNextBeat - 0.01, {tempoClockMap[msg[1]].clear()});
+    chanBackupPatMap[msg[1]] = nil;
 };
 OSCFunc(stopPattern, "/pydalStop");
 
