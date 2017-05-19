@@ -38,12 +38,63 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-19",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "jit_matrix", "" ],
+					"patching_rect" : [ 60.0, 335.0, 145.0, 22.0 ],
+					"style" : "",
+					"text" : "jit.matrix 1 char 1280 720"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-18",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 142.0, 444.0, 34.0, 22.0 ],
+					"style" : "",
+					"text" : "print"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-17",
+					"maxclass" : "toggle",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "int" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 300.0, 223.0, 24.0, 24.0 ],
+					"style" : ""
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-16",
+					"maxclass" : "newobj",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "bang" ],
+					"patching_rect" : [ 300.0, 268.0, 65.0, 22.0 ],
+					"style" : "",
+					"text" : "qmetro 50"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-15",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "bang", "" ],
-					"patching_rect" : [ 60.0, 343.0, 163.0, 22.0 ],
+					"patching_rect" : [ 60.0, 377.0, 163.0, 22.0 ],
 					"style" : "",
 					"text" : "jit.window patterns 1280 720"
 				}
@@ -259,14 +310,14 @@
 					"numinlets" : 5,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 60.0, 266.0, 155.0, 22.0 ],
+					"patching_rect" : [ 60.0, 293.0, 190.0, 22.0 ],
 					"saved_object_attributes" : 					{
 						"filename" : "phaseVisuals.js",
 						"parameter_enable" : 0
 					}
 ,
 					"style" : "",
-					"text" : "js phaseVisuals.js template"
+					"text" : "js phaseVisuals.js phaseTemplate"
 				}
 
 			}
@@ -277,9 +328,9 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 539.0, 107.0, 175.0, 22.0 ],
+					"patching_rect" : [ 539.0, 107.0, 217.0, 22.0 ],
 					"style" : "",
-					"text" : "jit.matrix template 1 char 864 4"
+					"text" : "jit.matrix phaseTemplate 1 char 1000 4"
 				}
 
 			}
@@ -379,7 +430,34 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-2", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-16", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-16", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-17", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-15", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-19", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-19", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
 					"source" : [ "obj-2", 0 ]

@@ -13,10 +13,13 @@ var patterns = new Array(numPat);
 var phases = new Array(numPat);
 var hitIndexes = new Array(numPat);
 for(var i = 0; i < numPat; i++) {
+	patterns[i] = [];
 	phases[i] = 0;
 	hitIndexes[i] = 0;
 }
 var blockFill = 0.5;
+var f = Math.floor;
+
 
 function bang(){
 	drawMatrix()
@@ -31,9 +34,10 @@ function drawMatrix(){
 		for(var j = 0; j < patterns[i].length; j++) {
 			var hitBlockStart = xDim * (phases[i] + patterns[i][j]);
 			var hitBlockEnd = hitBlockEndCalc(hitBlockStart, i, j);
-			drawBlock(i, hitBlockStart, hitBlockEnd, hitIndexes[i] == j ? greyMatrix : blackMatrix);
-			var spaceBlockEnd = xDim * (phases[i] + patterns[i][j+1*patterns[i].length]);
-			drawBlock(i, hitBlockEnd+1, spaceBlockEnd, whiteMatrix);
+			var patLen = patterns[i].length;
+			drawBlock(i, f(hitBlockStart), f(hitBlockEnd), hitIndexes[i] == j ? greyMatrix : blackMatrix, "hit");
+			var spaceBlockEnd = xDim * (phases[i] + (patLen == j+1 ? 1 : patterns[i][j+1]));
+			drawBlock(i, f(hitBlockEnd+1), f(spaceBlockEnd), whiteMatrix, "space");
 		}
 	}
 	copyMatrix.dstdimstart = old_dstdimstart;
@@ -41,61 +45,101 @@ function drawMatrix(){
 	copyMatrix.usedstdim = 0;
 }
 
+function logData(){
+	var starts = Array(patterns[3].length);
+	var hitEnds = Array(patterns[3].length);
+	for(var i = 0; i < starts.length; i++){
+		starts[i] = xDim * (phases[3] + patterns[3][i]);
+		post(xDim * (phases[3] + patterns[3][i]));
+	}
+	post();
+	for(var i = 0; i < starts.length; i++){
+		hitEnds[i] = hitBlockEndCalc(starts[i], 3, i);
+		post(hitBlockEndCalc(starts[i], 3, i));
+	}
+	post();
+}
+
 function hitBlockEndCalc(hitBlockStart, patInd, hitInd){
 	var i = patInd;
 	var j = hitInd;
+	var patLen = patterns[i].length;
 	var hitBlockEnd = hitBlockStart + ( xDim * 
-		(Math.max(patterns[i][j+1]%patterns[i].length, 1) - patterns[i][j])  * blockFill);
-	return hitBlockEnd
+		((patLen == j+1 ? 1 : patterns[i][j+1]) - patterns[i][j]) * blockFill);
+	return hitBlockEnd;
 }
 
-function drawBlock(row, blockStart, blockEnd, colorMatrix){
+//(Math.max(patterns[i][(j+1)%patterns[i].length], 1) - patterns[i][j]) 
+function drawBlock(row, blockStart, blockEnd, colorMatrix, usage){
 	//if normal start/end
-	if(blockStart < blockEnd && 0 < blockStart && blockEnd < xDim){
-		copyMatrix.dstdimstart = [i, blockStart];
-		copyMatrix.dstdimend = [i, blockEnd];
+	if( 0 <= blockStart && blockStart < blockEnd && blockEnd < xDim){
+		copyMatrix.dstdimstart = [blockStart, i];
+		copyMatrix.dstdimend = [blockEnd, i];
 		copyMatrix.frommatrix(colorMatrix);
+		//post("     normal", blockStart, blockEnd);
 	} else 
 	//if frameEnd < start < end
-	if(xDim < blockStart && blockStart < blockEnd ){
-		copyMatrix.dstdimstart = [i, blockStart%xDim];
-		copyMatrix.dstdimend = [i, blockEnd%xDim];
+	if(xDim <= blockStart && blockStart < blockEnd ){
+		copyMatrix.dstdimstart = [blockStart%xDim, i];
+		copyMatrix.dstdimend = [blockEnd%xDim, i];
 		copyMatrix.frommatrix(colorMatrix);
+		//post("     frameEnd < start < end", blockStart, blockEnd);
 	} else 
 	//if start is in and end rolls over
-	if(0 < blockStart && blockStart < xDim && xDim < blockEnd) {
-		copyMatrix.dstdimstart = [i, blockStart];
-		copyMatrix.dstdimend = [i, xDim];
+	if(0 <= blockStart && blockStart < xDim && xDim <= blockEnd) {
+		copyMatrix.dstdimstart = [blockStart, i];
+		copyMatrix.dstdimend = [xDim, i];
 		copyMatrix.frommatrix(colorMatrix);	
-		copyMatrix.dstdimstart = [i, 0];
-		copyMatrix.dstdimend = [i, blockEnd%xDim];
+		copyMatrix.dstdimstart = [0, i];
+		copyMatrix.dstdimend = [blockEnd%xDim, i];
 		copyMatrix.frommatrix(colorMatrix);	
-	} else
-	// if end < start (only way this should happen is blockStart%xDim < blockEnd)
-	if(0 < blockEnd && blockEnd < xDim && blockEnd < blockStart) {
-		copyMatrix.dstdimstart = [i, blockStart];
-		copyMatrix.dstdimend = [i, xDim];
-		copyMatrix.frommatrix(colorMatrix);	
-		copyMatrix.dstdimstart = [i, 0];
-		copyMatrix.dstdimend = [i, blockEnd%xDim];
-		copyMatrix.frommatrix(colorMatrix);	
+		//post("     start in, end rolls over", blockStart, blockEnd);
 	} else {
 		post("FUCK ERROR");
-		post();
+		post(blockStart);
+		post(blockEnd);
+		post(usage);
+		post(0 < blockEnd, blockEnd < xDim, blockEnd < blockStart, xDim);
 	}
+	post();
 }
 
-function hitInfo(listVal){
-	hitIndexes[listVal[0]] = listVal[1];
-	phases[listVal[0]] = listVal[2];
+function draw2(){
+	var old_dstdimstart = copyMatrix.dstdimstart;
+	var old_dstdimend = copyMatrix.dstdimend;
+	copyMatrix.usedstdim = 1;
+	
+	copyMatrix.dstdimstart = [0, 0];
+	copyMatrix.dstdimend = [200, 3];
+	copyMatrix.frommatrix(whiteMatrix);
+	
+	copyMatrix.dstdimstart = old_dstdimstart;
+	copyMatrix.dstdimend = old_dstdimend;
+	copyMatrix.usedstdim = 0;
 }
 
-function phaseVal(listVal){
-	phases[listVal[0]] = phasesListVal[1];
+function hitInfo(){
+	hitIndexes[arguments[0]] = arguments[1];
+	//phases[arguments[0]] = arguments[2];
+	//post(arguments[0], arguments[1], arguments[2]);
+	//post();
 }
 
-function pattern(listVal){
-	patterns[listVal[0]] = listVals.slice(1);
+function phaseVal(){
+	phases[arguments[0]] = arguments[1];
+}
+
+function pattern(){
+	//post(arguments.length);post();
+	var patList = new Array(arguments.length-1);
+	for(var i = 0; i < patList.length; i++){
+		patList[i] = arguments[i+1];
+	}
+	patterns[arguments[0]] = patList;
+}
+
+function list(listVals){
+	
 }
 
 function msg_int(val){
