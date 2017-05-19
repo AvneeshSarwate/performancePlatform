@@ -2,7 +2,7 @@
 (var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks, instrumentMidiOut;
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
-instrumentMidiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
+instrumentMidiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 midiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
 python_FH_OSCport = NetAddr("localhost", 13371);
@@ -171,7 +171,7 @@ stopPattern = {|msg, time, addr, recvPort|
 	["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
     masterTempoClock.sched(masterTempoClock.timeToNextBeat - 0.01, {tempoClockMap[msg[1]].clear()});
     chanBackupPatMap[msg[1]] = nil;
-    if(channelTypeMap[chan] == 'loop', {
+    if(channelTypeMap[msg[1]] == 'loop', {
         instrumentMidiOut.allNotesOff(channelMetaInfo[msg[1]][0]);
     });
 };
@@ -256,7 +256,9 @@ sendSample = {|drumStr, chan|
     });
     if(channelTypeMap[chan] == 'loop', {
         var drumSplit = drumStr.split($^);
-        var hitInfo = [drumSplit[0].asInt, drumSplit[1].asInt, drumSplit[2].asInt, drumSplit[3]];
+        var hitInfo;
+        ["DRUM SPLIT", drumSplit].postln;
+        hitInfo = [drumSplit[0].asInt, drumSplit[1].asInt, drumSplit[2].asInt, drumSplit[3]];
         if(hitInfo[3].asSymbol == 'on', {instrumentMidiOut.noteOn(hitInfo[2], hitInfo[0], hitInfo[1])});
         if(hitInfo[3].asSymbol == 'off', {instrumentMidiOut.noteOff(hitInfo[2], hitInfo[0], hitInfo[1])});
     });

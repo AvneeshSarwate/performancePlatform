@@ -142,7 +142,6 @@ resetButtonDestinations = {|msg, time, addr, recvPort|
             var ind = (i*10)+j;
             miniOut.noteOn(0, indToNote.(ind), 0);
             chordButtonChanMap[ind] = msg[ind+1];
-            [ind, msg[ind+1]
         });
     });
 };

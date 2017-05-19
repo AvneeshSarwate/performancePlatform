@@ -206,7 +206,7 @@ class LoopPattern:
 
 	def render(self):
 		newLoop = self.hitListToTimestampList(self.loop)
-		return [[hit[0], "^".join([str(h) in hit[1:]])] for hit in timestampList]
+		return [[hit[0], {"^".join([str(h) for h in hit[1:]])}] for hit in newLoop]
 
 
 # TODO: probably want this implementation 
