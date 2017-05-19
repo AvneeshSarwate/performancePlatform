@@ -1,14 +1,12 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks, instrumentMidiOut;
 
-//MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
+instrumentMidiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
 python_FH_OSCport = NetAddr("localhost", 13371);
 
-//TODO: implement tempoclock per channel (with synched beats)
-//masterTempoClock = TempoClock.new(1);
 channelPatternMap = Dictionary();
 chanBackupPatMap = Dictionary();
 channelInd = Dictionary();
@@ -78,6 +76,8 @@ tempoClockMap[msg[1]].clear();
 OSCFunc(startPattern, "/pydalPlay");
 
 
+
+//TODO - use tasks here instead? (tasks are cleaner but this could be more flexible)
 playStepGenerator = {|i|
 	var playStep = {
 		//if list len == 0, exit
@@ -98,7 +98,6 @@ playStepGenerator = {|i|
 			step[1].do({|samp| sendSample.(samp, i)});
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
-			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
 			if(ind == (patList.size-1), {pythonOSCport.sendMsg("/pydalGetUpdate-"++i)});
 
 			//update indexes appropriately
@@ -172,6 +171,9 @@ stopPattern = {|msg, time, addr, recvPort|
 	["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
     masterTempoClock.sched(masterTempoClock.timeToNextBeat - 0.01, {tempoClockMap[msg[1]].clear()});
     chanBackupPatMap[msg[1]] = nil;
+    if(channelTypeMap[chan] == 'loop', {
+        instrumentMidiOut.allNotesOff(channelMetaInfo[msg[1]][0]);
+    });
 };
 OSCFunc(stopPattern, "/pydalStop");
 
@@ -251,6 +253,12 @@ sendSample = {|drumStr, chan|
         var colChar = "abcdefgh";
         var ind = rowChar.find(drumStr[0])*10 + colChar.find(drumStr[1]);
         python_FH_OSCport.sendMsg("/playChord-" ++ channelMetaInfo[chan][0].asString, ind);
+    });
+    if(channelTypeMap[chan] == 'loop', {
+        var drumSplit = drumStr.split($^);
+        var hitInfo = [drumSplit[0].asInt, drumSplit[1].asInt, drumSplit[2].asInt, drumSplit[3]];
+        if(hitInfo[3].asSymbol == 'on', {instrumentMidiOut.noteOn(hitInfo[2], hitInfo[0], hitInfo[1])});
+        if(hitInfo[3].asSymbol == 'off', {instrumentMidiOut.noteOff(hitInfo[2], hitInfo[0], hitInfo[1])});
     });
 };
 

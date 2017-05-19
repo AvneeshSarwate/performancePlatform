@@ -184,6 +184,31 @@ class ArpeggiatorChannel:
 		self.superColliderClient.send(msg)
 
 
+class LoopPattern:
+
+	def __init__(self, loop):
+		self.loop = loop #[pre-note-wait, note, vel, chan, "on/off/timeafterlasthit"]
+		self.frac = round(sum([hit[0] for hit in loop]))
+		self.type = "loop"
+
+	# Pydal sequencer assumes list is a timestamp list (not hit duration list)  and then converts 
+	# it to a hit list where the time associated with a hit is the time between it and the NEXT hit.
+	# Also, it assumes first event happens at 0.0 time (need to add a ~ event if this is not the case)
+	@staticmethod
+	def hitListToTimestampList(loop):
+		newLoop = copy.deepcopy(loop)
+		newLoop.pop()   #remove timeAfterLastHit
+		for i in range(1, len(newLoop)): #convertToTimestampLoop
+			newLoop[i][0] += newLoop[i-1][0]
+		if newLoop[0][0] != 0: #add 0.0 time starting event
+			newLoop.insert(0, [0, 0, 0, 0, "~"])
+		return newLoop
+
+	def render(self):
+		newLoop = self.hitListToTimestampList(self.loop)
+		return [[hit[0], "^".join([str(h) in hit[1:]])] for hit in timestampList]
+
+
 # TODO: probably want this implementation 
 # - To implement a functor, a user must override the 
 # 	initializeState and computation methods 
