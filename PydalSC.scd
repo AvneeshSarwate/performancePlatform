@@ -1,11 +1,12 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks, instrumentMidiOut;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks, instrumentMidiOut, maxPort;
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 instrumentMidiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 midiOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 34345);
 python_FH_OSCport = NetAddr("localhost", 13371);
+maxPort = NetAddr("localhost", 5432);
 
 channelPatternMap = Dictionary();
 chanBackupPatMap = Dictionary();
@@ -45,6 +46,8 @@ startPattern = {|msg, time, addr, recvPort|
     ["PLAY START", msg[2], masterTempoClock.beats].postln;
     patternList = patternRead.(msg[2].asString);
 
+    maxPort.sendRaw((["/pattern", msg[1].asInt] ++ patternList.collect({|elem| elem[0]})).asArray.asRawOSC);
+
     //save pattern to map
     channelPatternMap[msg[1]] = timeListToDurationList.(patternList, msg[3].asFloat);
     chanBackupPatMap[msg[1]] = [];
@@ -76,7 +79,6 @@ tempoClockMap[msg[1]].clear();
 OSCFunc(startPattern, "/pydalPlay");
 
 
-
 //TODO - use tasks here instead? (tasks are cleaner but this could be more flexible)
 playStepGenerator = {|i|
 	var playStep = {
@@ -95,7 +97,7 @@ playStepGenerator = {|i|
 			var step = patList[ind];
 			var dur = step[0];
 
-			step[1].do({|samp| sendSample.(samp, i)});
+			step[1].do({|samp| sendSample.(samp, i, ind)});
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
 			if(ind == (patList.size-1), {pythonOSCport.sendMsg("/pydalGetUpdate-"++i)});
@@ -115,12 +117,14 @@ playStepGenerator = {|i|
 
 
 //msg[1] is the tempo (in bmp)
-//msg[2] is the channel to change the clock to
+//msg[2] is the channelKey to change the clock for
 changeChannelTempo = {|msg, time, addr, recvPort|
     //create channel tempo clock if needed
     //[msg, tempoClockMap.keys].postln;
     if(tempoClockMap.keys.includes(msg[2]),{
         tempoClockMap[msg[2]].tempo = msg[1].asFloat/60;
+
+        maxPort.send("/phaseVal", msg[2].asInt, masterTempoClock.beats%1);
     });
 };
 OSCFunc(changeChannelTempo, "/changeChannelTempo");
@@ -161,7 +165,11 @@ OSCFunc(syncClocks, "/syncClocks");
 recieveBackupPattern = {|msg, time, addr, recvPort|
 	//parse string and save it to backupmap
 	//["GOT BACKUP", msg[2]].postln;
-    chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString),  msg[3].asFloat);
+
+    var patternList = patternRead.(msg[2].asString);
+    maxPort.sendRaw((["/pattern", msg[1].asInt] ++ patternList.collect({|elem| elem[0]})).asArray.asRawOSC);
+
+    chanBackupPatMap[msg[1]] = timeListToDurationList.(patternList,  msg[3].asFloat);
 };
 OSCFunc(recieveBackupPattern, "/pydalSendUpdate");
 
@@ -232,12 +240,14 @@ timeListToDurationList = {|oldList, totalLength|
 };
 
 //TODO - handle ~ (rest) for existing types
-sendSample = {|drumStr, chan|
+sendSample = {|drumStr, chan, ind|
     if(channelTypeMap[chan] == 'pydal', {
         var drumInd, drumType;
         drumInd = drumStr.split($:)[1];
         drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
         drumType = drumTypes[drumStr.split($:)[0]].asInteger;
+
+        maxPort.sendMsg("/hitInfo", chan.asInt, ind.asInt, masterTempoClock.beats%1);
 
         //todo - send cc map stuff if applicable
         Task({
