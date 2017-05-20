@@ -1,5 +1,5 @@
 //tempoclock with beat set to 1 cycle length
-(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks, instrumentMidiOut, maxPort;
+(var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, channelTypeMap, python_FH_OSCport, channelMetaInfo, changeChannelTempo, syncClocks, instrumentMidiOut, maxPort, chanPhaseTrackerTasks;
 
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 instrumentMidiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
@@ -15,6 +15,7 @@ tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
 channelTypeMap = Dictionary();
 channelMetaInfo = Dictionary();
+chanPhaseTrackerTasks = Dictionary();
 
 //TODO - parametrize this
 midiChannel = 0;
@@ -65,13 +66,23 @@ startPattern = {|msg, time, addr, recvPort|
         {chanClock = tempoClockMap[msg[1]]}
     );
 
+    if(chanPhaseTrackerTasks[msg[1]].isNil, {
+        chanPhaseTrackerTasks[msg[1]] = Task({
+            {
+                maxPort.sendMsg("/phaseVal", msg[1].asInt, (masterTempoClock.beats-tempoClockMap[msg[1]].beats)%1);
+                0.03.wait;
+            }.loop
+        });
+        chanPhaseTrackerTasks[msg[1]].play;
+    });
+
     chanClock.clear;
 
     tempoClockMap.values.do({|v| v.beats.postln;});
 
     /*channelInd[msg[1]] = 0;
     chanClock.sched(chanClock.timeToNextBeat, playStepGenerator.(msg[1]));*/
-tempoClockMap[msg[1]].clear();
+    tempoClockMap[msg[1]].clear();
     channelInd[msg[1]] = 0;
 
     loopStartFunctions[msg[1]] = {chanClock.sched(0, playStepGenerator.(msg[1]))};
@@ -124,7 +135,7 @@ changeChannelTempo = {|msg, time, addr, recvPort|
     if(tempoClockMap.keys.includes(msg[2]),{
         tempoClockMap[msg[2]].tempo = msg[1].asFloat/60;
 
-        maxPort.sendMsg("/phaseVal", msg[2].asInt, (masterTempoClock.beats-tempoClockMap[msg[2]].beats)%1);
+        //maxPort.sendMsg("/phaseVal", msg[2].asInt, (masterTempoClock.beats-tempoClockMap[msg[2]].beats)%1);
     });
 };
 OSCFunc(changeChannelTempo, "/changeChannelTempo");

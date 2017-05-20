@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 691.0, 297.0, 955.0, 653.0 ],
+		"rect" : [ 691.0, 476.0, 955.0, 653.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -56,9 +56,9 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 60.0, 335.0, 145.0, 22.0 ],
+					"patching_rect" : [ 60.0, 335.0, 125.0, 22.0 ],
 					"style" : "",
-					"text" : "jit.matrix 1 char 1280 720"
+					"text" : "jit.matrix 1 char 432 4"
 				}
 
 			}
@@ -96,7 +96,7 @@
 					"outlettype" : [ "bang" ],
 					"patching_rect" : [ 300.0, 268.0, 65.0, 22.0 ],
 					"style" : "",
-					"text" : "qmetro 50"
+					"text" : "qmetro 20"
 				}
 
 			}
@@ -107,9 +107,9 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "bang", "" ],
-					"patching_rect" : [ 60.0, 377.0, 163.0, 22.0 ],
+					"patching_rect" : [ 60.0, 377.0, 143.0, 22.0 ],
 					"style" : "",
-					"text" : "jit.window patterns 1280 720"
+					"text" : "jit.window patterns 432 4"
 				}
 
 			}

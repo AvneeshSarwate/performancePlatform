@@ -79,28 +79,29 @@ function hitBlockEndCalc(hitBlockStart, patInd, hitInd){
 }
 
 //(Math.max(patterns[i][(j+1)%patterns[i].length], 1) - patterns[i][j]) 
-function drawBlock(row, blockStart, blockEnd, colorMatrix, usage){
-	//if normal start/end
+function drawBlock(gridRow, blockStart, blockEnd, colorMatrix, usage){
+	//if normal start/end;
+	row = gridRow-1
 	if( 0 <= blockStart && blockStart < blockEnd && blockEnd < xDim){
 		copyMatrix.dstdimstart = [blockStart, row];
-		copyMatrix.dstdimend = [blockEnd, row+1];
+		copyMatrix.dstdimend = [blockEnd, row];
 		copyMatrix.frommatrix(colorMatrix);
 		//post("     normal", blockStart, blockEnd);
 	} else 
 	//if frameEnd < start < end
 	if(xDim <= blockStart && blockStart < blockEnd ){
 		copyMatrix.dstdimstart = [blockStart%xDim, row];
-		copyMatrix.dstdimend = [blockEnd%xDim, row+1];
+		copyMatrix.dstdimend = [blockEnd%xDim, row];
 		copyMatrix.frommatrix(colorMatrix);
 		//post("     frameEnd < start < end", blockStart, blockEnd);
 	} else 
 	//if start is in and end rolls over
 	if(0 <= blockStart && blockStart < xDim && xDim <= blockEnd) {
 		copyMatrix.dstdimstart = [blockStart, row];
-		copyMatrix.dstdimend = [xDim, row+1];
+		copyMatrix.dstdimend = [xDim, row];
 		copyMatrix.frommatrix(colorMatrix);	
 		copyMatrix.dstdimstart = [0, row];
-		copyMatrix.dstdimend = [blockEnd%xDim, row+1];
+		copyMatrix.dstdimend = [blockEnd%xDim, row];
 		copyMatrix.frommatrix(colorMatrix);	
 		//post("     start in, end rolls over", blockStart, blockEnd);
 	} else {
