@@ -124,7 +124,7 @@ changeChannelTempo = {|msg, time, addr, recvPort|
     if(tempoClockMap.keys.includes(msg[2]),{
         tempoClockMap[msg[2]].tempo = msg[1].asFloat/60;
 
-        maxPort.send("/phaseVal", msg[2].asInt, masterTempoClock.beats%1);
+        maxPort.sendMsg("/phaseVal", msg[2].asInt, (masterTempoClock.beats-tempoClockMap[msg[2]].beats)%1);
     });
 };
 OSCFunc(changeChannelTempo, "/changeChannelTempo");
@@ -247,7 +247,7 @@ sendSample = {|drumStr, chan, ind|
         drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
         drumType = drumTypes[drumStr.split($:)[0]].asInteger;
 
-        maxPort.sendMsg("/hitInfo", chan.asInt, ind.asInt, masterTempoClock.beats%1);
+        maxPort.sendMsg("/hitInfo", chan.asInt, ind.asInt, (masterTempoClock.beats-tempoClockMap[chan].beats)%1);
 
         //todo - send cc map stuff if applicable
         Task({

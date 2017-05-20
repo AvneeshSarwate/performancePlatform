@@ -32,6 +32,7 @@ function drawMatrix(){
 	copyMatrix.usedstdim = 1;
 	for(var i = 0; i < numPat; i++) {
 		for(var j = 0; j < patterns[i].length; j++) {
+			//post(i, j);
 			var hitBlockStart = xDim * (phases[i] + patterns[i][j]);
 			var hitBlockEnd = hitBlockEndCalc(hitBlockStart, i, j);
 			var patLen = patterns[i].length;
@@ -46,18 +47,26 @@ function drawMatrix(){
 }
 
 function logData(){
-	var starts = Array(patterns[3].length);
-	var hitEnds = Array(patterns[3].length);
+	/*var p = 2;
+	var starts = Array(patterns[p].length);
+	var hitEnds = Array(patterns[p].length);
 	for(var i = 0; i < starts.length; i++){
-		starts[i] = xDim * (phases[3] + patterns[3][i]);
-		post(xDim * (phases[3] + patterns[3][i]));
+		starts[i] = xDim * (phases[p] + patterns[p][i]);
+		post(xDim * (phases[p] + patterns[p][i]));
 	}
 	post();
 	for(var i = 0; i < starts.length; i++){
-		hitEnds[i] = hitBlockEndCalc(starts[i], 3, i);
-		post(hitBlockEndCalc(starts[i], 3, i));
+		hitEnds[i] = hitBlockEndCalc(starts[i], p, i);
+		post(hitBlockEndCalc(starts[i], p, i));
 	}
-	post();
+	post();*/
+	for(var i = 0; i < numPat; i++) {
+		post(i);
+		for(var j = 0; j < patterns[i].length; j++) {
+			post(patterns[i][j]);
+		}
+		post();
+	}
 }
 
 function hitBlockEndCalc(hitBlockStart, patInd, hitInd){
@@ -73,25 +82,25 @@ function hitBlockEndCalc(hitBlockStart, patInd, hitInd){
 function drawBlock(row, blockStart, blockEnd, colorMatrix, usage){
 	//if normal start/end
 	if( 0 <= blockStart && blockStart < blockEnd && blockEnd < xDim){
-		copyMatrix.dstdimstart = [blockStart, i];
-		copyMatrix.dstdimend = [blockEnd, i];
+		copyMatrix.dstdimstart = [blockStart, row];
+		copyMatrix.dstdimend = [blockEnd, row+1];
 		copyMatrix.frommatrix(colorMatrix);
 		//post("     normal", blockStart, blockEnd);
 	} else 
 	//if frameEnd < start < end
 	if(xDim <= blockStart && blockStart < blockEnd ){
-		copyMatrix.dstdimstart = [blockStart%xDim, i];
-		copyMatrix.dstdimend = [blockEnd%xDim, i];
+		copyMatrix.dstdimstart = [blockStart%xDim, row];
+		copyMatrix.dstdimend = [blockEnd%xDim, row+1];
 		copyMatrix.frommatrix(colorMatrix);
 		//post("     frameEnd < start < end", blockStart, blockEnd);
 	} else 
 	//if start is in and end rolls over
 	if(0 <= blockStart && blockStart < xDim && xDim <= blockEnd) {
-		copyMatrix.dstdimstart = [blockStart, i];
-		copyMatrix.dstdimend = [xDim, i];
+		copyMatrix.dstdimstart = [blockStart, row];
+		copyMatrix.dstdimend = [xDim, row+1];
 		copyMatrix.frommatrix(colorMatrix);	
-		copyMatrix.dstdimstart = [0, i];
-		copyMatrix.dstdimend = [blockEnd%xDim, i];
+		copyMatrix.dstdimstart = [0, row];
+		copyMatrix.dstdimend = [blockEnd%xDim, row+1];
 		copyMatrix.frommatrix(colorMatrix);	
 		//post("     start in, end rolls over", blockStart, blockEnd);
 	} else {
@@ -130,7 +139,7 @@ function phaseVal(){
 }
 
 function pattern(){
-	//post(arguments.length);post();
+	//post(arguments[0]);post();
 	var patList = new Array(arguments.length-1);
 	for(var i = 0; i < patList.length; i++){
 		patList[i] = arguments[i+1];
