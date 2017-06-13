@@ -4,7 +4,7 @@
 )
 
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput, scenes, scenePads, recordingScene, sceneRecordButton, sceneIsOnDeck, sceneColor, playScene, notRecordingColor;
 
 //light switching variables
 var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON;
@@ -103,7 +103,7 @@ colorTL1 = 39;
 colorTR1 = 112;
 colorBL1 = 4;
 colorBR1 = 83;
-color1 = [colorTL1, colorTR1, colorBL1, colorBR1];
+color1 = [colorTL1, colorTR1, colorBL1, colorBR1]; //colorVal
 
 
 padIndToColor = Dictionary.new();
@@ -124,7 +124,7 @@ z = bankMap;
 bankSet.do({|i| setLight.(i, 0)});
 playingBanks = Set.new();
 
-quantizeButton = 97;
+quantizeButton = 8;
 quantizeColor = 8;
 quantized = false;
 
@@ -146,6 +146,16 @@ onDeckBuffers = List.fill(16, {nil;});
 
 //[task, midiChanInd]
 algChannelsInfo = List.fill(16, {[nil, nil];});
+
+scenes = List.fill(8, nil);
+scenePads = (21..28);
+sceneRecordButton = 59;
+recordingScene = false;
+//setLight  TODO: sceneBuiler set scene record button initial light
+notRecordingColor = 17; //colorVal
+setLight.(sceneRecordButton, notRecordingColor);
+sceneIsOnDeck = false; //prevents wierd race conditions/overlap from hitting play scene twice before metronome tick
+sceneColor = 3; //colorVal
 
 launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
@@ -227,6 +237,12 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
 				});
 		});
 	});
+    if(scenePads.includes(note), {
+        if(recordingScene,
+            {scenes[note-20] = bankMap.deepCopy; setLight.(note, sceneColor)},
+            {if(scenes[note-20].isNil.not, {playScene.(scenes[note-20])})};
+        );
+    });
 }, nil, nil, launchPad.uid);
 
 
@@ -495,9 +511,9 @@ OSCFunc(masterClockBeatHandler, "/masterClockBeat");
 tapTempoSetButton = 69;
 tapTempoToggle = 79;
 recordButton = 89;
-recordColor = 5;
+recordColor = 5; //colorVal
 setLight.(recordButton, recordColor);
-setLight.(quantizeButton, 0);
+//setLight.(quantizeButton, 0);
 lastTap = TempoClock.beats;
 playMetronome = false;
 recordingMetronome = false;
@@ -537,15 +553,26 @@ controlHandler = {|vel, note, chan, port|
 			recordingEndBeat = tempoClock.beats.round;
 
 			//TODO: handle cases where multiple inst hits in a recBuf, or when there's no noteOns recorded
-			chan = recordBuffer[0][3];
+            if(recordBuffer.size == 0,
+                {
+                    resetRecordingState.();
+                },
+                {
+                    chan = recordBuffer[0][3];
 
-			recBuf = quantize.(recordBuffer, quantizationLevels, recordingStartBeat, recordingEndBeat);
+                    recBuf = quantize.(recordBuffer, quantizationLevels, recordingStartBeat, recordingEndBeat);
 
-			tempLoopString = recBuf.collect({|item| item.join(",")}).join("-");
-			tempLoopTask = createRecordedTask.(recBuf);
-			tempoClock.sched(tempoClock.timeToNextBeat, {tempLoopTask.start; nil;});
+                    tempLoopString = recBuf.collect({|item| item.join(",")}).join("-");
+                    tempLoopTask = createRecordedTask.(recBuf);
+                    tempoClock.sched(tempoClock.timeToNextBeat, {tempLoopTask.start; nil;});
+                }
+            );
 		});
 	});
+    if((note == sceneRecordButton) && (vel == 127), {
+        recordingScene = recordingScene.not;
+        setLight.(sceneRecordButton, recordingScene.if(recordColor, notRecordingColor));
+    });
 	if((note == quantizeButton) && (vel == 127), {
 		/*quantized = quantized.not;
 		if(quantized,
@@ -576,30 +603,29 @@ controlHandlerWrapper = {|vel, note, chan, port|
 };
 MIDIFunc.cc(controlHandlerWrapper, nil, nil, launchPad.uid);
 
-//midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
-setBankMelody = {|button, hitString, startBeat, playing|
-	var hitList, startFunc;
 
-	//todo - enable this to minimize latency?
-	//melodyTask = createRecordedTask.(stringToBuf.(hitString));
-	["CREATED TASK", button].postln;
+playScene = {|bankMapInstance|
+    if(sceneIsOnDeck.not, {
+        sceneIsOnDeck = true;
+        tempoClock.sched(tempoClock.timeToNextBeat, {
+            bankMap = bankMapInstance.deepCopy;
+            playingBanks.clear;
+            //midiNote -> [bankButton, bankChan, isOn, loopTask/nil, loopString, playType, algMelodyString]
+            bankMapInstance.keys.do({|padInd|
+                var bank = bankMapInstance[padInd];
+                //turn on/off light
+                setLight.(padInd, bank[3].isNil.if(0, color1[bank[1]]));
 
-	startFunc = {
-		var bank = bankMap[button];
-		bank[3] = createRecordedTask.(stringToBuf.(hitString));
-		bank[4] = hitString;
-		setLight.(button, color1[bank[1]]);
-		nil;
-		["START FUNC NOW"].postln;
-		if(playing, {
-			bank[3].play;
-			bank[2] = true;
-		});
-	};
-	if(playing, {playingBanks.add(button)});
-	tempoClock.sched(tempoClock.timeToNextBeat, startFunc);
+                //play and add to playing banks
+                if(bank[2], {
+                    bank[3].play;
+                    playingBanks.add(padInd);
+                });
+            });
+            sceneIsOnDeck = false;
+        });
+    });
 };
-
 
 stringToBuf = {|melString|
 	var buf = melString.split($-).collect({|hitString|
