@@ -157,20 +157,21 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
 		var thisBank = bankMap[note];
 		if(recordingState == 3,
 			{
+                "A sceneBuilder".postln;
 				//save the recorded buffer to the appropriate bank
 				if(thisBank[3] != nil, {
 					thisBank[3].stop;
 					thisBank[3].free;
 				});
+                "B sceneBuilder".postln;
                 thisBank[1] = calculateMajorityChannel.(stringToBuf.(tempLoopString));
+                "C sceneBuilder".postln;
 				thisBank[2] = true;
 				thisBank[3] = tempLoopTask;
 				thisBank[4] = note + tempLoopString + recordingStartBeat;
 
-				pythonOSCport.sendMsg("/saveLoop",  thisBank[1], thisBank[0],
-					roots[thisBank[1]], scales[thisBank[1]].join(","), thisBank[4]);
-
 				playingBanks.add(note);
+                "D sceneBuilder".postln;
 				resetRecordingState.();
 			},
 			{
