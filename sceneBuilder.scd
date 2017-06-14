@@ -490,14 +490,15 @@ createRecordedTask = {|oldRecBuf, isChannelTask=false, channelInd=0|
         var endWait = 0;
         {
             hit = recBuf[ind];
+            ["HIT sceneBuilder", hit].postln;
+
             hit[0].wait;
+
             if(interruptLooping[chan].not, {
                 if(hit[4] == "on", {midiOut.noteOn(hit[3], hit[1], hit[2]);});
                 if(hit[4] == "off", {midiOut.noteOff(hit[3], hit[1], hit[2])});
             });
             ind = ind+1; //TODO - should this be after the switch to the ondeck buffer?
-
-            ["HIT sceneBuilder", hit].postln;
 
             ind = ind%recBuf.size;
         }.loop;
@@ -622,13 +623,13 @@ playScene = {|bankMapInstance|
         sceneIsOnDeck = true;
         tempoClock.sched(tempoClock.timeToNextBeat, {
             //todo sceneBuilder - turn off current scene
-
+            "SCENE a sceneBuilder".postln;
             (0..3).do({|i| midiOut.allNotesOff(i)});
-
-            bankMap.keys.do({|bank|
+            "SCENE b sceneBuilder".postln;
+            bankMap.values.do({|bank|
                 if(bank[3].isNil.not, {bank[3].stop; bank[3].free});
             });
-
+            "SCENE c sceneBuilder".postln;
             bankMap = bankMapInstance.deepCopy;
             playingBanks.clear;
             //midiNote -> [bankButton, bankChan, isOn, loopTask/nil, loopString, playType, algMelodyString]
@@ -636,16 +637,17 @@ playScene = {|bankMapInstance|
                 var bank = bankMap[padInd];
                 //turn on/off light
                 setLight.(padInd, bank[3].isNil.if(0, color1[bank[1]]));
-
+                ["SCENE d sceneBuilder", padInd].postln;
                 //recreate task from string (maybe there's closure issues when trying to play the old task?)
                 if(bank[4].isNil.not, { bank[3] = createRecordedTask.(stringToBuf.(bank[4])) });
-
+                ["SCENE e sceneBuilder", padInd].postln;
                 //play and add to playing banks
                 if(bank[2], {
                     //TODO sceneBuilder - recreate task?
                     bank[3].play;
                     playingBanks.add(padInd);
                 });
+                ["SCENE f sceneBuilder", padInd].postln;
             });
             sceneIsOnDeck = false;
         });
@@ -847,6 +849,10 @@ var scale = [0, 2, 4, 5 , 7 , 9, 11];
 )
 // ================================================================================================
 
+(
+a = Dictionary.new;
+a.values
+)
 (
 var st = "0.0,64,118,3,on-0.0,70,118,1,on-0.0,70,120,2,on-0.111803,70,120,2,off-0.231101,64,118,3,off-0.0,70,118,1,off-0.407096,64,111,3,on-0.0,70,111,1,on-0.127192,64,111,3,off-0.0,70,111,1,off-0.122808,65,117,3,on-0.0,68,98,0,off-0.0,68,98,0,on-0.0,70,120,2,on-0.0,72,117,1,on-0.096141,68,98,0,on-0.015662,70,120,2,off-0.001363,68,98,0,off-0.022534,65,117,3,off-0.0,72,117,1,off-0.3643,65,118,3,on-0.0,72,118,1,on-0.183747,65,118,3,off-0.0,72,118,1,off-0.316253,63,117,3,on-0.0,72,118,1,on-0.294883,72,118,1,off-0.094903,63,117,3,off-0.110214,70,96,0,on-0.039907,70,96,0,off-0.210093,63,116,3,on-0.0,72,112,1,on-0.127904,63,116,3,off-0.000296,72,112,1,off-0.1218,63,116,3,on-0.0,72,116,1,on-0.142987,63,116,3,off-0.0,72,116,1,off-0.357013,63,120,3,on-0.0,72,118,2,on-0.0,72,120,1,on-0.13537,72,118,2,off-0.040893,63,120,3,off-0.0,72,120,1,off-0.323737,63,113,3,on-0.0,68,104,0,on-0.0,74,117,1,on-0.134925,63,113,3,off-0.223343,68,104,0,off-0.031518,74,117,1,off-0.110214,63,116,3,on-0.0,72,117,2,on-0.143854,72,117,2,off-0.007526,63,116,3,off-0.09862,74,116,1,on-0.127904,74,116,1,off-0.122096,62,116,3,on-0.0,70,119,2,on-0.0,72,121,2,on-0.0,74,116,1,on-0.158418,72,121,2,off-0.040768,70,119,2,off-0.111906,62,116,3,off-0.0,74,116,1,off-0.355575,68,115,0,on-0.083333,62,114,3,on-0.0,74,114,1,on-0.028532,68,115,0,off-0.090169,62,114,3,off-0.0,74,114,1,off-0.131299,63,118,3,on-0.0,72,108,1,on-0.0,74,120,2,on-1e-06,70,112,0,on-0.096008,70,112,0,off-0.048012,72,108,1,off-0.023165,74,120,2,off-0.127697,63,118,3,off-0.205117,72,121,1,on-0.199338,72,121,1,off-0.050662,63,112,3,on-0.1282,63,112,3,off-0.1218,63,108,3,on-0.0,70,113,1,on-0.0,72,121,2,on-1e-06,67,116,0,on-0.096039,67,116,0,off-0.038885,70,113,1,off-0.009096,63,108,3,off-0.015661,72,121,2,off-0.340318,63,121,3,on-0.0,70,116,1,on-0.15138,70,116,1,off-0.047958,63,121,3,off-0.300662,0,0,0,timeAfterLastHit";
 
