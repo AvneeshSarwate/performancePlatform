@@ -766,126 +766,30 @@ metronomeFunc = {
 //FILE SAVE/LOAD
 
 
+
 (
-var func = {|a, b=5|
-    [a, b].postln;
+w = Window.new.front;
+c = CompositeView(w, Rect(10, 10, 300, 300));
+d = DragSink(c, Rect(0, 0, 80, 80)).action_({|v|
+    var files = [];
+    var pathString = v.object;
+    pathString.postln;
+    p = PathName( pathString );
+    m = SimpleMIDIFile.read(p.fullPath);
+});
+d.name = "aaa";
+d.keyDownAction = {|view, char, modifier, unicode, keycode, key|
+    [view.name, char, modifier, unicode, keycode, key].postln;
+    false;
 };
-func.(1)
+t = TextField(c, Rect(20, 10, 40, 20));
+u = TextField(c, Rect(4, 50, 70, 20));
 )
-(
-a = [1, 4, 5];
-a.wrapAt(-1)
-)
-(
-var file = File("~/joelLoop.txt".standardizePath, "wb");
-var lines = List.new();
-f.keys.do({|key|
-    if(f[key][4] != nil, {
-        var str = f[key][4]++"\n";
-        lines.add(f[key][4]);
-        str.postln;
-        //file.putString(str);
-    });
-});
-file.putString(lines.join("\n"));
-file.close;
-5
-)
-"5,6,5,3,2,8,5,4,3".split($,)
-[ 5, 6, 5, 3, 2, 8, 5, 4, 3 ].join(",")
-(
-var file = File.open("~/testFilename4.txt".standardizePath, "rb");
-var fileStr = file.readAllString;
-var fileSplit = fileStr.split($\n);
-var launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port");
-fileSplit.size.postln;
-fileSplit.do({|line|
-    var lineSplit = line.split($ );
-    var key = lineSplit[0].asInteger;
-    var startBeat = lineSplit[2].asFloat;
-    var recBuf = lineSplit[1].split($-).collect({|hitString|
-        var sp = hitString.split($,);
-        [sp[0].asFloat, sp[1].asInt, sp[2].asInt, sp[3].asInt, sp[4]]
-    });
-    recBuf.sort({|a, b| a[0] < b[0]});
-    recBuf.do({|hit| hit.postln});
+d.dump
 
-    //call createTask (assign to global var) and set it in bankMap (f)
-    f[key][3] = r.(recBuf, startBeat);
-    f[key][4] = lineSplit[1];
-
-    //turn on lights of necessary banks
-    setLight.(k[f[key][1]][f[key][0]], l[f[key][1]]);
-});
-)
-
-
-56%12
-83%12
-((83-56)/12).asInt * 12
-// ================================================================================================
-(
-//INDEXING FOR MODIFIED FULL-PAD KEYBOARD
-var root = 60;
-var scale = [0, 2, 4, 5 , 7 , 9, 11];
-(1..8).do({|i|
-    (1..8).do({|j|
-        var ind = i*10 + j - 11;
-        if(i > 1,
-            {
-                var shift = 0; //+- 5 for vertical, +- 1 for horizontal
-                var noteInd = (ind-((i-1)*5));
-                var note = root+noteInd;
-                var isRoot = (note%12) == (root%12)
-                var floorRoot = root + (((note-root)/12).asInt * 12);
-                var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
-                noteInd.postln;  //pad -> index into chromatic list of numbers starting from root in bottom left
-
-            },
-            {ind.postln}
-        );
-    })
-});
-)
-// ================================================================================================
-
-(
-a = Dictionary.new;
-a.values
-)
-(
-var st = "0.0,64,118,3,on-0.0,70,118,1,on-0.0,70,120,2,on-0.111803,70,120,2,off-0.231101,64,118,3,off-0.0,70,118,1,off-0.407096,64,111,3,on-0.0,70,111,1,on-0.127192,64,111,3,off-0.0,70,111,1,off-0.122808,65,117,3,on-0.0,68,98,0,off-0.0,68,98,0,on-0.0,70,120,2,on-0.0,72,117,1,on-0.096141,68,98,0,on-0.015662,70,120,2,off-0.001363,68,98,0,off-0.022534,65,117,3,off-0.0,72,117,1,off-0.3643,65,118,3,on-0.0,72,118,1,on-0.183747,65,118,3,off-0.0,72,118,1,off-0.316253,63,117,3,on-0.0,72,118,1,on-0.294883,72,118,1,off-0.094903,63,117,3,off-0.110214,70,96,0,on-0.039907,70,96,0,off-0.210093,63,116,3,on-0.0,72,112,1,on-0.127904,63,116,3,off-0.000296,72,112,1,off-0.1218,63,116,3,on-0.0,72,116,1,on-0.142987,63,116,3,off-0.0,72,116,1,off-0.357013,63,120,3,on-0.0,72,118,2,on-0.0,72,120,1,on-0.13537,72,118,2,off-0.040893,63,120,3,off-0.0,72,120,1,off-0.323737,63,113,3,on-0.0,68,104,0,on-0.0,74,117,1,on-0.134925,63,113,3,off-0.223343,68,104,0,off-0.031518,74,117,1,off-0.110214,63,116,3,on-0.0,72,117,2,on-0.143854,72,117,2,off-0.007526,63,116,3,off-0.09862,74,116,1,on-0.127904,74,116,1,off-0.122096,62,116,3,on-0.0,70,119,2,on-0.0,72,121,2,on-0.0,74,116,1,on-0.158418,72,121,2,off-0.040768,70,119,2,off-0.111906,62,116,3,off-0.0,74,116,1,off-0.355575,68,115,0,on-0.083333,62,114,3,on-0.0,74,114,1,on-0.028532,68,115,0,off-0.090169,62,114,3,off-0.0,74,114,1,off-0.131299,63,118,3,on-0.0,72,108,1,on-0.0,74,120,2,on-1e-06,70,112,0,on-0.096008,70,112,0,off-0.048012,72,108,1,off-0.023165,74,120,2,off-0.127697,63,118,3,off-0.205117,72,121,1,on-0.199338,72,121,1,off-0.050662,63,112,3,on-0.1282,63,112,3,off-0.1218,63,108,3,on-0.0,70,113,1,on-0.0,72,121,2,on-1e-06,67,116,0,on-0.096039,67,116,0,off-0.038885,70,113,1,off-0.009096,63,108,3,off-0.015661,72,121,2,off-0.340318,63,121,3,on-0.0,70,116,1,on-0.15138,70,116,1,off-0.047958,63,121,3,off-0.300662,0,0,0,timeAfterLastHit";
-
-var stringToBuf = {|melString|
-    var buf = melString.split($-).collect({|hitString|
-        var sp = hitString.split($,);
-        sp.postln;
-        [sp[0].asFloat, sp[1].asInt, sp[2].asInt, sp[3].asInt, sp[4]]
-    });
-    //buf.do({|b| b.postln;});
-    buf
-};
-
-//112, 45, 21, 0, c1, c2, held, clear
-~padColors
-~basePadColors
-[1,2].join(".")
-(
-var colorList = List.new;
-var selectedList = List.new;
-(8..1).do({|i|
-    (1..8).do({|j|
-        var colStr = switch(~basePadColors[i*10+j], 112, {"key"}, 45, {"root"}, 21, {"on"}, 0, {"nk"});
-        var selStr = if(~padColors[i*10+j] == 21, {"sel"}, {"nsel"});
-        colorList.add(colStr);
-        selectedList.add(selStr);
-    });
-})
-NetAddr("localhost", 12345).sendMsg("/processMatrices", , colorList.join("."), selectedList.join(".");
-)
-
-
-switch(8, 4, {true}, 5, {false}, )
-stringToBuf.(st)
-
-)
+m.midiEvents
+m.dump
+m.endOfTrack
+m.adjustEndOfTrack(0, 96*4)
+m.midiTracks
+(m.metaEvents[3].asString).postln
