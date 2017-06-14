@@ -4,7 +4,7 @@
 )
 
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput, scenes, scenePads, recordingScene, sceneRecordButton, sceneIsOnDeck, sceneColor, playScene, notRecordingColor, playMode;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput, scenes, scenePads, recordingScene, sceneRecordButton, sceneIsOnDeck, sceneColor, playScene, notRecordingColor, playMode, turnOnBank, turnOffBank;
 
 //light switching variables
 var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON;
@@ -180,7 +180,7 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
                 "C sceneBuilder".postln;
                 thisBank[2] = true;
                 thisBank[3] = tempLoopTask;
-                thisBank[4] = note + tempLoopString + recordingStartBeat;
+                thisBank[4] = tempLoopString;
                 thisBank[5] = 0;
 
                 playingBanks.add(note);
@@ -200,8 +200,8 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
                     if(playMode == 0, {
                         tempoClock.sched(tempoClock.timeToNextBeat, {
                             if(thisBank[2].not,
-                                {turnOnBank.(thisBank)},
-                                {turnOffBank.(thisBank)}
+                                {turnOnBank.(thisBank, note)},
+                                {turnOffBank.(thisBank, note)}
                             ); //TODO sceneBuilder - issues if pressing the bank button twice before metronome?
                             "TEMPOCLOCK FUNC RUN".postln;
                             //setLight.(note, 0);
@@ -227,15 +227,15 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
 
 padOff = MIDIFunc.noteOff({|vel, note, chan, port|
     if(bankSet.includes(note), {
-        var bank = bankMap[note];
+        var thisBank = bankMap[note];
         if(playMode == 1, {
-            if(thisBank[2], {turnOffBank.(thisBank)});
+            if(thisBank[2], {turnOffBank.(thisBank, note)});
         });
     });
 }, nil, nil, launchPad.uid);
 
 
-turnOnBank = {|thisBank|
+turnOnBank = {|thisBank, note|
     if(false, {//with this as false, banks can be overlayed
         //for all other banks for this inst, stop playing and turn their lights on
         banks[thisBank[1]].do({|bNote|
@@ -256,7 +256,7 @@ turnOnBank = {|thisBank|
     pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], true); //mark python loop-info as playing
 };
 
-turnOffBank = {|thisBank|
+turnOffBank = {|thisBank, note|
     midiOut.allNotesOff(thisBank[1]);
     "TURNING OFF".postln;
     thisBank[3].stop;
@@ -497,20 +497,7 @@ createRecordedTask = {|oldRecBuf, isChannelTask=false, channelInd=0|
             });
             ind = ind+1; //TODO - should this be after the switch to the ondeck buffer?
 
-            if(isChannelTask, {
-                if(ind == (recBuf.size-2), {
-                    pythonOSCport.sendMsg("/algRequestUpdate", channelInd);
-                });
-
-                if(ind == (recBuf.size), {
-                    //["SHOULD BE timeAfterLastHit", ind, hit[4]].postln;
-                    if(onDeckBuffers[channelInd] != nil, {
-                        recBuf = onDeckBuffers[channelInd];
-                        ind = 0;
-                        onDeckBuffers[channelInd] = nil;
-                    });
-                });
-            });
+            ["HIT sceneBuilder", hit].postln;
 
             ind = ind%recBuf.size;
         }.loop;
@@ -634,6 +621,14 @@ playScene = {|bankMapInstance|
     if(sceneIsOnDeck.not, {
         sceneIsOnDeck = true;
         tempoClock.sched(tempoClock.timeToNextBeat, {
+            //todo sceneBuilder - turn off current scene
+
+            (0..3).do({|i| midiOut.allNotesOff(i)});
+
+            bankMap.keys.do({|bank|
+                if(bank[3].isNil.not, {bank[3].stop; bank[3].free});
+            });
+
             bankMap = bankMapInstance.deepCopy;
             playingBanks.clear;
             //midiNote -> [bankButton, bankChan, isOn, loopTask/nil, loopString, playType, algMelodyString]
@@ -643,7 +638,7 @@ playScene = {|bankMapInstance|
                 setLight.(padInd, bank[3].isNil.if(0, color1[bank[1]]));
 
                 //recreate task from string (maybe there's closure issues when trying to play the old task?)
-                if(bank[4].isNil.not, {bank[3] = createRecordedTask.(stringToBuf.(bank[4]))});
+                if(bank[4].isNil.not, { bank[3] = createRecordedTask.(stringToBuf.(bank[4])) });
 
                 //play and add to playing banks
                 if(bank[2], {
