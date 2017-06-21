@@ -21,8 +21,8 @@ function drawcircle(){
 	var yMax = Math.min(yDim-1, y+radius);
 	var xMin = Math.max(0, x-radius);
 	var yMin = Math.max(0, y-radius)
-	post(x, y, xMin, yMin, xMax, yMax, (xMax-xMin)*(yMax-yMin));
-	post();
+	//post(x, y, xMin, yMin, xMax, yMax, (xMax-xMin)*(yMax-yMin));
+	//post();
 	for(var i = xMin; i < xMax; i++) {
 		for(var j = yMin; j < yMax; j++ ) {
 			//post(i, j);
@@ -30,4 +30,8 @@ function drawcircle(){
 			if(dist(i,j,x,y) < radius) selector.setcell2d(i, j, vidInd);
 		}
 	}
+}
+
+function setvidind(ind){
+	vidInd = ind;
 }
