@@ -38,14 +38,12 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
-					"id" : "obj-64",
-					"maxclass" : "newobj",
+					"id" : "obj-67",
+					"maxclass" : "ezdac~",
 					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "signal" ],
-					"patching_rect" : [ 612.0, 650.0, 70.0, 22.0 ],
-					"style" : "",
-					"text" : "normalize~"
+					"numoutlets" : 0,
+					"patching_rect" : [ 379.0, 697.0, 45.0, 45.0 ],
+					"style" : ""
 				}
 
 			}
