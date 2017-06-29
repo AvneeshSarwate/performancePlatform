@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 789.0, 231.0, 720.0, 640.0 ],
+		"rect" : [ 865.0, 185.0, 720.0, 640.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -52,6 +52,7 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-32",
+					"int" : 1,
 					"maxclass" : "gswitch",
 					"numinlets" : 3,
 					"numoutlets" : 1,
@@ -266,9 +267,9 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "signal" ],
-					"patching_rect" : [ 112.0, 277.0, 48.0, 22.0 ],
+					"patching_rect" : [ 112.0, 277.0, 58.0, 22.0 ],
 					"style" : "",
-					"text" : "round~"
+					"text" : "round~ 1"
 				}
 
 			}
@@ -321,7 +322,7 @@
 					"maxclass" : "ezdac~",
 					"numinlets" : 2,
 					"numoutlets" : 0,
-					"patching_rect" : [ 80.0, 509.0, 45.0, 45.0 ],
+					"patching_rect" : [ 80.5, 530.0, 45.0, 45.0 ],
 					"style" : ""
 				}
 
@@ -399,13 +400,12 @@
 					"numinlets" : 3,
 					"numoutlets" : 5,
 					"outlettype" : [ "signal", "signal", "signal", "signal", "list" ],
-					"patching_rect" : [ 62.0, 148.0, 61.0, 22.0 ],
+					"patching_rect" : [ 87.0, 135.0, 136.0, 22.0 ],
 					"saved_object_attributes" : 					{
-						"enablednotes" : [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],
 						"notebase" : 0,
 						"notelist" : [ 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100 ],
 						"pitchdetection" : 0,
-						"quality" : "basic",
+						"quality" : "better",
 						"reportlatency" : 0,
 						"retune" : 1,
 						"use_16bit" : [ 0 ],
@@ -413,7 +413,7 @@
 					}
 ,
 					"style" : "",
-					"text" : "retune~"
+					"text" : "retune~ @quality better"
 				}
 
 			}
