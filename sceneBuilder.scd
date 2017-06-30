@@ -3,8 +3,21 @@
 ~truncateLoop = false;
 )
 
+//ACTIVE TODO TAGS: audioRecording
+
+//todo audioRecording
+/*
+1. recorded loop doesn't start right after you stop recording
+2. recorded loop doesn't seem to necessarily line up cleanly with metronome,
+might need to re-trigger loop from SC to line up starts every time (if doing this,
+make sure grooveve~ object is not in loop mode - that way if the loop is accidentally
+recorded short you don't roll-over and play the starting bit twice. )
+3. need to handle pad interaction edge cases of hitting other/same pads while in intermediate recording states
+4. need to handle various ways of "clearing" loops when overwriting new loop to same pad.
+*/
+
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput, scenes, scenePads, recordingScene, sceneRecordButton, sceneIsOnDeck, sceneColor, playScene, notRecordingColor, playMode, turnOnBank, turnOffBank, audioRecordButton, audioLoopTarget;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput, scenes, scenePads, recordingScene, sceneRecordButton, sceneIsOnDeck, sceneColor, playScene, notRecordingColor, playMode, turnOnBank, turnOffBank, audioRecordingButton, audioLoopTarget, audioRecordingTarget, audioRecordingState, maxPort, audioClipColor;
 
 //light switching variables
 var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON;
@@ -20,6 +33,7 @@ metronomeOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 masterClockOSCport = NetAddr("localhost", 57120);
 processPort = NetAddr("localhost", 12345);
+maxPort = NetAddr("localhost", 5432);
 
 
 //----------------------------------------------
@@ -115,9 +129,9 @@ bankSet = Set.new();
 
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, playType, loopType]
 //TODO: sceneBuilderplayType indicates none, loop, holdDown, or splice (-1, 0, 1, 2)
-//loopType is either nil, \midi or \sample
+//loopType is either nil, \midi or \sample (a bank is playable IFF it has a loopType)
 bankMap = Dictionary.new();
-~tempCounter = 0;
+~tempCounter = 1;
 (3..8).do({|i|
     (1..8).do({|j|
         bankSet.add((i*10)+j);
@@ -192,15 +206,8 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
             resetRecordingState.();
             //TODO audioRecording - stop audioLoop in the same slot?
         });
-        if((recordingState != 3) && (audioRecordingState == 1) {
-            audioRecordingTarget = thisBank[0];
-            audioRecordingState = 2;
-            thisBank[5] = \sample;
-            //TODO audioRecording - color the bank so you know which one is recording?
-            //TODO audioRecording - stop/wipe midiLoop in the same slot?
-        });
-        if((recordingState != 3) && (audioRecordingState != 1) {
-            if(thisBank[3] != nil, {
+        if((recordingState != 3) && (audioRecordingState != 1), {
+            if(thisBank[5] != nil, {
                 //if algsList.size > 0, make OSC call to python alg module
                 //args - algsList, inst chanel, bank numner, loopString
                 //set recivedAlgTask[chanInd][bankNum] = null
@@ -228,6 +235,12 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
                 });
             });
         });
+        if((recordingState != 3) && (audioRecordingState == 1), {
+            audioRecordingTarget = note;
+            audioRecordingState = 2;
+            thisBank[5] = \sample;
+            //TODO audioRecording - stop/wipe midiLoop in the same slot?
+        });
     });
     if(scenePads.includes(note), {
         if(recordingScene,
@@ -248,6 +261,7 @@ padOff = MIDIFunc.noteOff({|vel, note, chan, port|
 
 
 turnOnBank = {|thisBank, note|
+    ["TURNING ON", note].postln;
     if(false, {//with this as false, banks can be overlayed
         //for all other banks for this inst, stop playing and turn their lights on
         banks[thisBank[1]].do({|bNote|
@@ -262,7 +276,6 @@ turnOnBank = {|thisBank, note|
     //TODO: this won't kill notes of an instrument thats not on this channel
     //TODO: with newKeys, should generalize coloring of loop banks
     //midiOut.allNotesOff(thisBank[1]);
-    if(thisBank[5].isNil, {thisBank[3].start}, {thisBank[5].start});
     switch(thisBank[5],
         \midi, {thisBank[3].start},
         \sample, {maxPort.sendMsg("/samplerControl", thisBank[0], "playStart", 0)}
@@ -274,14 +287,14 @@ turnOnBank = {|thisBank, note|
 
 turnOffBank = {|thisBank, note|
     midiOut.allNotesOff(thisBank[1]);
-    "TURNING OFF".postln;
+    ["TURNING OFF", note].postln;
     switch(thisBank[5],
         \midi, {thisBank[3].stop},
         \sample, {maxPort.sendMsg("/samplerControl", thisBank[0], "playStop", 0)}
     );
     thisBank[6] = nil;
     thisBank[2] = false;
-    setLight.(note, color1[thisBank[1]]);
+    setLight.(note, switch(thisBank[5], \midi, {color1[thisBank[1]]}, \sample, {audioClipColor}));
     playingBanks.remove(note);
     pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], false); //mark python loop-info as stopped
 
@@ -538,11 +551,13 @@ masterClockBeatHandler = {|msg, time, addr, recvPort|
     //["MULTILOOP BEAT", tempoClock.beats].postln;
 };
 
-audioRecordButton = 49;
+audioRecordingButton = 49;
 audioRecordingTarget = -1;
 //0 - nothing, 1 - pre select bank, 2 - pre record trigger, 3 pre record, 4 recording, 5 pre rec-stop
 //TODO audioRecording
 audioRecordingState = 0;
+audioClipColor = 9; //colorVal
+setLight.(audioRecordingButton, audioClipColor);
 
 OSCFunc(masterClockBeatHandler, "/masterClockBeat");
 tapTempoSetButton = 69;
@@ -568,12 +583,12 @@ controlHandler = {|vel, note, chan, port|
     });
     if((note == audioRecordingButton) && (vel == 127), {
         switch(audioRecordingState,
-            0, {audioRecordingState = 1}
+            0, {audioRecordingState = 1},
             2, {
                 audioRecordingState = 3;
             },
             4, {
-                audioRecordingState = 5
+                audioRecordingState = 5;
             }
         );
     });
@@ -751,10 +766,20 @@ resetRecordingState = {
 metronomeFlashTask = Task({
     if(recordingMetronome || (tempLoopTask != nil),
         {setLight.(recordButton, (recordingState==2).if(17,recordColor))});
-    playingBanks.do({|bNote| setLight.(bNote, color1[bankMap[bNote][1]])});
+    playingBanks.do({|bNote|
+        var color = switch(bankMap[bNote][5],
+            \midi, {color1[bankMap[bNote][1]]},
+            \sample, {audioClipColor}
+        );
+        setLight.(bNote, color);
+    });
+    if([2,3,4,5].includes(audioRecordingState), {setLight.(audioRecordingTarget, recordColor)});
+    if([4,5].includes(audioRecordingState), {setLight.(audioRecordingButton, recordColor)});
     (tempoClock.beatDur/2).wait;
     if(recordingMetronome || (tempLoopTask != nil), {setLight.(recordButton, 0)});
     playingBanks.do({|bNote| setLight.(bNote, 0)});
+    if([2,3,4,5].includes(audioRecordingState), {setLight.(audioRecordingTarget, 0)});
+    if([4,5].includes(audioRecordingState), {setLight.(audioRecordingButton, 0)});
 });
 
 metronomeFunc = {
@@ -782,12 +807,17 @@ metronomeFunc = {
         switch(audioRecordingState,
             3, {
                 audioRecordingState = 4;
-                maxPort.sendMsg("/samplerControl", audioRecordingTarget, "record", 1);
+                maxPort.sendMsg("/samplerControl", bankMap[audioRecordingTarget][0], "record", 1);
             },
             5, {
                 audioRecordingState = 0;
-                maxPort.sendMsg("/samplerControl", audioRecordingTarget, "record", 0);
-                maxPort.sendMsg("/samplerControl", audioRecordingTarget, "playStart", 0);
+                maxPort.sendMsg("/samplerControl", bankMap[audioRecordingTarget][0], "record", 0);
+                maxPort.sendMsg("/samplerControl", bankMap[audioRecordingTarget][0], "playStart", 0);
+                setLight.(audioRecordingTarget, audioClipColor);
+                setLight.(audioRecordingButton, audioClipColor);
+                playingBanks.add(audioRecordingTarget);
+                bankMap[audioRecordingTarget][2] = true;
+                bankMap[audioRecordingTarget][5] = \sample;
                 audioRecordingTarget = -1;
             }
         );
