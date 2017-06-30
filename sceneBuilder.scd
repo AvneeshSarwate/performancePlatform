@@ -112,13 +112,18 @@ colorON = 13;
 
 bankSet = Set.new();
 
-//midiNote -> [bankButton, bankChan, isOn, loopTask/nil, loopString, playType, algMelodyString]
+
+//midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, playType, loopType]
 //TODO: sceneBuilderplayType indicates none, loop, holdDown, or splice (-1, 0, 1, 2)
+//loopType is either nil, \midi or \sample
 bankMap = Dictionary.new();
-(3..8).do({|i| (1..8).do({|j|
-    bankSet.add((i*10)+j);
-    //setLight.(j, color1[i]);
-    bankMap.put((i*10)+j, [(i*10)+j, -1, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
+~tempCounter = 0;
+(3..8).do({|i|
+    (1..8).do({|j|
+        bankSet.add((i*10)+j);
+        //setLight.(j, color1[i]);
+        bankMap.put((i*10)+j, [~tempCounter, -1, false, nil, nil, nil, nil]);
+        ~tempCounter = ~tempCounter + 1;
 })});
 z = bankMap;
 bankSet.do({|i| setLight.(i, 0)});
@@ -167,54 +172,61 @@ instrumentInput = MIDIClient.sources.select({|elem| (elem.name == "Bus 7")
 padOn = MIDIFunc.noteOn({|vel, note, chan, port|
     if(bankSet.includes(note), {
         var thisBank = bankMap[note];
-        if(recordingState == 3,
-            {
-                "A sceneBuilder".postln;
-                //save the recorded buffer to the appropriate bank
-                if(thisBank[3] != nil, {
-                    thisBank[3].stop;
-                    thisBank[3].free;
-                });
-                "B sceneBuilder".postln;
-                thisBank[1] = calculateMajorityChannel.(stringToBuf.(tempLoopString));
-                "C sceneBuilder".postln;
-                thisBank[2] = true;
-                thisBank[3] = tempLoopTask;
-                thisBank[4] = tempLoopString;
-                thisBank[5] = 0;
+        if((recordingState == 3) && (audioRecordingState != 1),{
+            "A sceneBuilder".postln;
+            //save the recorded buffer to the appropriate bank
+            if(thisBank[3] != nil, {
+                thisBank[3].stop;
+                thisBank[3].free;
+            });
+            "B sceneBuilder".postln;
+            thisBank[1] = calculateMajorityChannel.(stringToBuf.(tempLoopString));
+            "C sceneBuilder".postln;
+            thisBank[2] = true;
+            thisBank[3] = tempLoopTask;
+            thisBank[4] = tempLoopString;
+            thisBank[5] = \midi;
 
-                playingBanks.add(note);
-                "D sceneBuilder".postln;
-                resetRecordingState.();
-            },
-            {
-                if(thisBank[3] != nil, {
-                    //if algsList.size > 0, make OSC call to python alg module
-                    //args - algsList, inst chanel, bank numner, loopString
-                    //set recivedAlgTask[chanInd][bankNum] = null
-                    //if the python func crashes, this remains null and can be checked for
-                    if(algOrderList.size > 0, {
-                        pythonOSCport.sendMsg("/algRequest",  thisBank[1], thisBank[0],
-                            roots[thisBank[1]], scales[thisBank[1]].join(","), thisBank[4])
-                    });
-                    if(playMode == 0, {
-                        tempoClock.sched(tempoClock.timeToNextBeat, {
-                            if(thisBank[2].not,
-                                {turnOnBank.(thisBank, note)},
-                                {turnOffBank.(thisBank, note)}
-                            ); //TODO sceneBuilder - issues if pressing the bank button twice before metronome?
-                            "TEMPOCLOCK FUNC RUN".postln;
-                            //setLight.(note, 0);
-                            nil;
-                        });
-                    });
-                    if(playMode == 1, {
-                        turnOnBank.(thisBank);
-                    });
-                    if(playMode == 2, {
-
+            playingBanks.add(note);
+            "D sceneBuilder".postln;
+            resetRecordingState.();
+            //TODO audioRecording - stop audioLoop in the same slot?
+        });
+        if((recordingState != 3) && (audioRecordingState == 1) {
+            audioRecordingTarget = thisBank[0];
+            audioRecordingState = 2;
+            thisBank[5] = \sample;
+            //TODO audioRecording - color the bank so you know which one is recording?
+            //TODO audioRecording - stop/wipe midiLoop in the same slot?
+        });
+        if((recordingState != 3) && (audioRecordingState != 1) {
+            if(thisBank[3] != nil, {
+                //if algsList.size > 0, make OSC call to python alg module
+                //args - algsList, inst chanel, bank numner, loopString
+                //set recivedAlgTask[chanInd][bankNum] = null
+                //if the python func crashes, this remains null and can be checked for
+                if(algOrderList.size > 0, {
+                    pythonOSCport.sendMsg("/algRequest",  thisBank[1], thisBank[0],
+                        roots[thisBank[1]], scales[thisBank[1]].join(","), thisBank[4])
+                });
+                if(playMode == 0, {
+                    tempoClock.sched(tempoClock.timeToNextBeat, {
+                        if(thisBank[2].not,
+                            {turnOnBank.(thisBank, note)},
+                            {turnOffBank.(thisBank, note)}
+                        ); //TODO sceneBuilder - issues if pressing the bank button twice before metronome?
+                        "TEMPOCLOCK FUNC RUN".postln;
+                        //setLight.(note, 0);
+                        nil;
                     });
                 });
+                if(playMode == 1, {
+                    turnOnBank.(thisBank);
+                });
+                if(playMode == 2, {
+
+                });
+            });
         });
     });
     if(scenePads.includes(note), {
@@ -251,6 +263,10 @@ turnOnBank = {|thisBank, note|
     //TODO: with newKeys, should generalize coloring of loop banks
     //midiOut.allNotesOff(thisBank[1]);
     if(thisBank[5].isNil, {thisBank[3].start}, {thisBank[5].start});
+    switch(thisBank[5],
+        \midi, {thisBank[3].start},
+        \sample, {maxPort.sendMsg("/samplerControl", thisBank[0], "playStart", 0)}
+    );
     thisBank[2] = true;
     playingBanks.add(note);
     pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], true); //mark python loop-info as playing
@@ -259,10 +275,10 @@ turnOnBank = {|thisBank, note|
 turnOffBank = {|thisBank, note|
     midiOut.allNotesOff(thisBank[1]);
     "TURNING OFF".postln;
-    thisBank[3].stop;
-    thisBank[5].stop;
-    thisBank[5].free;
-    thisBank[5] = nil;
+    switch(thisBank[5],
+        \midi, {thisBank[3].stop},
+        \sample, {maxPort.sendMsg("/samplerControl", thisBank[0], "playStop", 0)}
+    );
     thisBank[6] = nil;
     thisBank[2] = false;
     setLight.(note, color1[thisBank[1]]);
@@ -523,8 +539,9 @@ masterClockBeatHandler = {|msg, time, addr, recvPort|
 };
 
 audioRecordButton = 49;
-audioLoopTarget = -1;
-//0 - nothing, 1 - pre select bank, 2 - pre record trigger, 3 pre record, 4 recording,
+audioRecordingTarget = -1;
+//0 - nothing, 1 - pre select bank, 2 - pre record trigger, 3 pre record, 4 recording, 5 pre rec-stop
+//TODO audioRecording
 audioRecordingState = 0;
 
 OSCFunc(masterClockBeatHandler, "/masterClockBeat");
@@ -548,6 +565,17 @@ controlHandler = {|vel, note, chan, port|
         var now = TempoClock.beats;
         if((now - lastTap) < 2, {masterClockOSCport.sendMsg("/uploadTempo", now - lastTap, alignTempo)});
         lastTap = now;
+    });
+    if((note == audioRecordingButton) && (vel == 127), {
+        switch(audioRecordingState,
+            0, {audioRecordingState = 1}
+            2, {
+                audioRecordingState = 3;
+            },
+            4, {
+                audioRecordingState = 5
+            }
+        );
     });
     if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
     if((note == recordButton) && (vel == 127), {
@@ -748,6 +776,20 @@ metronomeFunc = {
                 "RECORDING".postln;
             }
 
+        );
+    });
+    if(audioRecordingTarget > 0, {
+        switch(audioRecordingState,
+            3, {
+                audioRecordingState = 4;
+                maxPort.sendMsg("/samplerControl", audioRecordingTarget, "record", 1);
+            },
+            5, {
+                audioRecordingState = 0;
+                maxPort.sendMsg("/samplerControl", audioRecordingTarget, "record", 0);
+                maxPort.sendMsg("/samplerControl", audioRecordingTarget, "playStart", 0);
+                audioRecordingTarget = -1;
+            }
         );
     });
     if(playMetronome, {
