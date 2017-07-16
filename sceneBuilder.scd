@@ -17,7 +17,7 @@ recorded short you don't roll-over and play the starting bit twice. )
 */
 
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput, scenes, scenePads, recordingScene, sceneRecordButton, sceneIsOnDeck, sceneColor, playScene, notRecordingColor, playMode, turnOnBank, turnOffBank, audioRecordingButton, audioLoopTarget, audioRecordingTarget, audioRecordingState, maxPort, audioClipColor;
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort, isBankPad, isScenePad, calculateMajorityChannel, instrumentInput, scenes, scenePads, recordingScene, sceneRecordButton, sceneIsOnDeck, sceneColor, playScene, notRecordingColor, playMode, turnOnBank, turnOffBank, audioRecordingButton, audioLoopTarget, audioRecordingTarget, audioRecordingState, maxPort, audioClipColor, recordButtonFunc;
 
 //light switching variables
 var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON;
@@ -186,61 +186,69 @@ instrumentInput = MIDIClient.sources.select({|elem| (elem.name == "Bus 7")
 padOn = MIDIFunc.noteOn({|vel, note, chan, port|
     if(bankSet.includes(note), {
         var thisBank = bankMap[note];
-        if((recordingState == 3) && (audioRecordingState != 1),{
-            "A sceneBuilder".postln;
-            //save the recorded buffer to the appropriate bank
-            if(thisBank[3] != nil, {
-                thisBank[3].stop;
-                thisBank[3].free;
-            });
-            "B sceneBuilder".postln;
-            thisBank[1] = calculateMajorityChannel.(stringToBuf.(tempLoopString));
-            "C sceneBuilder".postln;
-            thisBank[2] = true;
-            thisBank[3] = tempLoopTask;
-            thisBank[4] = tempLoopString;
-            thisBank[5] = \midi;
+        if((recordingState == 3) ,{
+            if((audioRecordingState != 1), {
+                "A sceneBuilder".postln;
+                //save the recorded buffer to the appropriate bank
+                if(thisBank[3] != nil, {
+                    thisBank[3].stop;
+                    thisBank[3].free;
+                });
+                "B sceneBuilder".postln;
+                thisBank[1] = calculateMajorityChannel.(stringToBuf.(tempLoopString));
+                "C sceneBuilder".postln;
+                thisBank[2] = true;
+                thisBank[3] = tempLoopTask;
+                thisBank[4] = tempLoopString;
+                thisBank[5] = \midi;
 
-            playingBanks.add(note);
-            "D sceneBuilder".postln;
-            resetRecordingState.();
+                playingBanks.add(note);
+                "D sceneBuilder".postln;
+                resetRecordingState.();
+            });
             //TODO audioRecording - stop audioLoop in the same slot?
-        });
-        if((recordingState != 3) && (audioRecordingState != 1), {
-            if(thisBank[5] != nil, {
-                //if algsList.size > 0, make OSC call to python alg module
-                //args - algsList, inst chanel, bank numner, loopString
-                //set recivedAlgTask[chanInd][bankNum] = null
-                //if the python func crashes, this remains null and can be checked for
-                if(algOrderList.size > 0, {
-                    pythonOSCport.sendMsg("/algRequest",  thisBank[1], thisBank[0],
-                        roots[thisBank[1]], scales[thisBank[1]].join(","), thisBank[4])
-                });
-                if(playMode == 0, {
-                    tempoClock.sched(tempoClock.timeToNextBeat, {
-                        if(thisBank[2].not,
-                            {turnOnBank.(thisBank, note)},
-                            {turnOffBank.(thisBank, note)}
-                        ); //TODO sceneBuilder - issues if pressing the bank button twice before metronome?
-                        "TEMPOCLOCK FUNC RUN".postln;
-                        //setLight.(note, 0);
-                        nil;
-                    });
-                });
-                if(playMode == 1, {
-                    turnOnBank.(thisBank);
-                });
-                if(playMode == 2, {
+        },
+        {
 
-                });
-            });
+            if((audioRecordingState == 1),
+                {
+                    audioRecordingTarget = note;
+                    audioRecordingState = 2;
+                    thisBank[5] = \sample;
+                    //TODO audioRecording - stop/wipe midiLoop in the same slot?
+                },
+                {
+                    if(thisBank[5] != nil, {
+                        //if algsList.size > 0, make OSC call to python alg module
+                        //args - algsList, inst chanel, bank numner, loopString
+                        //set recivedAlgTask[chanInd][bankNum] = null
+                        //if the python func crashes, this remains null and can be checked for
+                        if(algOrderList.size > 0, {
+                            pythonOSCport.sendMsg("/algRequest",  thisBank[1], thisBank[0],
+                                roots[thisBank[1]], scales[thisBank[1]].join(","), thisBank[4])
+                        });
+                        if(playMode == 0, {
+                            tempoClock.sched(tempoClock.timeToNextBeat, {
+                                if(thisBank[2].not,
+                                    {turnOnBank.(thisBank, note)},
+                                    {turnOffBank.(thisBank, note)}
+                                ); //TODO sceneBuilder - issues if pressing the bank button twice before metronome?
+                                "TEMPOCLOCK FUNC RUN".postln;
+                                //setLight.(note, 0);
+                                nil;
+                            });
+                        });
+                        if(playMode == 1, {
+                            turnOnBank.(thisBank);
+                        });
+                        if(playMode == 2, {
+
+                        });
+                    });
+                }
+            );
         });
-        if((recordingState != 3) && (audioRecordingState == 1), {
-            audioRecordingTarget = note;
-            audioRecordingState = 2;
-            thisBank[5] = \sample;
-            //TODO audioRecording - stop/wipe midiLoop in the same slot?
-        });
+
     });
     if(scenePads.includes(note), {
         if(recordingScene,
@@ -312,6 +320,10 @@ b = {|vel, note, chan, port|
     if(recordingMetronome, {recordBuffer.add([tempoClock.beats, note, vel, chan, "off"])});
 };
 MIDIFunc.noteOff(b, nil, nil, instrumentInput.uid);
+
+MIDIFunc.cc({|vel, note, chan, port|
+    if((note == recordButton) && (vel == 127), {recordButtonFunc.()});
+}, nil, nil, instrumentInput.uid);
 
 x = 0;
 tempLoopTask = nil; //this var is only not nil when you have a recorded and unsaved loop
@@ -559,6 +571,50 @@ audioRecordingState = 0;
 audioClipColor = 9; //colorVal
 setLight.(audioRecordingButton, audioClipColor);
 
+
+
+
+recordButtonFunc = {
+    //TODO = case statement
+    if(recordingState == 0, { //start recording
+        bankToSaveTo = 0;
+        recordingState = 1;
+        recordingMetronome = true;
+        preRecordCount = 0;
+    });
+    if(recordingState == 3, { //discarding loop
+        tempLoopTask.stop;
+        recordBuffer.do({|elem| midiOut.noteOff(elem[3], elem[1])});
+        tempLoopTask.free;
+
+        resetRecordingState.();
+    });
+    if(recordingState == 2, { //stop recording
+        var recBuf;
+        recordingState = 3;
+        preRecordCount = 0;
+        recordingMetronome = false;
+        recordingEndBeat = tempoClock.beats.round;
+
+        //TODO: handle cases where multiple inst hits in a recBuf, or when there's no noteOns recorded
+        if(recordBuffer.size == 0,
+            {
+                resetRecordingState.();
+            },
+            {
+                chan = recordBuffer[0][3];
+
+                recBuf = quantize.(recordBuffer, quantizationLevels, recordingStartBeat, recordingEndBeat);
+
+                tempLoopString = recBuf.collect({|item| item.join(",")}).join("-");
+                tempLoopTask = createRecordedTask.(recBuf);
+                tempoClock.sched(tempoClock.timeToNextBeat, {tempLoopTask.start; nil;});
+            }
+        );
+    });
+};
+
+
 OSCFunc(masterClockBeatHandler, "/masterClockBeat");
 tapTempoSetButton = 69;
 tapTempoToggle = 79;
@@ -593,45 +649,7 @@ controlHandler = {|vel, note, chan, port|
         );
     });
     if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
-    if((note == recordButton) && (vel == 127), {
-        //TODO = case statement
-        if(recordingState == 0, { //start recording
-            bankToSaveTo = 0;
-            recordingState = 1;
-            recordingMetronome = true;
-            preRecordCount = 0;
-        });
-        if(recordingState == 3, { //discarding loop
-            tempLoopTask.stop;
-            recordBuffer.do({|elem| midiOut.noteOff(elem[3], elem[1])});
-            tempLoopTask.free;
-
-            resetRecordingState.();
-        });
-        if(recordingState == 2, { //stop recording
-            var recBuf;
-            recordingState = 3;
-            preRecordCount = 0;
-            recordingMetronome = false;
-            recordingEndBeat = tempoClock.beats.round;
-
-            //TODO: handle cases where multiple inst hits in a recBuf, or when there's no noteOns recorded
-            if(recordBuffer.size == 0,
-                {
-                    resetRecordingState.();
-                },
-                {
-                    chan = recordBuffer[0][3];
-
-                    recBuf = quantize.(recordBuffer, quantizationLevels, recordingStartBeat, recordingEndBeat);
-
-                    tempLoopString = recBuf.collect({|item| item.join(",")}).join("-");
-                    tempLoopTask = createRecordedTask.(recBuf);
-                    tempoClock.sched(tempoClock.timeToNextBeat, {tempLoopTask.start; nil;});
-                }
-            );
-        });
-    });
+    if((note == recordButton) && (vel == 127), {recordButtonFunc.()});
     if((note == sceneRecordButton) && (vel == 127), {
         recordingScene = recordingScene.not;
         setLight.(sceneRecordButton, recordingScene.if(recordColor, notRecordingColor));
@@ -650,10 +668,10 @@ controlHandler = {|vel, note, chan, port|
     //THEIR ORDER WILL SPECIFY A "pipeline" of transformations
     //if alg button, add/remove from list depending on button up/down
     if((note == cycleLight_BUTTON) && (vel !=0), {
-        /*// ["MULTILOOP BUTTON CYCLE HIT", ~lightIndex, lightIndex].postln;
-        //if(~cycling, {cycleLight.()})
-        if(~truncateLoop, {setLight.(cycleLight_BUTTON, 45)}, {setLight.(cycleLight_BUTTON, 0)});
-        ~truncateLoop = ~truncateLoop.not; //light on means NOT TRUNCATING*/
+        // ["MULTILOOP BUTTON CYCLE HIT", ~lightIndex, lightIndex].postln;
+        if(~cycling, {cycleLight.()})
+        // if(~truncateLoop, {setLight.(cycleLight_BUTTON, 45)}, {setLight.(cycleLight_BUTTON, 0)});
+        // ~truncateLoop = ~truncateLoop.not; //light on means NOT TRUNCATING*/
     });
 };
 controlHandlerWrapper = {|vel, note, chan, port|
@@ -715,7 +733,8 @@ stringToBuf = {|melString|
 calculateMajorityChannel = {|buffer|
     var chanCount = Dictionary.new;
     var maxChan = [-1, -1]; //chan, count
-    buffer.do({|hit| if(chanCount[hit[3]].isNil, {chanCount[hit[3]] = 1}, {chanCount[hit[3]] = chanCount[hit[3]]+1})});
+    buffer.do({|hit| if(chanCount[hit[3]].isNil,
+        {chanCount[hit[3]] = 1}, {chanCount[hit[3]] = chanCount[hit[3]]+1})});
     chanCount.keys.do({|key| if(chanCount[key] > maxChan[1], {maxChan = [key, chanCount[key]]})});
     maxChan[0];
 };
@@ -761,6 +780,8 @@ resetRecordingState = {
     recordBuffer.clear();
     tempLoopTask = nil;
     tempLoopString = nil;
+    masterClockOSCPort.sendMsg("/resetRecordingState_algKeys", 1);
+    r
 };
 
 metronomeFlashTask = Task({
