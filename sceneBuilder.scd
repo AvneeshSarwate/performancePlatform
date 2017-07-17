@@ -393,6 +393,7 @@ z = noteListToHitList;
 //TODO: alternative - quantaize to 4ths or 6ths, chose based on minimum error (can change per beat)
 //{hit[0] = hit[0].floor + ((hit[0]%1 * 6).round / 6)}
 //NOTE - translates hitTime -> duration-before-hit for each beat
+~quantizeDebugPrint = false;
 quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
     //divide array into hits-per-beat
@@ -427,22 +428,24 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
     (recBuf.size-1..1).do({|i| recBuf[i][0] = recBuf[i][0] - recBuf[i-1][0]});
     recBuf[0][0] = recBuf[0][0] - startBeat;
 
-    "PRE NOTES".postln;
+    if(~quantizeDebugPrint, {"PRE NOTES".postln});
     newBuf = hitListToNoteList.(recBuf, startBeat);
     //newBuf.do({|note| note.postln});
-    "B".postln;
+    if(~quantizeDebugPrint, {"B".postln});
     newBuf = noteListToHitList.(newBuf);
-    if(recBuf == newBuf, {"MATCH".postln}, {
-        "NO MATCH".postln;
-        (0..recBuf.size).do({|ind|
-            [ind+":  ", recBuf[ind], "      ", newBuf[ind]].postln
+    if(~quantizeDebugPrint, {
+        if(recBuf == newBuf, {"MATCH".postln}, {
+            "NO MATCH".postln;
+            (0..recBuf.size).do({|ind|
+                [ind+":  ", recBuf[ind], "      ", newBuf[ind]].postln
+            });
         });
     });
-    "POST NOTES".postln;
+    if(~quantizeDebugPrint, {"POST NOTES".postln});
 
     //todo - quantize based on "notes" instead of hits - shift noteOn but keep note duration the same
     newBuf = hitListToNoteList.(recBuf, startBeat);
-    ["noteList", newBuf.size].postln;
+    if(~quantizeDebugPrint, {["noteList", newBuf.size].postln});
     //todo - quant start - can drop in noteList here instead of hit list?
     newBuf.do({|hit|
         var indexBeat = hit[0].floor;
@@ -454,7 +457,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
         });
         notesPerBeat[populatedBeatsCount].add(hit);
     });
-    ["notes per beat", notesPerBeat.collect({|a| a.size})].postln;
+    if(~quantizeDebugPrint, {["notes per beat", notesPerBeat.collect({|a| a.size})].postln});
     notesPerBeat.do({|hits|
         var quantLists = List.new();
         var bestList = [List.new(), 1];
@@ -463,11 +466,14 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
             var quantList = List.new();
             var error = 0; //ignore noteOff messages for error calculation
             hits.do({|hit| quantList.add(hit[0].floor + ((hit[0]%1 * div).round / div))});
-            (0..(hits.size-1)).do({|i| error = error + (hits[i][0] - quantList[i]).abs; "error".postln;});
-            [(hits.size-1), hits[0][0].floor, error, div, error/div, hits.collect({|hit| hit[0]})].postln;
+            (0..(hits.size-1)).do({|i|
+                error = error + (hits[i][0] - quantList[i]).abs;
+                if(~quantizeDebugPrint, {"error".postln});
+            });
+            if(~quantizeDebugPrint, {[(hits.size-1), hits[0][0].floor, error, div, error/div, hits.collect({|hit| hit[0]})].postln});
             quantLists.add([quantList, error]);
         });
-        "-----".postln;
+        if(~quantizeDebugPrint, {"-----".postln});
         quantLists.do({|listErr| if(listErr[1] < bestList[1], {bestList = listErr})});
         quantHitList = List.fill(hits.size, {|i|
             var newHit = List.newFrom(hits[i]);
@@ -476,9 +482,9 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
         });
         quantizedNotes.add(quantHitList);
     });
-    ["num quantized notes pre", quantizedNotes].postln;
+    if(~quantizeDebugPrint, {["num quantized notes pre", quantizedNotes].postln});
     quantizedNotes = quantizedNotes.inject(List.new(), _++_);
-    ["num quantized notes post", quantizedNotes].postln;
+    if(~quantizeDebugPrint, {["num quantized notes post", quantizedNotes].postln});
     //quantizedNotes.do({|note| note.postln});
     //todo - quant end
 
@@ -488,7 +494,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
         var loopDur = if(~truncateLoop,  melodyEndingBeat - startBeat, endBeat - startBeat);
         var maxEnd = 0;
 
-        ["timeAFterLastHit", startBeat, endBeat, melodyEndingBeat].postln;
+        if(~quantizeDebugPrint, {["timeAFterLastHit", startBeat, endBeat, melodyEndingBeat].postln});
 
         //modify noteEnds and timeAfterLastBeat s.t. it is still within an integral beat length
         quantizedNotes.do({|note|
@@ -504,7 +510,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
     });
 
-    timeAfterLastHit.postln;
+    if(~quantizeDebugPrint, {timeAfterLastHit.postln});
 
     //recBuf.do({|hit| if(true/*hit[4] == "on", {["HIT TIME", hit[4], hit[0]].postln})});
 
@@ -531,7 +537,7 @@ createRecordedTask = {|oldRecBuf, isChannelTask=false, channelInd=0|
         var endWait = 0;
         {
             hit = recBuf[ind];
-            ["HIT sceneBuilder", hit].postln;
+            //["HIT sceneBuilder", hit].postln;
 
             hit[0].wait;
 
@@ -594,7 +600,7 @@ recordButtonFunc = {
         recordingState = 3;
         preRecordCount = 0;
         recordingMetronome = false;
-        recordingEndBeat = tempoClock.beats.round;
+        recordingEndBeat = tempoClock.beats.ceil;
 
         //TODO: handle cases where multiple inst hits in a recBuf, or when there's no noteOns recorded
         if(recordBuffer.size == 0,
@@ -602,8 +608,6 @@ recordButtonFunc = {
                 resetRecordingState.();
             },
             {
-                chan = recordBuffer[0][3];
-
                 recBuf = quantize.(recordBuffer, quantizationLevels, recordingStartBeat, recordingEndBeat);
 
                 tempLoopString = recBuf.collect({|item| item.join(",")}).join("-");
@@ -780,7 +784,7 @@ resetRecordingState = {
     recordBuffer.clear();
     tempLoopTask = nil;
     tempLoopString = nil;
-    masterClockOSCPort.sendMsg("/resetRecordingState_algKeys", 1);
+    masterClockOSCport.sendMsg("/resetRecordingState_algKeys", 1);
     r
 };
 

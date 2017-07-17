@@ -412,6 +412,14 @@ controlHandler = {|vel, note, chan, port|
 	if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
 	if((note == recordButton) && (vel == 127), {
         midiOut.control(chan, 89, vel); //This is the record button in sceneBuilder
+        if(recordingState == 0, {
+            recordingState = 1;
+            recordingMetronome = true;
+			preRecordCount = 0;
+            "RECORD TRANSITION 0->1".postln;
+        });
+        if(recordingState == 3, {resetRecordingState.()});
+        if(recordingState == 2, {recordingState = 3; "RECORD TRANSITION 2->3".postln;});
 	});
 
 	if((note == controlChanButton) && (vel == 127), {
@@ -491,57 +499,6 @@ OSCFunc({|msg, time, addr, recvPort|
     resetRecordingState.();
 }, "/resetRecordingState_algKeys");
 
-//msg = [/address, melody/info-strList, roots, scales]
-receiveScene = {|msg, time, addr, recvPort|
-	//set roots and scales
-	var count = 0;
-
-	roots = msg[2].asString.split($,).collect({|str| str.asInt});
-	scales = msg[3].asString.split($,).collect({|str| str.split($.).collect({|st| st.asInt})});
-
-	//set pad lights
-
-	if(playingNewKeys,
-		{newKeysSetPadLights.(newKeysChan)},
-		{(0..3).do({|ind|setPadLights.(padsByChannel[ind], color1[ind], color2[ind], ind)})}
-	);
-
-	playingBanks = List.new();
-	bankMap.keys.do({|button|
-		var bank = bankMap[button];
-		var stopFunc = {
-			//["STOP FUNC NOW", bank[3].isNil].postln;
-			if(bank[3].isNil.not, {
-				bank[3].stop;
-				bank[3].free;
-				bank[3] = nil;
-				bank[4] = nil;
-				bank[2] = false;
-				setLight.(button, 0);
-				midiOut.allNotesOff(bank[1]);
-			});
-			nil;
-		};
-		tempoClock.sched(tempoClock.timeToNextBeat-0.01, stopFunc);
-	});
-
-	//split string and set banks
-	msg[1].asString.split($:).do({|bankStr|
-		if(bankStr != "none",
-			{
-				var split, bankInfo;
-				split = bankStr.split($ );
-				["bankCount", count, split[0]].postln;
-				count = count+1;
-				bankInfo = [split[0].asInt, split[1], split[2].asFloat, (split[3].asInt == 1)];
-				["setBankMelodyArgs", bankInfo[0], bankInfo[2], bankInfo[3], bankInfo[1]].postln;
-				setBankMelody.(bankInfo[0], bankInfo[1], bankInfo[2], bankInfo[3]);
-			}
-		);
-	});
-};
-OSCFunc(receiveScene, "/sendScene");
-
 
 ///msg[1, 2, 3] is [root:int, scale:, joined Str of Ints, chan:int]
 rootScaleHandler = {|msg, time, addr, recvPort|
@@ -557,6 +514,15 @@ rootScaleHandler = {|msg, time, addr, recvPort|
 };
 OSCFunc(rootScaleHandler, "/rootScale");
 
+
+resetRecordingState = {
+    recordingMetronome = false;
+    recordingState = 0;
+    setLight.(recordButton, recordColor);
+    recordBuffer.clear();
+    tempLoopTask = nil;
+    tempLoopString = nil;
+};
 
 metronomeFlashTask = Task({
 	if(recordingMetronome || (tempLoopTask != nil),
@@ -581,23 +547,13 @@ metronomeFunc = {
 				if(recordingState == 1, {
 					recordingState = 2;
 					recordingStartBeat = tempoClock.beats.round;
+                    "RECORD TRANSITION 1->2".postln;
 				});
 				recordingInterim = false;
-				"RECORDING".postln;
+				"RECORDING ALGO KEYS".postln;
 			}
 
 		);
-	});
-	if(playMetronome, {
-		if(recordingMetronome,
-			{
-				Task({ //TODO - refactor duration note on/off stuff into functions
-					var drum = recordingInterim.if(37, 38);
-					metronomeOut.noteOn(4, drum, 64); 0.05.wait; midiOut.noteOff(4, drum, 64);}).play;
-			},
-			{
-				Task({metronomeOut.noteOn(4, 36, 64); 0.05.wait; midiOut.noteOff(4, 36, 64); }).play;
-		});
 	});
 	//["beat", tempoClock.beats, tempoClock.beatDur].postln;
 	1;
