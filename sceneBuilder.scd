@@ -127,7 +127,7 @@ colorON = 13;
 bankSet = Set.new();
 
 
-//midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, playType, loopType]
+//midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, loopType, playType]
 //TODO: sceneBuilderplayType indicates none, loop, holdDown, or splice (-1, 0, 1, 2)
 //loopType is either nil, \midi or \sample (a bank is playable IFF it has a loopType)
 bankMap = Dictionary.new();
@@ -166,7 +166,7 @@ onDeckBuffers = List.fill(16, {nil;});
 //[task, midiChanInd]
 algChannelsInfo = List.fill(16, {[nil, nil];});
 
-scenes = List.fill(8, nil);
+scenes = List.fill(32, nil);
 scenePads = (21..28);
 sceneRecordButton = 59;
 recordingScene = false;
@@ -203,6 +203,10 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
                 thisBank[5] = \midi;
 
                 playingBanks.add(note);
+
+                pythonOSCport.sendMsg("/saveLoop", thisBank[0], thisBank[4], note);
+                masterClockOSCport.sendMsg("/metaInfoSaveRequest", thisBank[0], thisBank[2]);
+
                 "D sceneBuilder".postln;
                 resetRecordingState.();
             });
@@ -251,9 +255,17 @@ padOn = MIDIFunc.noteOn({|vel, note, chan, port|
 
     });
     if(scenePads.includes(note), {
+        var sceneInd = note-20;
         if(recordingScene,
-            {scenes[note-20] = bankMap.deepCopy; setLight.(note, sceneColor)},
-            {if(scenes[note-20].isNil.not, {playScene.(scenes[note-20])})};
+            {
+                scenes[sceneInd] = bankMap.deepCopy;
+                setLight.(note, sceneColor);
+                pythonOSCport.sendMsg("/saveScene", thisBank[0]);
+            },
+            {if(scenes[sceneInd].isNil.not, {
+                playScene.(scenes[sceneInd], sceneInd);
+                pythonOSCport.sendMsg("/metaInfoLoadRequest", sceneInd);
+            })};
         );
     });
 }, nil, nil, launchPad.uid);
@@ -689,7 +701,7 @@ controlHandlerWrapper = {|vel, note, chan, port|
 MIDIFunc.cc(controlHandlerWrapper, nil, nil, launchPad.uid);
 
 
-playScene = {|bankMapInstance|
+playScene = {|bankMapInstance, sceneInd|
     if(sceneIsOnDeck.not, {
         sceneIsOnDeck = true;
         tempoClock.sched(tempoClock.timeToNextBeat, {
@@ -721,6 +733,7 @@ playScene = {|bankMapInstance|
                 ["SCENE f sceneBuilder", padInd].postln;
             });
             sceneIsOnDeck = false;
+            pythonOSCport.sendMsg("/scenePlayed", sceneInd);
         });
     });
 };
@@ -752,19 +765,82 @@ masterClockTempoHandler = {|msg, time, addr, recvPort|
 OSCFunc(masterClockTempoHandler, "/masterClockTempo");
 
 
-///msg[1, 2, 3] is [root:int, scale:, joined Str of Ints, chan:int]
-rootScaleHandler = {|msg, time, addr, recvPort|
-    msg[2].postln;
-    roots[msg[3].asInt] = msg[1].asInt;
-    scales[msg[3].asInt] = msg[2].asString.split($,).collect({|str| str.asInt});
-    //TODO - add changing pad coloring upon reciept of scale
-    if(playingNewKeys,
-        {newKeysSetPadLights.(controlChanInd)},
-        {(0..3).do({|i| setPadLights.(padsByChannel[i], color1[i], color2[i], i)})}
-    );
-    ["root-Scale Change", msg[1].asInt, scales[msg[3].asInt]].postln;
+
+////midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, loopType, playType]
+setBankMelody = {|button, hitString, playing|
+	var hitList, startFunc;
+
+	//todo - enable this to minimize latency?
+	//melodyTask = createRecordedTask.(stringToBuf.(hitString));
+	["CREATED TASK", button].postln;
+
+	startFunc = {
+		var bank = bankMap[button];
+        var buf = stringToBuf.(hitString);
+        bank[1] = calculateMajorityChannel.(buf)
+        bank[2] = false;
+		bank[3] = createRecordedTask.(buf);
+		bank[4] = hitString;
+        bank[5] == \midi;
+        bank[6] = "";
+		setLight.(button, color1[bank[1]]);
+		nil;
+		["START FUNC NOW"].postln;
+		if(playing, {
+			bank[3].play;
+			bank[2] = true;
+		});
+	};
+	if(playing, {playingBanks.add(button)});
+	tempoClock.sched(tempoClock.timeToNextBeat, startFunc);
 };
-OSCFunc(rootScaleHandler, "/rootScale");
+
+//msg = [/address, melody/info-strList, sceneNumber] - melodyInfoStr
+receiveScene = {|msg, time, addr, recvPort|
+	//set roots and scales
+	var count = 0;
+
+	playingBanks = List.new();
+	bankMap.keys.do({|button|
+		var bank = bankMap[button];
+		var stopFunc = {
+			//["STOP FUNC NOW", bank[3].isNil].postln;
+			if(bank[3].isNil.not, {
+                bank[1] = -1;
+				bank[2] = false;
+                bank[3].stop;
+				bank[3].free;
+				bank[3] = nil;
+				bank[4] = nil;
+                bank[5] = nil;
+                bank[6] = "";
+				setLight.(button, 0);
+				midiOut.allNotesOff(bank[1]);
+			});
+			nil;
+		};
+		tempoClock.sched(tempoClock.timeToNextBeat-0.01, stopFunc);
+	});
+
+	//split string and set banks
+	msg[1].asString.split($:).do({|bankStr|
+		if(bankStr != "none",
+			{
+				var split, bankInfo;
+				split = bankStr.split($ );
+				["bankCount", count, split[0]].postln;
+				count = count+1;
+				bankInfo = [split[0].asInt, split[1], (split[2].asInt == 1)];
+				["setBankMelodyArgs", bankInfo[0], bankInfo[2], bankInfo[1]].postln;
+				setBankMelody.(bankInfo[0], bankInfo[1], bankInfo[2]);
+			}
+		);
+	});
+    scenes[msg[3].asInt] = bankMap.deepCopy;
+};
+OSCFunc(receiveScene, "/sendScene");
+
+
 
 /*
 python module

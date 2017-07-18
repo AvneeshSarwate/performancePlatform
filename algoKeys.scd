@@ -500,6 +500,10 @@ OSCFunc({|msg, time, addr, recvPort|
 }, "/resetRecordingState_algKeys");
 
 
+OSCFunc({|msg, time, addr, recvPort|
+    pythonOSCport.sendMsg("/sendMetaInfo", "quadKeyboard", roots.join(","), scales.collect({|scale| scale.join(",")}).join(".")) ;
+}, "/metaInfoSaveRequest");
+
 ///msg[1, 2, 3] is [root:int, scale:, joined Str of Ints, chan:int]
 rootScaleHandler = {|msg, time, addr, recvPort|
 	msg[2].postln;
