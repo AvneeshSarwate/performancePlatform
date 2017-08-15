@@ -48,7 +48,7 @@ class FH:
 		self.superColliderServer.addMsgHandler("/miniLaunchpadTopRow", self.topRowHandler)
 		self.superColliderServer.addMsgHandler("/pedalButton", self.pedalButtonHandler)		
 		self.superColliderServer.addMsgHandler("/saveMetaInfo", self.saveMetaInfo)	
-		self.superColliderServer.addMsgHandler("/metaInfoLoadRequest", self.metaInfoLoadRequest)	
+		self.superColliderServer.addMsgHandler("/metaInfoLoadRequest", self.metaInfoLoadRequestHandler)	
 
 
 		self.pedalButtonFunc = lambda: 0
@@ -109,8 +109,11 @@ class FH:
 		self.scales[chanInd] = [[int(n) for n in scale.split(",")] for scale in scaleStr.split(".")]
 
 	#stuff = [sceneInd]
-	def loadMetaInfo(self, addr, tags, stuff, source):
-		sceneTuple = scenes[stuff[0]]
+	def metaInfoLoadRequestHandler(self, addr, tags, stuff, source):
+		self.loadMetaInfo(stuff[0])
+
+	def loadMetaInfo(sceneInd)
+		sceneTuple = self.scenes[sceneInd]
 		roots = sceneTuple[2]
 		scales = sceneTuple[3]
 		for i in range(4):
@@ -145,33 +148,22 @@ class FH:
 	@staticmethod
 	def hitListToString(hitList, button, startBeat, playing=0):
 		hitToStringList = lambda h: ['%f' % h[0]] + map(str, h[1:])
-		return str(button) + " " + "-".join(map(lambda h: ",".join(hitToStringList(h)), hitList)) + " " + str(startBeat) + " " + str(playing)
+		return str(button) + " " + "-".join(map(lambda h: ",".join(hitToStringList(h)), hitList)) + " " + str(playing)
 
 
 	def sceneToString(self, loops, loopInfo):
 		sceneStringList = []
 		for i in range(len(loops)):
-			for j in range(len(loops[i])):
-				if loops[i][j] != 0:
-					sceneStringList.append(self.hitListToString(loops[i][j], loopInfo[i][j]["button"], "startBeat", 1 if loopInfo[i][j]["playing"] else 0))
+				if loops[i] != 0:
+					sceneStringList.append(self.hitListToString(loops[i], loopInfo[i]["button"], "startBeat", 1 if loopInfo[i]["playing"] else 0))
 				else:
 					sceneStringList.append("none")
 		return ":".join(sceneStringList)
 
-	def sendScene(self, loops, loopInfo, roots, scales, faderBanks, currentFaderVals):
+	def sendScene(self, ind, loops, loopInfo):
 		msg = OSC.OSCMessage()
 		msg.setAddress("/sendScene")
 		msg.append(self.sceneToString(loops, loopInfo))
-		msg.append(",".join(map(str, roots)))
-		msg.append(",".join([".".join(map(str, scale)) for scale in scales]))
-		self.superColliderClient.send(msg)
-
-		banksToString = lambda a: "-".join(map(lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank)), a))
-		currentFadersToString = lambda bank: ".".join(map(lambda slot: ",".join(map(str,slot)), bank))
-		msg = OSC.OSCMessage()
-		msg.setAddress("/loadSceneFaders")
-		msg.append(banksToString(faderBanks))
-		msg.append(currentFadersToString(currentFaderVals))
 		self.superColliderClient.send(msg)
 
 
@@ -211,6 +203,7 @@ class FH:
 	def playScene(self, ind):
 		c = copy.deepcopy
 		self.sceneStack.append(map(c, self.getScene()))
+		self.loadMetaInfo(ind)
 		self.setCurrentScene(c(self.scenes[ind]))
 		self.sendCurrentScene()
 
@@ -222,11 +215,14 @@ class FH:
 		self.sceneCollectionsStack.append(copy.deepcopy(self.scenes))
 		self.scenes = pickle.load(open(fileName))
 		nonNullScenes = [x for x in range(len(self.scenes)) if self.scenes[x] != 0] 
-		sceneIndexesString = ",".join(map(str, nonNullScenes))
-		msg = OSC.OSCMessage()
-		msg.setAddress("/loadScenes")
-		msg.append(sceneIndexesString)
-		self.superColliderClient.send(msg)
+		for i in range(len(self.scenes)):
+			if self.scenes[i] != 0:
+				self.sendScene(self.scenes[i][0], self.scenes[i][1])
+			else:
+				msg = OSC.OSCMessage()
+				msg.setAddress("/sendScene")
+				msg.append("none")
+				self.superColliderClient.send(msg)
 
 	def saveScenesToFile(self, fileName):
 		pickle.dump(self.scenes, open(fileName, "w"))

@@ -184,97 +184,101 @@ instrumentInput = MIDIClient.sources.select({|elem| (elem.name == "Bus 7")
     && (elem.device == "IAC Driver")})[0];
 [launchPad, MIDIClient.sources[2]].postln;
 padOn = MIDIFunc.noteOn({|vel, note, chan, port|
-    if(bankSet.includes(note), {
-        var thisBank = bankMap[note];
-        if((recordingState == 3) ,{
-            if((audioRecordingState != 1), {
-                "A sceneBuilder".postln;
-                //save the recorded buffer to the appropriate bank
-                if(thisBank[3] != nil, {
-                    thisBank[3].stop;
-                    thisBank[3].free;
+    if((chan == 0) && (~lightIndex == lightIndex), {
+        if(bankSet.includes(note), {
+            var thisBank = bankMap[note];
+            if((recordingState == 3) ,{
+                if((audioRecordingState != 1), {
+                    "A sceneBuilder".postln;
+                    //save the recorded buffer to the appropriate bank
+                    if(thisBank[3] != nil, {
+                        thisBank[3].stop;
+                        thisBank[3].free;
+                    });
+                    "B sceneBuilder".postln;
+                    thisBank[1] = calculateMajorityChannel.(stringToBuf.(tempLoopString));
+                    "C sceneBuilder".postln;
+                    thisBank[2] = true;
+                    thisBank[3] = tempLoopTask;
+                    thisBank[4] = tempLoopString;
+                    thisBank[5] = \midi;
+
+                    playingBanks.add(note);
+
+                    pythonOSCport.sendMsg("/saveLoop", thisBank[0], thisBank[4], note);
+                    masterClockOSCport.sendMsg("/metaInfoSaveRequest", thisBank[0], thisBank[2]);
+
+                    "D sceneBuilder".postln;
+                    resetRecordingState.();
                 });
-                "B sceneBuilder".postln;
-                thisBank[1] = calculateMajorityChannel.(stringToBuf.(tempLoopString));
-                "C sceneBuilder".postln;
-                thisBank[2] = true;
-                thisBank[3] = tempLoopTask;
-                thisBank[4] = tempLoopString;
-                thisBank[5] = \midi;
+                //TODO audioRecording - stop audioLoop in the same slot?
+            },
+            {
 
-                playingBanks.add(note);
+                if((audioRecordingState == 1),
+                    {
+                        audioRecordingTarget = note;
+                        audioRecordingState = 2;
+                        thisBank[5] = \sample;
+                        //TODO audioRecording - stop/wipe midiLoop in the same slot?
+                    },
+                    {
+                        if(thisBank[5] != nil, {
+                            //if algsList.size > 0, make OSC call to python alg module
+                            //args - algsList, inst chanel, bank numner, loopString
+                            //set recivedAlgTask[chanInd][bankNum] = null
+                            //if the python func crashes, this remains null and can be checked for
+                            if(algOrderList.size > 0, {
+                                pythonOSCport.sendMsg("/algRequest",  thisBank[1], thisBank[0],
+                                    roots[thisBank[1]], scales[thisBank[1]].join(","), thisBank[4])
+                            });
+                            if(playMode == 0, {
+                                tempoClock.sched(tempoClock.timeToNextBeat, {
+                                    if(thisBank[2].not,
+                                        {turnOnBank.(thisBank, note)},
+                                        {turnOffBank.(thisBank, note)}
+                                    ); //TODO sceneBuilder - issues if pressing the bank button twice before metronome?
+                                    "TEMPOCLOCK FUNC RUN".postln;
+                                    //setLight.(note, 0);
+                                    nil;
+                                });
+                            });
+                            if(playMode == 1, {
+                                turnOnBank.(thisBank);
+                            });
+                            if(playMode == 2, {
 
-                pythonOSCport.sendMsg("/saveLoop", thisBank[0], thisBank[4], note);
-                masterClockOSCport.sendMsg("/metaInfoSaveRequest", thisBank[0], thisBank[2]);
-
-                "D sceneBuilder".postln;
-                resetRecordingState.();
-            });
-            //TODO audioRecording - stop audioLoop in the same slot?
-        },
-        {
-
-            if((audioRecordingState == 1),
-                {
-                    audioRecordingTarget = note;
-                    audioRecordingState = 2;
-                    thisBank[5] = \sample;
-                    //TODO audioRecording - stop/wipe midiLoop in the same slot?
-                },
-                {
-                    if(thisBank[5] != nil, {
-                        //if algsList.size > 0, make OSC call to python alg module
-                        //args - algsList, inst chanel, bank numner, loopString
-                        //set recivedAlgTask[chanInd][bankNum] = null
-                        //if the python func crashes, this remains null and can be checked for
-                        if(algOrderList.size > 0, {
-                            pythonOSCport.sendMsg("/algRequest",  thisBank[1], thisBank[0],
-                                roots[thisBank[1]], scales[thisBank[1]].join(","), thisBank[4])
-                        });
-                        if(playMode == 0, {
-                            tempoClock.sched(tempoClock.timeToNextBeat, {
-                                if(thisBank[2].not,
-                                    {turnOnBank.(thisBank, note)},
-                                    {turnOffBank.(thisBank, note)}
-                                ); //TODO sceneBuilder - issues if pressing the bank button twice before metronome?
-                                "TEMPOCLOCK FUNC RUN".postln;
-                                //setLight.(note, 0);
-                                nil;
                             });
                         });
-                        if(playMode == 1, {
-                            turnOnBank.(thisBank);
-                        });
-                        if(playMode == 2, {
+                    }
+                );
+            });
 
-                        });
-                    });
-                }
+        });
+        if(scenePads.includes(note), {
+            var sceneInd = note-20; //todo - change when SCENE PAGES are implemented
+            if(recordingScene,
+                {
+                    scenes[sceneInd] = bankMap.deepCopy;
+                    setLight.(note, sceneColor);
+                    pythonOSCport.sendMsg("/saveScene", sceneInd);
+                },
+                {if(scenes[sceneInd].isNil.not, {
+                    playScene.(scenes[sceneInd], sceneInd);
+                    pythonOSCport.sendMsg("/metaInfoLoadRequest", sceneInd); //TODO - probably want this in playScene()
+                })};
             );
         });
-
-    });
-    if(scenePads.includes(note), {
-        var sceneInd = note-20;
-        if(recordingScene,
-            {
-                scenes[sceneInd] = bankMap.deepCopy;
-                setLight.(note, sceneColor);
-                pythonOSCport.sendMsg("/saveScene", thisBank[0]);
-            },
-            {if(scenes[sceneInd].isNil.not, {
-                playScene.(scenes[sceneInd], sceneInd);
-                pythonOSCport.sendMsg("/metaInfoLoadRequest", sceneInd);
-            })};
-        );
     });
 }, nil, nil, launchPad.uid);
 
 padOff = MIDIFunc.noteOff({|vel, note, chan, port|
-    if(bankSet.includes(note), {
-        var thisBank = bankMap[note];
-        if(playMode == 1, {
-            if(thisBank[2], {turnOffBank.(thisBank, note)});
+    if((chan == 0) && (~lightIndex == lightIndex), {
+        if(bankSet.includes(note), {
+            var thisBank = bankMap[note];
+            if(playMode == 1, {
+                if(thisBank[2], {turnOffBank.(thisBank, note)});
+            });
         });
     });
 }, nil, nil, launchPad.uid);
@@ -767,7 +771,7 @@ OSCFunc(masterClockTempoHandler, "/masterClockTempo");
 
 
 ////midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, loopType, playType]
-setBankMelody = {|button, hitString, playing|
+setBankMelody = {|button, hitString, playing, bankMapInstance|
 	var hitList, startFunc;
 
 	//todo - enable this to minimize latency?
@@ -775,9 +779,9 @@ setBankMelody = {|button, hitString, playing|
 	["CREATED TASK", button].postln;
 
 	startFunc = {
-		var bank = bankMap[button];
+		var bank = bankMapInstance[button];
         var buf = stringToBuf.(hitString);
-        bank[1] = calculateMajorityChannel.(buf)
+        bank[1] = calculateMajorityChannel.(buf);
         bank[2] = false;
 		bank[3] = createRecordedTask.(buf);
 		bank[4] = hitString;
@@ -796,47 +800,58 @@ setBankMelody = {|button, hitString, playing|
 };
 
 //msg = [/address, melody/info-strList, sceneNumber] - melodyInfoStr
+
 receiveScene = {|msg, time, addr, recvPort|
-	//set roots and scales
-	var count = 0;
+    if(msg[1] != "none",
+        {
+            //set roots and scales
+            var count = 0;
+            var bankMapInstance = bankMap.deepCopy;
 
-	playingBanks = List.new();
-	bankMap.keys.do({|button|
-		var bank = bankMap[button];
-		var stopFunc = {
-			//["STOP FUNC NOW", bank[3].isNil].postln;
-			if(bank[3].isNil.not, {
-                bank[1] = -1;
-				bank[2] = false;
-                bank[3].stop;
-				bank[3].free;
-				bank[3] = nil;
-				bank[4] = nil;
-                bank[5] = nil;
-                bank[6] = "";
-				setLight.(button, 0);
-				midiOut.allNotesOff(bank[1]);
-			});
-			nil;
-		};
-		tempoClock.sched(tempoClock.timeToNextBeat-0.01, stopFunc);
-	});
+            playingBanks = Set.new();
+            bankMapInstance.keys.do({|button|
+                var bank = bankMapInstance[button];
+                var stopFunc = {
+                    //["STOP FUNC NOW", bank[3].isNil].postln;
+                    if(bank[3].isNil.not, {
+                        bank[1] = -1;
+                        bank[2] = false;
+                        bank[3].stop;
+                        bank[3].free;
+                        bank[3] = nil;
+                        bank[4] = nil;
+                        bank[5] = nil;
+                        bank[6] = "";
+                        setLight.(button, 0);
+                        midiOut.allNotesOff(bank[1]);
+                    });
+                    nil;
+                };
+                tempoClock.sched(tempoClock.timeToNextBeat-0.01, stopFunc);
+            });
 
-	//split string and set banks
-	msg[1].asString.split($:).do({|bankStr|
-		if(bankStr != "none",
-			{
-				var split, bankInfo;
-				split = bankStr.split($ );
-				["bankCount", count, split[0]].postln;
-				count = count+1;
-				bankInfo = [split[0].asInt, split[1], (split[2].asInt == 1)];
-				["setBankMelodyArgs", bankInfo[0], bankInfo[2], bankInfo[1]].postln;
-				setBankMelody.(bankInfo[0], bankInfo[1], bankInfo[2]);
-			}
-		);
-	});
-    scenes[msg[3].asInt] = bankMap.deepCopy;
+            //split string and set banks
+            msg[1].asString.split($:).do({|bankStr|
+                if(bankStr != "none",
+                    {
+                        var split, bankInfo;
+                        split = bankStr.split($ );
+                        ["bankCount", count, split[0]].postln;
+                        count = count+1;
+                        bankInfo = [split[0].asInt, split[1], (split[2].asInt == 1)];
+                        ["setBankMelodyArgs", bankInfo[0], bankInfo[2], bankInfo[1]].postln;
+                        setBankMelody.(bankInfo[0], bankInfo[1], bankInfo[2], bankMapInstance);
+                    }
+                );
+            });
+            scenes[msg[2].asInt] = bankMapInstance.deepCopy;
+            setLight.(20+sceneNumber, sceneColor); //todo - change when SCENE PAGES are implemented
+        },
+        {
+            scenes[msg[2].asInt] = nil;
+            setLight.(20+sceneNumber, 0); //todo - change when SCENE PAGES are implemented
+        }
+    );
 };
 OSCFunc(receiveScene, "/sendScene");
 
