@@ -253,22 +253,25 @@ timeListToDurationList = {|oldList, totalLength|
 //TODO - handle ~ (rest) for existing types
 sendSample = {|drumStr, chan, ind|
     if(channelTypeMap[chan] == 'pydal', {
-        var drumInd, drumType;
+        var drumInd, drumType, patMidiChannel;
         drumInd = drumStr.split($:)[1];
         drumInd = if(drumInd.isNil, 0, {drumInd.asInteger});
         drumType = drumTypes[drumStr.split($:)[0]].asInteger;
+        patMidiChannel = if(channelMetaInfo[chan][0].isNil, midiChannel, channelMetaInfo[chan][0]);
 
         maxPort.sendMsg("/hitInfo", chan.asInt, ind.asInt, (masterTempoClock.beats-tempoClockMap[chan].beats)%1);
 
         //todo - send cc map stuff if applicable
         Task({
-            midiOut.noteOn(midiChannel, drumType+drumInd); //maybe add velocity based on gain?
+            midiOut.noteOn(patMidiChannel, drumType+drumInd); //maybe add velocity based on gain?
             0.001.wait;
-            midiOut.noteOff(midiChannel, drumType+drumInd);
+            midiOut.noteOff(patMidiChannel, drumType+drumInd);
         }).play;
     });
 
     //aa is top-left, but remapped to coordinates where 0,0 is bottom-left, to match chordScenePad
+    /*channelMetaInfo has 1 element - the midiChannel number of the spatializer.py object that
+     the playChord info will be sent to*/
     if(channelTypeMap[chan] == 'chord', {
         var rowChar = "hgfedcba";
         var colChar = "abcdefgh";
