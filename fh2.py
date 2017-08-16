@@ -26,7 +26,7 @@ class FH2:
 		self.loopInfo = [{} for i in range(100)]
 
 		#[(loops, loopInfo)]
-		self.scenes = [0]*100 # scenes[18] is scene in 1st row 8th column of launchpad  
+		self.scenes = [0]*32 # scenes[18] is scene in 1st row 8th column of launchpad  
 		self.sceneStack = []
 		self.sceneCollectionsStack = []
 		self.faderBanks = [[[0]*12 for i in range(4)] for j in range(4)]
@@ -102,7 +102,7 @@ class FH2:
 	#stuff = [metaInfoType, loopInd, info...]
 	def saveMetaInfo(self, addr, tags, stuff, source):
 		 if stuff[0] == "quadKey":
-		 	self.saveQuadKeysMetaInfo(*stuff[:1])
+			self.saveQuadKeysMetaInfo(*stuff[:1])
 
 	def saveQuadKeysMetaInfo(loopInd, rootStr, scalesStr):
 		self.roots = [int(r) for r in rootStr.split(",")]
@@ -112,7 +112,7 @@ class FH2:
 	def metaInfoLoadRequestHandler(self, addr, tags, stuff, source):
 		self.loadMetaInfo(stuff[0])
 
-	def loadMetaInfo(sceneInd):
+	def loadMetaInfo(self, sceneInd):
 		sceneTuple = self.scenes[sceneInd]
 		roots = sceneTuple[2]
 		scales = sceneTuple[3]
@@ -164,6 +164,7 @@ class FH2:
 		msg = OSC.OSCMessage()
 		msg.setAddress("/sendScene")
 		msg.append(self.sceneToString(loops, loopInfo))
+		msg.append(ind)
 		self.superColliderClient.send(msg)
 
 
@@ -222,6 +223,7 @@ class FH2:
 				msg = OSC.OSCMessage()
 				msg.setAddress("/sendScene")
 				msg.append("none")
+				msg.append(i)
 				self.superColliderClient.send(msg)
 
 	def saveScenesToFile(self, fileName):
@@ -285,19 +287,19 @@ class FH2:
 
 	# followerPadDelay is [(padIndex, delayFromLeader)]
 	def setFollowers(self, leaderPad, *followerPadDelay):
-	    self.delays[leaderPad] = followerPadDelay
+		self.delays[leaderPad] = followerPadDelay
 
 	#stuff - [padInd, xVal, yVal]
 	def padFollowerHandler(self, addr, tags, stuff, source):
 		if stuff[0] in self.delays:    
-		    for padDelay in self.delays[stuff[0]]:
-		        msg = OSC.OSCMessage()
-		        msg.setAddress("/xyFollowing")
-		        msg.append(padDelay[0])
-		        msg.append(stuff[1])
-		        msg.append(stuff[2])
-		        msg.append(padDelay[1])
-		        self.superColliderClient.send(msg)
+			for padDelay in self.delays[stuff[0]]:
+				msg = OSC.OSCMessage()
+				msg.setAddress("/xyFollowing")
+				msg.append(padDelay[0])
+				msg.append(stuff[1])
+				msg.append(stuff[2])
+				msg.append(padDelay[1])
+				self.superColliderClient.send(msg)
 
 def oneHitShift(hitList):
 	i1 = random.randint(0, len(hitList)-1)
@@ -399,10 +401,10 @@ def beatShuffle(hitList, start=None, end=None):
 	return noteListToHitList(flattenByBeat(rejoined))
 
 def scaleNotesCalc(root, scale, n):
-    notes = [0]*n
-    for i in range(n):
-        notes[i] = root + (i/len(scale))*12 + scale[i%len(scale)] 
-    return notes
+	notes = [0]*n
+	for i in range(n):
+		notes[i] = root + (i/len(scale))*12 + scale[i%len(scale)] 
+	return notes
 
 #TODO - fix assumption that root note is 60
 def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beatIndexed=True, intraBeatRandom=False):

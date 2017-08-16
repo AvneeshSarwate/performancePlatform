@@ -772,43 +772,32 @@ OSCFunc(masterClockTempoHandler, "/masterClockTempo");
 
 ////midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, loopType, playType]
 setBankMelody = {|button, hitString, playing, bankMapInstance|
-	var hitList, startFunc;
 
-	//todo - enable this to minimize latency?
-	//melodyTask = createRecordedTask.(stringToBuf.(hitString));
-	["CREATED TASK", button].postln;
+    //todo - enable this to minimize latency?
+    //melodyTask = createRecordedTask.(stringToBuf.(hitString));
 
-	startFunc = {
-		var bank = bankMapInstance[button];
-        var buf = stringToBuf.(hitString);
-        bank[1] = calculateMajorityChannel.(buf);
-        bank[2] = false;
-		bank[3] = createRecordedTask.(buf);
-		bank[4] = hitString;
-        bank[5] == \midi;
-        bank[6] = "";
-		setLight.(button, color1[bank[1]]);
-		nil;
-		["START FUNC NOW"].postln;
-		if(playing, {
-			bank[3].play;
-			bank[2] = true;
-		});
-	};
-	if(playing, {playingBanks.add(button)});
-	tempoClock.sched(tempoClock.timeToNextBeat, startFunc);
+    var bank = bankMapInstance[button];
+    var buf = stringToBuf.(hitString);
+    bank[1] = calculateMajorityChannel.(buf);
+    bank[2] = false;
+    bank[3] = createRecordedTask.(buf);
+    bank[4] = hitString;
+    bank[5] == \midi;
+    bank[6] = "";
+    ["bank melody set for", button].postln;
 };
 
 //msg = [/address, melody/info-strList, sceneNumber] - melodyInfoStr
 
 receiveScene = {|msg, time, addr, recvPort|
-    if(msg[1] != "none",
+    ["RECIEVED SCENE", msg[2]].postln;
+    if(msg[1].asSymbol != \none,
         {
             //set roots and scales
             var count = 0;
             var bankMapInstance = bankMap.deepCopy;
 
-            playingBanks = Set.new();
+            ["SCENE IS NON NULL", msg[2]].postln;
             bankMapInstance.keys.do({|button|
                 var bank = bankMapInstance[button];
                 var stopFunc = {
@@ -830,9 +819,11 @@ receiveScene = {|msg, time, addr, recvPort|
                 tempoClock.sched(tempoClock.timeToNextBeat-0.01, stopFunc);
             });
 
+            ["ALL LOOPS STOPPED FOR SCENE", msg[2]].postln;
+
             //split string and set banks
             msg[1].asString.split($:).do({|bankStr|
-                if(bankStr != "none",
+                if(bankStr.asSymbol != \none,
                     {
                         var split, bankInfo;
                         split = bankStr.split($ );
