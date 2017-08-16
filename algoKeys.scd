@@ -501,7 +501,7 @@ OSCFunc({|msg, time, addr, recvPort|
 
 
 OSCFunc({|msg, time, addr, recvPort|
-    pythonOSCport.sendMsg("/sendMetaInfo", "quadKeyboard", roots.join(","), scales.collect({|scale| scale.join(",")}).join(".")) ;
+    pythonOSCport.sendMsg("/saveMetaInfo", "quadKeyboard", roots.join(","), scales.collect({|scale| scale.join(",")}).join(".")) ;
 }, "/metaInfoSaveRequest");
 
 ///msg[1, 2, 3] is [root:int, scale:, joined Str of Ints, chan:int]

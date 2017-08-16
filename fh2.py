@@ -7,7 +7,7 @@ import pickle
 import itertools
 
 #functionHanlder
-class FH:
+class FH2:
 	
 	def __init__(self):
 		self.superColliderClient = OSC.OSCClient()
@@ -88,7 +88,7 @@ class FH:
 
 	#stuff = [bankNum, loopString, button] 	
 	def saveNewLaunchpadLoop(self, addr, tags, stuff, source):
-		self.savedStrings.append(stuff[4])
+		self.savedStrings.append(stuff[2])
 		hitList = self.stringToHitList(stuff[1])
 		bankNum = stuff[0]
 		button = stuff[2]
@@ -112,7 +112,7 @@ class FH:
 	def metaInfoLoadRequestHandler(self, addr, tags, stuff, source):
 		self.loadMetaInfo(stuff[0])
 
-	def loadMetaInfo(sceneInd)
+	def loadMetaInfo(sceneInd):
 		sceneTuple = self.scenes[sceneInd]
 		roots = sceneTuple[2]
 		scales = sceneTuple[3]
@@ -217,7 +217,7 @@ class FH:
 		nonNullScenes = [x for x in range(len(self.scenes)) if self.scenes[x] != 0] 
 		for i in range(len(self.scenes)):
 			if self.scenes[i] != 0:
-				self.sendScene(self.scenes[i][0], self.scenes[i][1])
+				self.sendScene(i, self.scenes[i][0], self.scenes[i][1])
 			else:
 				msg = OSC.OSCMessage()
 				msg.setAddress("/sendScene")
@@ -520,6 +520,44 @@ def main():
 	for h in hitListToNoteList(hl):
 		print h
 
+	hitString = '19 0.015517354926804,36,90,3,on-0.069313140281711,36,0,3,off-0.40111655031738,36,88,3,on-0.13826123650379,36,0,3,off-0.30373582635919,36,86,3,on-0.068988503365478,36,0,3,off-0.37323516937636,36,94,3,on-0.16584420671271,36,0,3,off-0.37435709074858,41,102,3,on-0.22119814726626,41,0,3,off-0.52463878235438,41,99,3,on-0.17918737393996,41,0,3,off-0.58129390059232,41,97,3,on-0.17996301558244,41,0,3,off-0.3181157736951,36,108,3,on-0.25061781998902,36,0,3,off-0.8401201725943,36,97,3,on-0.29228857541083,36,0,3,off-0.75886568925363,41,99,3,on-0.2358261358357,41,0,3,off-0.7734233730412,41,111,3,on-0.27621152805202,41,0,3,off-0.65788063380083,0,0,0,timeAfterLastHit 14'
+	hitString = '19 0.0155173549268,36,90,3,on-0.0693131402817,36,0,3,off-0.401116550317,36,88,3,on-0.138261236504,36,0,3,off-0.303735826359,36,86,3,on-0.0689885033655,36,0,3,off-0.373235169376,36,94,3,on-0.165844206713,36,0,3,off-0.374357090749,41,102,3,on-0.221198147266,41,0,3,off-0.524638782354,41,99,3,on-0.17918737394,41,0,3,off-0.581293900592,41,97,3,on-0.179963015582,41,0,3,off-0.318115773695,36,108,3,on-0.250617819989,36,0,3,off-0.840120172594,36,97,3,on-0.292288575411,36,0,3,off-0.758865689254,41,99,3,on-0.235826135836,41,0,3,off-0.773423373041,41,111,3,on-0.276211528052,41,0,3,off-0.657880633801,0,0,0,timeAfterLastHit 14'
+	hl1 = '59 0,67,115,1,on-0.35805304900001,67,0,1,off-0.099085806999994,68,114,1,on-0.33568892400001,68,0,1,off-0.11485539500001,70,93,1,on-0.381267638,70,0,1,off-0.18247946000002,72,114,1,on-0.36613351199998,72,0,1,off-0.16243621499999,0,0,0,timeAfterLastHit 242'
+	hl2 = '69 0,67,108,1,on-0.44206642100005,68,86,1,on-0.156972967,67,0,1,off-0.31932736300001,70,58,1,on-0.11475639299999,68,0,1,off-0.39217421299998,72,91,1,on-0.07848408000001,70,0,1,off-0.49621856299996,0,0,0,timeAfterLastHit 275'
+	hl3 = '59 0.00026503200000061,67,116,1,on-0.109492002,67,0,1,off-0.114887669,67,97,1,on-0.083770298999999,67,0,1,off-0.150910389,67,113,1,on-0.094081841000001,67,0,1,off-0.162514201,67,114,1,on-0.083863190000001,67,0,1,off-0.177834871,67,117,1,on-0.083826460000001,67,0,1,off-0.156259629,67,106,1,on-0.073450127999999,67,0,1,off-0.188066174,67,110,1,on-0.083808517,67,0,1,off-0.173343166,67,107,1,on-0.073152808,67,0,1,off-0.182253786,67,112,1,on-0.073165353,67,0,1,off-0.167248956,67,97,1,on-0.068336707,67,0,1,off-0.198340459,67,97,1,on-0.062599650000001,67,0,1,off-0.188070831,67,105,1,on-0.083570547000001,67,0,1,off-0.172715621,68,118,1,on-0.078436826999999,68,0,1,off-0.151519889,68,111,1,on-0.072601442,68,0,1,off-0.172986674,68,107,1,on-0.062571509000001,68,0,1,off-0.193675872,68,117,1,on-0.083643336000002,68,0,1,off-0.178736165,0,0,0,timeAfterLastHit 4'
+	# print FH.hitListToString(*FH.stringToHitList(hitString)) == hitString
+
+	hitList = [[0, 60, 60, 1, "on"], [.75, 60, 60, 1, "off"], [.25, 61, 60, 1, "on"], [.75, 61, 60, 1, "off"], [.25, 62, 60, 1, "on"], [.75, 62, 60, 1, "off"], [.25, 63, 60, 1, "on"], [.75, 63, 60, 1, "off"], [.25, 0, 0, 1, "timeAfterLastHit"]]
+
+	newHS = FH.stringToHitList(hl3)[0]
+	noteList = hitListToNoteList(newHS)
+	codecHS = noteListToHitList(noteList)
+	hl = randTranspose(newHS, 60, [0, 2, 3, 5, 7, 8, 10])
+
+	# print hitList
+	# print beatShuffle(newHS)
+	# for n in noteList:
+	# 	print n
+	# tot1 = 0
+	# for h in newHS:
+	# 	tot1 += h[0]
+	# 	print h
+	# tot2 = 0
+	# for h in codecHS:
+	# 	tot2+= h[0]
+	# 	print h
+	# print tot1, tot2
+	# beats = notesByBeat(noteList)
+	# for b in beats:
+	# 	print 
+	# notes = flattenByBeat(beats)
+	# for n in notes:
+	# 	print n
+	# print hitListToString(*stringToHitList(hitString))
+
+
+	#print hitListToNoteList(hl)
+
 def transformTranspositionVector(transVec, frac=0.25):
 	transformationCells = random.sample(range(len(transVec)), int(frac*len(transVec)))
 	newVec = copy.deepcopy(transVec)
@@ -528,42 +566,10 @@ def transformTranspositionVector(transVec, frac=0.25):
 	return newVec
 #TODO: print the strings of a few different buffers as test cases 
 
-hitString = '19 0.015517354926804,36,90,3,on-0.069313140281711,36,0,3,off-0.40111655031738,36,88,3,on-0.13826123650379,36,0,3,off-0.30373582635919,36,86,3,on-0.068988503365478,36,0,3,off-0.37323516937636,36,94,3,on-0.16584420671271,36,0,3,off-0.37435709074858,41,102,3,on-0.22119814726626,41,0,3,off-0.52463878235438,41,99,3,on-0.17918737393996,41,0,3,off-0.58129390059232,41,97,3,on-0.17996301558244,41,0,3,off-0.3181157736951,36,108,3,on-0.25061781998902,36,0,3,off-0.8401201725943,36,97,3,on-0.29228857541083,36,0,3,off-0.75886568925363,41,99,3,on-0.2358261358357,41,0,3,off-0.7734233730412,41,111,3,on-0.27621152805202,41,0,3,off-0.65788063380083,0,0,0,timeAfterLastHit 14'
-hitString = '19 0.0155173549268,36,90,3,on-0.0693131402817,36,0,3,off-0.401116550317,36,88,3,on-0.138261236504,36,0,3,off-0.303735826359,36,86,3,on-0.0689885033655,36,0,3,off-0.373235169376,36,94,3,on-0.165844206713,36,0,3,off-0.374357090749,41,102,3,on-0.221198147266,41,0,3,off-0.524638782354,41,99,3,on-0.17918737394,41,0,3,off-0.581293900592,41,97,3,on-0.179963015582,41,0,3,off-0.318115773695,36,108,3,on-0.250617819989,36,0,3,off-0.840120172594,36,97,3,on-0.292288575411,36,0,3,off-0.758865689254,41,99,3,on-0.235826135836,41,0,3,off-0.773423373041,41,111,3,on-0.276211528052,41,0,3,off-0.657880633801,0,0,0,timeAfterLastHit 14'
-hl1 = '59 0,67,115,1,on-0.35805304900001,67,0,1,off-0.099085806999994,68,114,1,on-0.33568892400001,68,0,1,off-0.11485539500001,70,93,1,on-0.381267638,70,0,1,off-0.18247946000002,72,114,1,on-0.36613351199998,72,0,1,off-0.16243621499999,0,0,0,timeAfterLastHit 242'
-hl2 = '69 0,67,108,1,on-0.44206642100005,68,86,1,on-0.156972967,67,0,1,off-0.31932736300001,70,58,1,on-0.11475639299999,68,0,1,off-0.39217421299998,72,91,1,on-0.07848408000001,70,0,1,off-0.49621856299996,0,0,0,timeAfterLastHit 275'
-hl3 = '59 0.00026503200000061,67,116,1,on-0.109492002,67,0,1,off-0.114887669,67,97,1,on-0.083770298999999,67,0,1,off-0.150910389,67,113,1,on-0.094081841000001,67,0,1,off-0.162514201,67,114,1,on-0.083863190000001,67,0,1,off-0.177834871,67,117,1,on-0.083826460000001,67,0,1,off-0.156259629,67,106,1,on-0.073450127999999,67,0,1,off-0.188066174,67,110,1,on-0.083808517,67,0,1,off-0.173343166,67,107,1,on-0.073152808,67,0,1,off-0.182253786,67,112,1,on-0.073165353,67,0,1,off-0.167248956,67,97,1,on-0.068336707,67,0,1,off-0.198340459,67,97,1,on-0.062599650000001,67,0,1,off-0.188070831,67,105,1,on-0.083570547000001,67,0,1,off-0.172715621,68,118,1,on-0.078436826999999,68,0,1,off-0.151519889,68,111,1,on-0.072601442,68,0,1,off-0.172986674,68,107,1,on-0.062571509000001,68,0,1,off-0.193675872,68,117,1,on-0.083643336000002,68,0,1,off-0.178736165,0,0,0,timeAfterLastHit 4'
-# print FH.hitListToString(*FH.stringToHitList(hitString)) == hitString
 
-hitList = [[0, 60, 60, 1, "on"], [.75, 60, 60, 1, "off"], [.25, 61, 60, 1, "on"], [.75, 61, 60, 1, "off"], [.25, 62, 60, 1, "on"], [.75, 62, 60, 1, "off"], [.25, 63, 60, 1, "on"], [.75, 63, 60, 1, "off"], [.25, 0, 0, 1, "timeAfterLastHit"]]
 
-newHS = FH.stringToHitList(hl3)[0]
-noteList = hitListToNoteList(newHS)
-codecHS = noteListToHitList(noteList)
-# print hitList
-# print beatShuffle(newHS)
-# for n in noteList:
-# 	print n
-# tot1 = 0
-# for h in newHS:
-# 	tot1 += h[0]
-# 	print h
-# tot2 = 0
-# for h in codecHS:
-# 	tot2+= h[0]
-# 	print h
-# print tot1, tot2
-# beats = notesByBeat(noteList)
-# for b in beats:
-# 	print 
-# notes = flattenByBeat(beats)
-# for n in notes:
-# 	print n
-# print hitListToString(*stringToHitList(hitString))
-
-hl = randTranspose(newHS, 60, [0, 2, 3, 5, 7, 8, 10])
-#print hitListToNoteList(hl)
 
 if __name__ == '__main__':
 	main()
+
 

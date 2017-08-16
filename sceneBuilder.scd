@@ -737,7 +737,7 @@ playScene = {|bankMapInstance, sceneInd|
                 ["SCENE f sceneBuilder", padInd].postln;
             });
             sceneIsOnDeck = false;
-            pythonOSCport.sendMsg("/scenePlayed", sceneInd);
+            //pythonOSCport.sendMsg("/scenePlayed", sceneInd); what is this for?
         });
     });
 };
@@ -845,11 +845,11 @@ receiveScene = {|msg, time, addr, recvPort|
                 );
             });
             scenes[msg[2].asInt] = bankMapInstance.deepCopy;
-            setLight.(20+sceneNumber, sceneColor); //todo - change when SCENE PAGES are implemented
+            setLight.(20+msg[2], sceneColor); //todo - change when SCENE PAGES are implemented
         },
         {
             scenes[msg[2].asInt] = nil;
-            setLight.(20+sceneNumber, 0); //todo - change when SCENE PAGES are implemented
+            setLight.(20+msg[2], 0); //todo - change when SCENE PAGES are implemented
         }
     );
 };
