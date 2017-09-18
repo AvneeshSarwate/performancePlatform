@@ -331,6 +331,26 @@ turnOffBank = {|thisBank, note|
 
 };
 
+//msg[1] is bank index, msg[2] is whether to turn bank on or off
+OSCFunc.new({|msg, time, addr, recvPort|
+    //indexes 0-7 mapped to top row - 81-88
+    var bankKey = 81+msg[1].asInt;
+    var bank = bankMap[bankKey];
+    if(bank[3].isNil.not, {
+        if(msg[2].asSymbol == \off, {
+            turnOffBank.(bank, bankKey);
+        });
+        if(msg[2].asSymbol == \on, {
+            turnOnBank.(bank, bankKey);
+        });
+    });
+}, "/toggleBank");
+
+//msg[1] is channelIndex index
+OSCFunc.new({|msg, time, addr, recvPort|
+    midiOut.allNotesOff(msg[1].asInt);
+}, "/turnOffChannel");
+
 
 a = {|vel, note, chan, port|
     midiOut.noteOn(chan, note, vel);
