@@ -116,8 +116,9 @@ class FH2:
 		sceneTuple = self.scenes[sceneInd]
 		roots = sceneTuple[2]
 		scales = sceneTuple[3]
+		print roots, scales
 		for i in range(4):
-			self.rootScale(i, roots[i], scales[i])
+			self.rootScale(i, roots[i], ",".join(scales[i]))
 		# todo - need to separate out quadKey logic from loop saving logic.
 		# when implemented properly, the python modules of different interfaces
 		# will be registered with the FH model, and when a scene is loaded this 

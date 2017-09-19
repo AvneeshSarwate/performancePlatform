@@ -57,6 +57,7 @@ setLight = {|note, color, lightIndexOverride=false|
 cycleLight = {
     //TODO: change name of this port to something like SCOSCport
     Task({
+        ["NEW LIGHT INDEX TRIGGER FROM ALGKEYS", ~lightIndex].postln;
         masterClockOSCport.sendMsg("/lightsChange", (~lightIndex+1)%~lightIndexes.size);
         0.01.wait;
         ~lightIndex = (~lightIndex+1)%~lightIndexes.size;
@@ -70,7 +71,7 @@ OSCFunc({|msg, time, addr, recvPort|
         (0..99).do({|i| colorStateLog.add(0)});
         padColorState.keys.do({|key| setLight.(key, padColorState[key], true);
             colorStateLog[key]=padColorState[key]});
-        ["CHANGING MULTILOOP LIGHTS", msg[1], colorStateLog].postln;
+        ["CHANGING TO ALGOKEYS LIGHTS", msg[1], colorStateLog].postln;
     });
 
 }, "/lightsChange");
@@ -85,7 +86,7 @@ lightIndex = if(~lightIndexes.size == 0,
     }
 );
 ~lightIndex = lightIndex;
-["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
+["LIGHT INDEX ALGOKEYS", ~lightIndex, lightIndex].postln;
 //TODO - add ~lightIndex == lightIndex condition to all launchpad note/cc hanlders
 //----------------------------------------------
 

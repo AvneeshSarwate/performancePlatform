@@ -226,6 +226,7 @@ padOn = {|vel, note, chan, port|
                         //TODO audioRecording - stop/wipe midiLoop in the same slot?
                     },
                     {
+                        "MANUAL BANK PLAY/STOP".postln;
                         if(thisBank[5] != nil, {
                             //if algsList.size > 0, make OSC call to python alg module
                             //args - algsList, inst chanel, bank numner, loopString
@@ -294,7 +295,7 @@ padOff = MIDIFunc.noteOff({|vel, note, chan, port|
 
 
 turnOnBank = {|thisBank, note|
-    //["TURNING ON", note].postln;
+    ["TURNING ON", note].postln;
     if(false, {//with this as false, banks can be overlayed
         //for all other banks for this inst, stop playing and turn their lights on
         banks[thisBank[1]].do({|bNote|
@@ -816,14 +817,16 @@ setBankMelody = {|button, hitString, playing, bankMapInstance|
     var bank = bankMapInstance[button];
     var buf = stringToBuf.(hitString);
     bank[1] = calculateMajorityChannel.(buf);
-    bank[2] = false;
+    bank[2] = playing;
     bank[3] = createRecordedTask.(buf);
     bank[4] = hitString;
-    bank[5] == \midi;
+    bank[5] = \midi;
     bank[6] = "";
-    ["bank melody set for", button].postln;
+    setLight.(button, color1[bank[1]]);
+    ["bank melody set for", button, bank].postln;
 };
 
+// msg[1] is button, msg[2] is string
 OSCFunc({|msg, time, addr, recvPort|
     var button = msg[1].asInt;
     var bank = bankMap[button];
