@@ -25,7 +25,7 @@ var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
-launchpadOut = MIDIOut.new(11); //MIDIOut.newByName("Launchpad Pro", "Standalone Port");
+launchpadOut = MIDIOut.new(8); //MIDIOut.newByName("Launchpad Pro", "Standalone Port");
 launchpadOut.latency = 0;
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 metronomeOut = MIDIOut.newByName("IAC Driver", "Bus 3");
@@ -69,6 +69,7 @@ setLight = {|note, color, lightIndexOverride=false|
 cycleLight = {
     //TODO: change name of this port to something like SCOSCport
     Task({
+        ["NEW LIGHT INDEX TRIGGER FROM SCENEBUILDER", ~lightIndex].postln;
         masterClockOSCport.sendMsg("/lightsChange", (~lightIndex+1)%~lightIndexes.size);
         0.01.wait;
         ~lightIndex = (~lightIndex+1)%~lightIndexes.size;
@@ -82,7 +83,7 @@ OSCFunc({|msg, time, addr, recvPort|
         (0..99).do({|i| colorStateLog.add(0)});
         padColorState.keys.do({|key| setLight.(key, padColorState[key], true);
             colorStateLog[key]=padColorState[key]});
-        ["CHANGING MULTILOOP LIGHTS", msg[1], colorStateLog].postln;
+        ["CHANGING TO SCENEBUILDER LIGHTS", msg[1], colorStateLog].postln;
     });
 
 }, "/lightsChange");
@@ -97,7 +98,7 @@ lightIndex = if(~lightIndexes.size == 0,
     }
 );
 ~lightIndex = lightIndex;
-["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
+["LIGHT INDEX SCENEBUILDER", ~lightIndex, lightIndex].postln;
 //TODO - add ~lightIndex == lightIndex condition to all launchpad note/cc hanlders
 //----------------------------------------------
 
@@ -207,6 +208,7 @@ padOn = {|vel, note, chan, port|
                     playingBanks.add(note);
 
                     pythonOSCport.sendMsg("/saveLoop", thisBank[0], thisBank[4], note, thisBank[1]);
+                    masterClockOSCport.sendMsg("/saveLoop", thisBank[0], thisBank[4], note, thisBank[1]);
                     masterClockOSCport.sendMsg("/metaInfoSaveRequest", thisBank[0], thisBank[2]);
 
                     "D sceneBuilder".postln;
@@ -292,7 +294,7 @@ padOff = MIDIFunc.noteOff({|vel, note, chan, port|
 
 
 turnOnBank = {|thisBank, note|
-    ["TURNING ON", note].postln;
+    //["TURNING ON", note].postln;
     if(false, {//with this as false, banks can be overlayed
         //for all other banks for this inst, stop playing and turn their lights on
         banks[thisBank[1]].do({|bNote|
@@ -318,7 +320,7 @@ turnOnBank = {|thisBank, note|
 
 turnOffBank = {|thisBank, note|
     midiOut.allNotesOff(thisBank[1]);
-    ["TURNING OFF", note].postln;
+    //["TURNING OFF", note].postln;
     switch(thisBank[5],
         \midi, {thisBank[3].stop},
         \sample, {maxPort.sendMsg("/samplerControl", thisBank[0], "playStop", 0)}
@@ -822,6 +824,24 @@ setBankMelody = {|button, hitString, playing, bankMapInstance|
     ["bank melody set for", button].postln;
 };
 
+OSCFunc({|msg, time, addr, recvPort|
+    var button = msg[1].asInt;
+    var bank = bankMap[button];
+    if(bank[3].isNil.not, {
+        bank[2] = false;
+        bank[3].stop;
+        bank[3].free;
+        midiOut.allNotesOff(bank[1]);
+        bank[1] = -1;
+        bank[3] = nil;
+        bank[4] = nil;
+        bank[5] = nil;
+        bank[6] = "";
+        setLight.(button, 0);
+    });
+    setBankMelody.(button, msg[2].asString, false, bankMap);
+}, "/setBankMelody");
+
 //msg = [/address, melody/info-strList, sceneNumber] - melodyInfoStr
 
 receiveScene = {|msg, time, addr, recvPort|
@@ -838,16 +858,16 @@ receiveScene = {|msg, time, addr, recvPort|
                 var stopFunc = {
                     //["STOP FUNC NOW", bank[3].isNil].postln;
                     if(bank[3].isNil.not, {
-                        bank[1] = -1;
                         bank[2] = false;
                         bank[3].stop;
                         bank[3].free;
+                        midiOut.allNotesOff(bank[1]);
+                        bank[1] = -1;
                         bank[3] = nil;
                         bank[4] = nil;
                         bank[5] = nil;
                         bank[6] = "";
                         setLight.(button, 0);
-                        midiOut.allNotesOff(bank[1]);
                     });
                     nil;
                 };
