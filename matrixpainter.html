@@ -176,9 +176,9 @@
     		paintValue = 0
     	}
     	var xmin = Math.max(0, centerX - Math.floor((1.0*(penSize))/2));
-    	var xmax = Math.min(32, centerX + Math.ceil((1.0*(penSize))/2));
+    	var xmax = Math.min(width, centerX + Math.ceil((1.0*(penSize))/2));
     	var ymin = Math.max(0, centerY - Math.floor((1.0*(penSize))/2));
-    	var ymax = Math.min(32, centerY + Math.ceil((1.0*(penSize))/2));
+    	var ymax = Math.min(height, centerY + Math.ceil((1.0*(penSize))/2));
     	console.log("painting in", xmin, xmax, ymin, ymax, (1.0*(penSize-1))/2);
     	for(var i = xmin; i < xmax; i++){
     		//console.log("painted", i, j);
