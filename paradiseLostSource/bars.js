@@ -13,7 +13,7 @@ var numHorLines = jsarguments[3] ? jsarguments[3] : 0;
 
 var vLinePos =   [110, 650, 280, 780, 910];
 var vLineSteps = [-5, 30, 100, -20, 70];
-var vLineWidths = [100, 100, 100, 100, 100];//[10, 50, 100, 70, 150];
+var vLineWidths = [100, 15, 20, 70, 30];
 var p = [0, 4, 2, 3, 1];
 var hLinePos = [vLinePos[p[0]], vLinePos[p[1]], vLinePos[p[2]], vLinePos[p[3]], vLinePos[p[4]]];
 var hLineSteps = [vLineSteps[p[0]], vLineSteps[p[1]], vLineSteps[p[2]], vLineSteps[p[3]], vLineSteps[p[4]]];
