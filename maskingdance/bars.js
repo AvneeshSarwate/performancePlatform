@@ -19,13 +19,15 @@ var hLinePos = [vLinePos[p[0]], vLinePos[p[1]], vLinePos[p[2]], vLinePos[p[3]], 
 var hLineSteps = [vLineSteps[p[0]], vLineSteps[p[1]], vLineSteps[p[2]], vLineSteps[p[3]], vLineSteps[p[4]]];
 var hLineWidths = [vLineWidths[p[0]], vLineWidths[p[1]], vLineWidths[p[2]], vLineWidths[p[3]], vLineWidths[p[4]]];
 
-var linesCalculated = false;
+var calculationOccuring = false;
 
 function bang(){
-	if(!linesCalculated) {
-		calcLines();
-		linesCalculated = true;
+	if(!calculationOccuring) {
+		calculationOccuring = true;
+		
+		linesCalculated = false;
 	}
+	calcLines();
 	post("POST LINES");
 	post();
 	outlet(0, "jit_matrix", copyMatrix.name);
