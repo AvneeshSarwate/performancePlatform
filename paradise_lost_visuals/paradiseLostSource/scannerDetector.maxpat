@@ -38,6 +38,37 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-14",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "jit_matrix", "" ],
+					"patching_rect" : [ 625.5, 708.0, 185.0, 22.0 ],
+					"style" : "",
+					"text" : "jit.matrix threshVal 1 char 100 75"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-13",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 9,
+					"outlettype" : [ "", "", "", "", "", "", "", "", "" ],
+					"patching_rect" : [ 379.0, 749.0, 100.0, 22.0 ],
+					"saved_object_attributes" : 					{
+						"filename" : "calculateDiff.js",
+						"parameter_enable" : 0
+					}
+,
+					"style" : "",
+					"text" : "js calculateDiff.js"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-10",
 					"linecount" : 3,
 					"maxclass" : "comment",
@@ -51,7 +82,7 @@
 			}
 , 			{
 				"box" : 				{
-					"attr" : "threshold",
+					"attr" : "radius",
 					"id" : "obj-11",
 					"maxclass" : "attrui",
 					"numinlets" : 1,
@@ -908,6 +939,13 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-13", 0 ],
+					"source" : [ "obj-14", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-1", 0 ],
 					"source" : [ "obj-16", 0 ]
 				}
@@ -973,9 +1011,23 @@
 				}
 
 			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-14", 0 ],
+					"source" : [ "obj-8", 0 ]
+				}
+
+			}
  ],
 		"dependency_cache" : [ 			{
 				"name" : "bars.js",
+				"bootpath" : "~/performancePlatform/paradise_lost_visuals/paradiseLostSource",
+				"patcherrelativepath" : ".",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+, 			{
+				"name" : "calculateDiff.js",
 				"bootpath" : "~/performancePlatform/paradise_lost_visuals/paradiseLostSource",
 				"patcherrelativepath" : ".",
 				"type" : "TEXT",
