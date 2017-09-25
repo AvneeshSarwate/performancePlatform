@@ -80,14 +80,27 @@ startWave = {|msg, time, addr, recvPort|
             );
             0.02.wait;
         }.loop;
-    });
+    }, masterTempoClock);
+    var waveBufferTask = Task({
+        var func = createCalcFunc.(msg[2].asString);
+        {
+            var waveBuffer = (0,0.025..16).collect({|time| func.(time)}); //step size is hardcoded both here and drawCurve.js/maxpat
+            ["VALUES", waveBuffer].postln;
+            maxOSCport.sendRaw((["/curveValues"]++waveBuffer).asArray.asRawOSC);
+            16.wait
+        }.loop;
+
+    }, masterTempoClock);
     msg.postln;
     waveTask.start;
+    waveBufferTask.start;
     if(channelMap[msg[1]].isNil.not, {
-        channelMap[msg[1]].stop;
-        channelMap[msg[1]].free;
+        channelMap[msg[1]][0].stop;
+        channelMap[msg[1]][0].free;
+        channelMap[msg[1]][1].stop;
+        channelMap[msg[1]][1].free;
     });
-    channelMap[msg[1]] = waveTask;
+    channelMap[msg[1]] = [waveTask, waveBufferTask];
     ~chanDebugMap[msg[1]] = [createCalcFunc.(msg[2].asString), msg[2].asString];
 };
 startWaveHandler = OSCFunc(startWave, "/startWave");
@@ -96,12 +109,22 @@ startWaveHandler = OSCFunc(startWave, "/startWave");
 stopWave = {|msg, time, addr, recvPort|
     msg.postln;
     if(channelMap[msg[1]].isNil.not, {
-        channelMap[msg[1]].stop;
-        channelMap[msg[1]].free;
+        channelMap[msg[1]][0].stop;
+        channelMap[msg[1]][0].free;
+        channelMap[msg[1]][1].stop;
+        channelMap[msg[1]][1].free;
     });
     channelMap[msg[1]] = nil;
 };
 stopWaveHandler = OSCFunc(stopWave, "/stopWave");
+
+
+Task({
+    {
+        maxOSCport.sendMsg("/scrollUpdate", 0);
+        0.1.wait; //this is hardcoded into scrollLine.js in drawCurve.maxpat
+    }.loop;
+}, masterTempoClock).start;
 
 )
 
@@ -151,3 +174,5 @@ func.(0.5);
 d = Dictionary.new;
 d[5]
 )
+
+{ PinkNoise.ar(0.2) + SinOsc.ar(440, 0, 0.2) + Saw.ar(660, 0.2) }.scope;
