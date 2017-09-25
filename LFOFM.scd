@@ -49,6 +49,12 @@ scPort = NetAddr("127.0.0.1", 57120);
 OSCFunc({|msg, time, addr, recvPort|
 	//msg[1] is the new BEAT DURATION (not tempo)
 	masterTempoClock = TempoClock.new(1/msg[1], 0);
+    Task({
+    {
+        maxOSCport.sendMsg("/scrollUpdate", 0);
+        0.1.wait; //this is hardcoded into scrollLine.js in drawCurve.maxpat
+    }.loop;
+}, masterTempoClock).start;
 }, "/masterClockBeat").oneShot;
 
 //cc ind -> waveTask
@@ -118,13 +124,6 @@ stopWave = {|msg, time, addr, recvPort|
 };
 stopWaveHandler = OSCFunc(stopWave, "/stopWave");
 
-
-Task({
-    {
-        maxOSCport.sendMsg("/scrollUpdate", 0);
-        0.1.wait; //this is hardcoded into scrollLine.js in drawCurve.maxpat
-    }.loop;
-}, masterTempoClock).start;
 
 )
 
