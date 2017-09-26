@@ -38,6 +38,45 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-34",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "", "" ],
+					"patching_rect" : [ 1094.0, 541.0, 60.0, 22.0 ],
+					"style" : "",
+					"text" : "cv.jit.sum"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-33",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "jit_matrix", "" ],
+					"patching_rect" : [ 1057.0, 343.0, 66.0, 22.0 ],
+					"style" : "",
+					"text" : "jit.scissors"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-32",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 276.0, 642.0, 80.0, 22.0 ],
+					"style" : "",
+					"text" : "diffThresh $1"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-29",
 					"maxclass" : "button",
 					"numinlets" : 1,
@@ -220,13 +259,13 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-10",
-					"linecount" : 3,
+					"linecount" : 4,
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 34.0, 708.0, 150.0, 47.0 ],
+					"patching_rect" : [ 34.0, 708.0, 150.0, 60.0 ],
 					"style" : "",
-					"text" : "camera at 100 x 75\nradius ~3\nthreshold ~27"
+					"text" : "camera at 100 x 75\nradius ~3\nthreshold ~27\ndiffThresh ~ 70"
 				}
 
 			}
@@ -238,7 +277,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 53.0, 522.0, 213.0, 22.0 ],
+					"patching_rect" : [ 104.5, 483.0, 213.0, 22.0 ],
 					"style" : ""
 				}
 
@@ -251,7 +290,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 226.0, 486.0, 50.0, 22.0 ],
+					"patching_rect" : [ 223.0, 592.0, 50.0, 22.0 ],
 					"style" : ""
 				}
 
@@ -274,7 +313,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 218.0, 602.0, 86.0, 22.0 ],
+					"patching_rect" : [ 189.5, 539.0, 86.0, 22.0 ],
 					"style" : "",
 					"text" : "cv.jit.threshold"
 				}
@@ -1196,6 +1235,13 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-13", 0 ],
+					"source" : [ "obj-32", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-5", 0 ],
 					"source" : [ "obj-4", 0 ]
 				}
@@ -1218,7 +1264,23 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-14", 0 ],
+					"order" : 0,
 					"source" : [ "obj-8", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-29", 0 ],
+					"order" : 1,
+					"source" : [ "obj-8", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-32", 0 ],
+					"source" : [ "obj-9", 0 ]
 				}
 
 			}
@@ -1239,6 +1301,10 @@
 			}
 , 			{
 				"name" : "cv.jit.threshold.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "cv.jit.sum.mxo",
 				"type" : "iLaX"
 			}
  ],
