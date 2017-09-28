@@ -2,7 +2,7 @@ var xSplit = 3;
 var ySplit = 3;
 var numRegions = xSplit*ySplit;
 inlets = 1;
-outlets = numRegions;
+outlets = numRegions + 1;
 
 var templateMatrix = new JitterMatrix(jsarguments[1]);
 var whiteMatrix = new JitterMatrix("white");
@@ -12,6 +12,9 @@ var thresholdMatrix = new JitterMatrix("threshVal");
 var xDim = thresholdMatrix.dim[0];
 var yDim = thresholdMatrix.dim[1];
 var diffThreshold = 0;
+var diffScaleVal = 1;
+var regionSize = xDim / xSplit * yDim / ySplit;
+var useBinaryOutput = 0;
 
 
 var matrixHistory = [];
@@ -35,8 +38,20 @@ function diffThresh(thresh){
 	diffThreshold = thresh;
 }
 
+function diffScale(scale) {
+	diffScaleVal = scale;
+}
+
+function binaryOutput(useBin) {
+	useBinaryOutput = useBin;
+	post(useBinaryOutput);
+	post();
+}
+
 function mod(number, modulus){ return ((number%modulus)+modulus)%modulus}	
-fl = Math.floor;
+
+var fl = Math.floor;
+
 function calculateRegionalDiff(){
 	matrixHistory[historyInd].frommatrix(thresholdMatrix);
 	for(var k = 0; k < numRegions; k++){
@@ -60,18 +75,34 @@ var calculationOccuring = false;
 function bang(){
 	if(!calculationOccuring) {
 		calculationOccuring = true;
-		calculateRegionalDiff()
-		post("Calculated");
-		post();
+		calculateRegionalDiff();
 		calculationOccuring = false;
 	}
+	var regionValues = [];
 	for(var i = 0; i < numRegions; i++) {
-		var diffVal = historyRegionDiffs[historyInd][i] > diffThreshold ? 255 : 0;
+		var diffVal;
+		if(useBinaryOutput) {
+			diffVal = historyRegionDiffs[historyInd][i] > diffThreshold ? 255 : 0;
+		} else {
+			diffVal = historyRegionDiffs[historyInd][i] / regionSize * diffScaleVal;
+		}
+		regionValues.push(diffVal);
 		outputMatricies[i].setall(diffVal)
 		//outlet(i, historyRegionDiffs[historyInd][i]);
 		outlet(i, "jit_matrix", outputMatricies[i].name);
-		post(historyRegionDiffs[historyInd][i], i, historyInd);
-		post();
+		//post(historyRegionDiffs[historyInd][i], i, historyInd);
+		//post();
 	}
+	outlet(xSplit*ySplit, rowMajorCellblockList(regionValues, xSplit, ySplit));
 	historyInd = mod(historyInd+1, historyRegionDiffs.length);
+}
+
+function rowMajorCellblockList(vals, xSplit, ySplit){
+	var coordVals = [];
+	for(var i = 0; i < vals.length; i++){
+		coordVals.push(fl(i/ySplit));
+		coordVals.push(i%xSplit);
+		coordVals.push(vals[i]);
+	}
+	return coordVals;
 }
