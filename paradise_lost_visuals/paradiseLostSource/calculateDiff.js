@@ -2,7 +2,7 @@ var xSplit = 3;
 var ySplit = 3;
 var numRegions = xSplit*ySplit;
 inlets = 1;
-outlets = numRegions + 1;
+outlets = numRegions + 2;
 
 var templateMatrix = new JitterMatrix(jsarguments[1]);
 var whiteMatrix = new JitterMatrix("white");
@@ -94,6 +94,7 @@ function bang(){
 		//post();
 	}
 	outlet(xSplit*ySplit, rowMajorCellblockList(regionValues, xSplit, ySplit));
+	outlet(xSplit*ySplit+1, regionValues);
 	historyInd = mod(historyInd+1, historyRegionDiffs.length);
 }
 
