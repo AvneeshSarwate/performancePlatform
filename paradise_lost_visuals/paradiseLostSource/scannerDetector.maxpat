@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 85.0, 93.0, 1067.0, 911.0 ],
+		"rect" : [ 218.0, 81.0, 1370.0, 911.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -37,6 +37,83 @@
 		"style" : "",
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
+				"box" : 				{
+					"id" : "obj-18",
+					"linecount" : 7,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 1141.377441, 363.0, 160.0, 100.0 ],
+					"style" : "",
+					"text" : "When the motion in the bottom right corner is below a threshold, pitchshift down an octave. The threshold is set so that the pitchshift only occurs when there is little to no motion."
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-17",
+					"linecount" : 8,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 547.377502, 343.5, 178.0, 114.0 ],
+					"style" : "",
+					"text" : "When the motion in the bottom left corner passes a threshold, apply distortion. The threshold is set so that it toggles back and forth not too frequently (~2hz) and spends a relatively even amount of time in each state."
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-15",
+					"linecount" : 3,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 284.688751, 343.5, 150.0, 47.0 ],
+					"style" : "",
+					"text" : "map the top right corner motion to low pass filter cutoff"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-14",
+					"linecount" : 2,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 13.0, 519.0, 150.0, 33.0 ],
+					"style" : "",
+					"text" : "map the top left corner motion to playback speed"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-13",
+					"linecount" : 4,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 595.0, 223.0, 238.0, 60.0 ],
+					"style" : "",
+					"text" : "<= process video and extract features =>\noutputs a list of \"amount of motion\" 0-1 for each subset of a 3x3 cut of the input (in row major order)."
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-12",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 301.688751, 174.0, 150.0, 20.0 ],
+					"style" : "",
+					"text" : "<= get camera input =>"
+				}
+
+			}
+, 			{
 				"box" : 				{
 					"id" : "obj-10",
 					"maxclass" : "newobj",
@@ -107,7 +184,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 693.0, 128.0, 209.0, 145.0 ]
+					"patching_rect" : [ 832.066284, 106.0, 209.0, 145.0 ]
 				}
 
 			}
@@ -294,7 +371,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 992.377502, 403.0, 139.0, 22.0 ],
 					"style" : "",
-					"text" : "if $f1 > $f2 then 1 else 0"
+					"text" : "if $f1 < $f2 then 1 else 0"
 				}
 
 			}
@@ -652,7 +729,7 @@
 							"modernui" : 1
 						}
 ,
-						"rect" : [ 59.0, 104.0, 1134.0, 872.0 ],
+						"rect" : [ 59.0, 104.0, 1277.0, 872.0 ],
 						"bglocked" : 0,
 						"openinpresentation" : 0,
 						"default_fontsize" : 12.0,
@@ -679,7 +756,111 @@
 						"tags" : "",
 						"style" : "",
 						"subpatcher_template" : "",
+						"visible" : 1,
 						"boxes" : [ 							{
+								"box" : 								{
+									"id" : "obj-46",
+									"linecount" : 3,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 321.0, 422.0, 150.0, 47.0 ],
+									"style" : "",
+									"text" : "parameters for calculating movement, explanation in javascript source"
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-44",
+									"linecount" : 6,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 589.0, 485.0, 299.0, 87.0 ],
+									"style" : "",
+									"text" : "This is the thresholded matrix that is read by the js object. I couldn't find the way to get matrix input from an inlet in js so I used this  hack instead - instead of processing output when a matrix message is recieved, the script remembers this matrix and reads directly from it on a bang. "
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-43",
+									"linecount" : 3,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 556.5, 817.5, 162.0, 47.0 ],
+									"style" : "",
+									"text" : "output the list of scaled change values per region in row major order."
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-40",
+									"linecount" : 13,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ -29.0, 586.5, 207.0, 181.0 ],
+									"style" : "",
+									"text" : "calculateDiff.js lets you define rectangular regions in which you can detect the amount of change between frames as a value between 0 and 1 (ratio changedPixels/totalPixels). I'm sure there's a way to do this wth  normal Jitter, but I had started with the idea of detecting change in diagonal regions across the screen and wrote the grid implementation as a warm up, but then decided to leave it at grids due to time concerns."
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-39",
+									"linecount" : 3,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 951.0, 657.0, 166.0, 47.0 ],
+									"style" : "",
+									"text" : "output the binary matrix to the main patch because it looks pretty cool"
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-37",
+									"linecount" : 10,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 1018.0, 228.0, 166.0, 141.0 ],
+									"style" : "",
+									"text" : "threshold the greyscale matrix into a binary matrix to simplify detecting motion. The parameters for cv.jit.threshold were chosen thru experimentation, as there is no help file. (I had to use the attrui to even figure out what the parameters were). "
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-36",
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 426.0, 168.0, 117.0, 20.0 ],
+									"style" : "",
+									"text" : "convert to greyscale"
+								}
+
+							}
+, 							{
+								"box" : 								{
+									"id" : "obj-27",
+									"linecount" : 2,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 321.0, 57.0, 117.0, 33.0 ],
+									"style" : "",
+									"text" : "flip the image so it's not left/right inverted"
+								}
+
+							}
+, 							{
 								"box" : 								{
 									"comment" : "",
 									"id" : "obj-25",
@@ -687,7 +868,7 @@
 									"maxclass" : "outlet",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 1250.0, 1149.0, 30.0, 30.0 ],
+									"patching_rect" : [ 905.0, 662.0, 30.0, 30.0 ],
 									"style" : ""
 								}
 
@@ -699,7 +880,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 1,
 									"outlettype" : [ "bang" ],
-									"patching_rect" : [ 564.0, 885.0, 60.0, 22.0 ],
+									"patching_rect" : [ 219.0, 398.0, 60.0, 22.0 ],
 									"style" : "",
 									"text" : "loadbang"
 								}
@@ -712,7 +893,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "int" ],
-									"patching_rect" : [ 625.0, 929.0, 29.5, 22.0 ],
+									"patching_rect" : [ 280.0, 442.0, 29.5, 22.0 ],
 									"style" : "",
 									"text" : "70"
 								}
@@ -725,7 +906,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "int" ],
-									"patching_rect" : [ 542.0, 929.0, 29.5, 22.0 ],
+									"patching_rect" : [ 197.0, 442.0, 29.5, 22.0 ],
 									"style" : "",
 									"text" : "7"
 								}
@@ -738,7 +919,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 1,
 									"outlettype" : [ "bang" ],
-									"patching_rect" : [ 1165.0, 518.0, 60.0, 22.0 ],
+									"patching_rect" : [ 820.0, 31.0, 60.0, 22.0 ],
 									"style" : "",
 									"text" : "loadbang"
 								}
@@ -751,7 +932,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 1265.0, 572.0, 53.0, 22.0 ],
+									"patching_rect" : [ 920.0, 85.0, 53.0, 22.0 ],
 									"style" : "",
 									"text" : "radius 3"
 								}
@@ -764,7 +945,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 1253.0, 535.0, 77.0, 22.0 ],
+									"patching_rect" : [ 908.0, 48.0, 77.0, 22.0 ],
 									"style" : "",
 									"text" : "threshold 27"
 								}
@@ -773,13 +954,13 @@
 , 							{
 								"box" : 								{
 									"id" : "obj-16",
-									"linecount" : 2,
+									"linecount" : 7,
 									"maxclass" : "comment",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 930.0, 1334.0, 150.0, 33.0 ],
+									"patching_rect" : [ 542.0, 671.0, 191.0, 100.0 ],
 									"style" : "",
-									"text" : "amount of motino per cell (row major order)"
+									"text" : "amount of motino per cell (row major order). On the left, you can see the amount (scaled) of change as a greyscale color, and on the right you can see the numbers of the scaled change themselves."
 								}
 
 							}
@@ -791,7 +972,7 @@
 									"maxclass" : "outlet",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 866.0, 1313.0, 30.0, 30.0 ],
+									"patching_rect" : [ 521.0, 826.0, 30.0, 30.0 ],
 									"style" : ""
 								}
 
@@ -802,7 +983,7 @@
 									"maxclass" : "comment",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 659.0, 535.0, 150.0, 20.0 ],
+									"patching_rect" : [ 170.0, 17.0, 104.0, 20.0 ],
 									"style" : "",
 									"text" : "video to process"
 								}
@@ -817,7 +998,7 @@
 									"numinlets" : 0,
 									"numoutlets" : 1,
 									"outlettype" : [ "jit_matrix" ],
-									"patching_rect" : [ 603.0, 526.0, 30.0, 30.0 ],
+									"patching_rect" : [ 258.0, 39.0, 30.0, 30.0 ],
 									"style" : ""
 								}
 
@@ -829,7 +1010,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "jit_matrix", "" ],
-									"patching_rect" : [ 603.0, 580.0, 130.0, 22.0 ],
+									"patching_rect" : [ 258.0, 93.0, 130.0, 22.0 ],
 									"style" : "",
 									"text" : "jit.dimmap @invert 1 0"
 								}
@@ -842,7 +1023,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 427.0, 998.0, 96.0, 22.0 ],
+									"patching_rect" : [ 82.0, 511.0, 96.0, 22.0 ],
 									"style" : "",
 									"text" : "binaryOutput $1"
 								}
@@ -856,7 +1037,7 @@
 									"numoutlets" : 1,
 									"outlettype" : [ "int" ],
 									"parameter_enable" : 0,
-									"patching_rect" : [ 489.0, 961.0, 24.0, 24.0 ],
+									"patching_rect" : [ 144.0, 474.0, 24.0, 24.0 ],
 									"style" : ""
 								}
 
@@ -868,7 +1049,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 542.0, 993.0, 73.0, 22.0 ],
+									"patching_rect" : [ 197.0, 506.0, 73.0, 22.0 ],
 									"style" : "",
 									"text" : "diffScale $1"
 								}
@@ -883,7 +1064,7 @@
 									"numoutlets" : 2,
 									"outlettype" : [ "", "bang" ],
 									"parameter_enable" : 0,
-									"patching_rect" : [ 542.0, 961.0, 50.0, 22.0 ],
+									"patching_rect" : [ 197.0, 474.0, 50.0, 22.0 ],
 									"style" : ""
 								}
 
@@ -895,7 +1076,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 954.0, 1131.0, 49.0, 22.0 ],
+									"patching_rect" : [ 777.0, 661.0, 49.0, 22.0 ],
 									"style" : "",
 									"text" : "zl.iter 3"
 								}
@@ -908,7 +1089,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 945.0, 1178.0, 77.0, 22.0 ],
+									"patching_rect" : [ 768.0, 708.0, 77.0, 22.0 ],
 									"style" : "",
 									"text" : "set $1 $2 $3"
 								}
@@ -924,19 +1105,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 4,
 									"outlettype" : [ "list", "", "", "" ],
-									"patching_rect" : [ 938.0, 1222.0, 218.0, 92.0 ]
-								}
-
-							}
-, 							{
-								"box" : 								{
-									"id" : "obj-15",
-									"maxclass" : "newobj",
-									"numinlets" : 1,
-									"numoutlets" : 0,
-									"patching_rect" : [ 864.0, 1061.0, 34.0, 22.0 ],
-									"style" : "",
-									"text" : "print"
+									"patching_rect" : [ 761.0, 752.0, 218.0, 92.0 ]
 								}
 
 							}
@@ -947,7 +1116,7 @@
 									"numinlets" : 2,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 625.0, 992.0, 80.0, 22.0 ],
+									"patching_rect" : [ 280.0, 505.0, 80.0, 22.0 ],
 									"style" : "",
 									"text" : "diffThresh $1"
 								}
@@ -960,7 +1129,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 1,
 									"outlettype" : [ "bang" ],
-									"patching_rect" : [ 755.0, 998.0, 24.0, 24.0 ],
+									"patching_rect" : [ 410.0, 511.0, 24.0, 24.0 ],
 									"style" : ""
 								}
 
@@ -972,7 +1141,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 755.0, 1288.0, 80.0, 60.0 ]
+									"patching_rect" : [ 410.0, 801.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -983,7 +1152,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 644.0, 1288.0, 80.0, 60.0 ]
+									"patching_rect" : [ 299.0, 801.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -994,7 +1163,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 537.0, 1288.0, 80.0, 60.0 ]
+									"patching_rect" : [ 192.0, 801.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -1005,7 +1174,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 755.0, 1203.0, 80.0, 60.0 ]
+									"patching_rect" : [ 410.0, 716.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -1016,7 +1185,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 644.0, 1203.0, 80.0, 60.0 ]
+									"patching_rect" : [ 299.0, 716.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -1027,7 +1196,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 537.0, 1203.0, 80.0, 60.0 ]
+									"patching_rect" : [ 192.0, 716.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -1038,7 +1207,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 755.0, 1123.0, 80.0, 60.0 ]
+									"patching_rect" : [ 410.0, 636.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -1049,7 +1218,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 644.0, 1123.0, 80.0, 60.0 ]
+									"patching_rect" : [ 299.0, 636.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -1060,7 +1229,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 537.0, 1123.0, 80.0, 60.0 ]
+									"patching_rect" : [ 192.0, 636.0, 80.0, 60.0 ]
 								}
 
 							}
@@ -1071,7 +1240,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "jit_matrix", "" ],
-									"patching_rect" : [ 954.5, 1080.0, 185.0, 22.0 ],
+									"patching_rect" : [ 609.5, 593.0, 185.0, 22.0 ],
 									"style" : "",
 									"text" : "jit.matrix threshVal 1 char 100 75"
 								}
@@ -1084,7 +1253,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 11,
 									"outlettype" : [ "", "", "", "", "", "", "", "", "", "", "" ],
-									"patching_rect" : [ 695.0, 1041.0, 113.5, 22.0 ],
+									"patching_rect" : [ 350.0, 554.0, 113.5, 22.0 ],
 									"saved_object_attributes" : 									{
 										"filename" : "calculateDiff.js",
 										"parameter_enable" : 0
@@ -1098,13 +1267,13 @@
 , 							{
 								"box" : 								{
 									"id" : "obj-10",
-									"linecount" : 9,
+									"linecount" : 13,
 									"maxclass" : "comment",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 363.0, 1080.0, 150.0, 127.0 ],
+									"patching_rect" : [ 7.0, 328.0, 161.0, 181.0 ],
 									"style" : "",
-									"text" : "camera at 100 x 75\n\ncv.jit.threshold\nradius ~3\nthreshold ~27\n\ncalculateDiff.js\ndiffThresh ~ 70\ndiffScale ~ 7"
+									"text" : "Working notes while finding parameters, preserved for posterity. \n\ncamera at 100 x 75\n\ncv.jit.threshold\nradius ~3\nthreshold ~27\n\ncalculateDiff.js\ndiffThresh ~ 70\ndiffScale ~ 7"
 								}
 
 							}
@@ -1116,7 +1285,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 954.5, 555.0, 213.0, 22.0 ],
+									"patching_rect" : [ 609.5, 68.0, 213.0, 22.0 ],
 									"style" : ""
 								}
 
@@ -1129,7 +1298,7 @@
 									"numoutlets" : 2,
 									"outlettype" : [ "", "bang" ],
 									"parameter_enable" : 0,
-									"patching_rect" : [ 625.0, 961.0, 50.0, 22.0 ],
+									"patching_rect" : [ 280.0, 474.0, 50.0, 22.0 ],
 									"style" : ""
 								}
 
@@ -1141,7 +1310,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 1040.0, 650.0, 310.0, 271.0 ]
+									"patching_rect" : [ 695.0, 163.0, 310.0, 271.0 ]
 								}
 
 							}
@@ -1152,7 +1321,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "jit_matrix", "" ],
-									"patching_rect" : [ 1097.5, 618.0, 86.0, 22.0 ],
+									"patching_rect" : [ 752.5, 131.0, 86.0, 22.0 ],
 									"style" : "",
 									"text" : "cv.jit.threshold"
 								}
@@ -1165,7 +1334,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 732.0, 687.0, 179.0, 165.0 ]
+									"patching_rect" : [ 387.0, 200.0, 179.0, 165.0 ]
 								}
 
 							}
@@ -1176,7 +1345,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "jit_matrix", "" ],
-									"patching_rect" : [ 745.0, 622.0, 73.0, 22.0 ],
+									"patching_rect" : [ 400.0, 135.0, 73.0, 22.0 ],
 									"style" : "",
 									"text" : "jit.rgb2luma"
 								}
@@ -1189,7 +1358,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 2,
 									"outlettype" : [ "", "" ],
-									"patching_rect" : [ 445.0, 623.0, 179.0, 165.0 ]
+									"patching_rect" : [ 100.0, 136.0, 179.0, 165.0 ]
 								}
 
 							}
@@ -1383,7 +1552,7 @@
 , 							{
 								"patchline" : 								{
 									"destination" : [ "obj-7", 0 ],
-									"midpoints" : [ 741.5, 864.0, 1026.0, 864.0, 1026.0, 615.0, 1107.0, 615.0 ],
+									"midpoints" : [ 396.5, 377.0, 681.0, 377.0, 681.0, 128.0, 762.0, 128.0 ],
 									"source" : [ "obj-5", 0 ]
 								}
 
@@ -1442,6 +1611,7 @@
 , 							{
 								"patchline" : 								{
 									"destination" : [ "obj-14", 0 ],
+									"midpoints" : [ 704.5, 471.0, 576.0, 471.0, 576.0, 588.0, 619.0, 588.0 ],
 									"order" : 1,
 									"source" : [ "obj-8", 0 ]
 								}
@@ -1450,6 +1620,7 @@
 , 							{
 								"patchline" : 								{
 									"destination" : [ "obj-25", 0 ],
+									"midpoints" : [ 704.5, 471.0, 914.5, 471.0 ],
 									"order" : 0,
 									"source" : [ "obj-8", 0 ]
 								}
@@ -1702,7 +1873,7 @@
 									"originallength" : [ 0.0, "ticks" ],
 									"timestretch" : [ 0 ],
 									"quality" : [ "basic" ],
-									"speed" : [ 0.5016 ],
+									"speed" : [ 0.4512 ],
 									"originaltempo" : [ 120.0 ],
 									"formant" : [ 1.0 ],
 									"pitchshift" : [ 1.0 ],
@@ -1782,8 +1953,20 @@
 						"tags" : "",
 						"style" : "",
 						"subpatcher_template" : "",
-						"visible" : 1,
 						"boxes" : [ 							{
+								"box" : 								{
+									"id" : "obj-3",
+									"linecount" : 4,
+									"maxclass" : "comment",
+									"numinlets" : 1,
+									"numoutlets" : 0,
+									"patching_rect" : [ 229.0, 69.0, 221.0, 60.0 ],
+									"style" : "",
+									"text" : "Patch for getting camera input, straight copied from the jit.grab help page. This is downsampled to 100 x 75 for both speed and easier debugging."
+								}
+
+							}
+, 							{
 								"box" : 								{
 									"id" : "obj-4",
 									"maxclass" : "newobj",
@@ -1820,18 +2003,6 @@
 									"outlettype" : [ "bang" ],
 									"patching_rect" : [ 40.217834, 92.0, 30.0, 30.0 ],
 									"style" : ""
-								}
-
-							}
-, 							{
-								"box" : 								{
-									"id" : "obj-134",
-									"maxclass" : "newobj",
-									"numinlets" : 1,
-									"numoutlets" : 0,
-									"patching_rect" : [ 440.0, 161.0, 34.0, 22.0 ],
-									"style" : "",
-									"text" : "print"
 								}
 
 							}
@@ -2559,6 +2730,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-3", 0 ],
+					"midpoints" : [ 463.188751, 198.0, 291.0, 198.0, 291.0, 141.0, 81.5, 141.0 ],
 					"order" : 1,
 					"source" : [ "obj-2", 0 ]
 				}
@@ -2665,6 +2837,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-4", 0 ],
+					"midpoints" : [ 569.188721, 215.0, 792.0, 215.0, 792.0, 123.0, 841.566284, 123.0 ],
 					"source" : [ "obj-39", 1 ]
 				}
 
