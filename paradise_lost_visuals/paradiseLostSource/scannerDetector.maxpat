@@ -38,12 +38,25 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-19",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 13.0, 428.0, 108.0, 22.0 ],
+					"style" : "",
+					"text" : "append loop1.wav"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-18",
 					"linecount" : 7,
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 1141.377441, 363.0, 160.0, 100.0 ],
+					"patching_rect" : [ 1141.377441, 363.0, 163.0, 100.0 ],
 					"style" : "",
 					"text" : "When the motion in the bottom right corner is below a threshold, pitchshift down an octave. The threshold is set so that the pitchshift only occurs when there is little to no motion."
 				}
@@ -756,7 +769,6 @@
 						"tags" : "",
 						"style" : "",
 						"subpatcher_template" : "",
-						"visible" : 1,
 						"boxes" : [ 							{
 								"box" : 								{
 									"id" : "obj-46",
@@ -777,7 +789,7 @@
 									"maxclass" : "comment",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 589.0, 485.0, 299.0, 87.0 ],
+									"patching_rect" : [ 589.0, 485.0, 301.0, 87.0 ],
 									"style" : "",
 									"text" : "This is the thresholded matrix that is read by the js object. I couldn't find the way to get matrix input from an inlet in js so I used this  hack instead - instead of processing output when a matrix message is recieved, the script remembers this matrix and reads directly from it on a bang. "
 								}
@@ -1861,9 +1873,9 @@
 					"clipheight" : 91.0,
 					"data" : 					{
 						"clips" : [ 							{
-								"filename" : "/Users/avneeshsarwate/Downloads/403307__gis-sweden__totally-unedited-beat-in-c.wav",
+								"filename" : "loop1.wav",
 								"filekind" : "audiofile",
-								"loop" : 1,
+								"loop" : 0,
 								"content_state" : 								{
 									"slurtime" : [ 0.0 ],
 									"originallengthms" : [ 0.0 ],
@@ -1873,7 +1885,7 @@
 									"originallength" : [ 0.0, "ticks" ],
 									"timestretch" : [ 0 ],
 									"quality" : [ "basic" ],
-									"speed" : [ 0.4512 ],
+									"speed" : [ 1.0 ],
 									"originaltempo" : [ 120.0 ],
 									"formant" : [ 1.0 ],
 									"pitchshift" : [ 1.0 ],
@@ -2709,6 +2721,15 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-110", 0 ],
+					"order" : 0,
+					"source" : [ "obj-117", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-19", 0 ],
+					"order" : 1,
 					"source" : [ "obj-117", 0 ]
 				}
 
@@ -2724,6 +2745,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
 					"source" : [ "obj-165", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-25", 0 ],
+					"source" : [ "obj-19", 0 ]
 				}
 
 			}
@@ -3059,9 +3087,9 @@
 		}
 ,
 		"dependency_cache" : [ 			{
-				"name" : "403307__gis-sweden__totally-unedited-beat-in-c.wav",
-				"bootpath" : "~/Downloads",
-				"patcherrelativepath" : "../../../Downloads",
+				"name" : "loop1.wav",
+				"bootpath" : "~/performancePlatform/paradise_lost_visuals/paradiseLostSource",
+				"patcherrelativepath" : ".",
 				"type" : "WAVE",
 				"implicit" : 1
 			}
