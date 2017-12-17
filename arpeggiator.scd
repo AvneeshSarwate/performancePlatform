@@ -1,10 +1,9 @@
 (//tempoclock with beat set to 1 cycle length
-var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi;
+var midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, noteForwardHandler, channelToMidiChannel, onNotes, onNotesList, channelToMidi, noteDuration, midiChanToDur, lock;
 
-//MIDIClient.init; TODO: move this into masterTempoClock.scd
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
 midiOut.latency = 0;
-pythonOSCport = NetAddr("localhost", 34345);
+pythonOSCport = NetAddr("localhost", 34567);
 
 //TODO: implement tempoclock per channel (with synched beats)
 //masterTempoClock = TempoClock.new(1);
@@ -14,35 +13,72 @@ channelInd = Dictionary();
 channelToMidiChannel = Dictionary();
 tempoClockMap = Dictionary();
 loopStartFunctions = Dictionary();
+midiChanToDur = Dictionary();
+lock = Semaphore(1);
 
-//TODO: THIS (onNotes, onNotesList) WILL NOT WORK FOR MULTIPLE MIDI CHANNELS AT ONCE (the rest probably will, but check it)
-onNotes = Dictionary();
-onNotesList = List();
+onNotes = Dictionary.new;
+(0..16).do({|i| onNotes[i] = Dictionary.new});
+onNotesList = Dictionary.new;
+(0..16).do({|i| onNotesList[i] = List()});
 
-//msg is [addr, note, vel, onOff]
+noteDuration = 0.25;
+(0..3).do({|i| midiChanToDur[i] = 0.25});
+
+//TODO - should this be midiChannel or arpeggiatorChannelInd?
+//msg is [addr, note, vel, onOff, midiChannel]
 noteForwardHandler = {|msg, time, addr, recvPort|
+    var midiChan = msg[4].asInt;
 	["onOff message", msg].postln;
 	if(msg[3].asString == "on",
 		{
-			onNotes[msg[1].asInt] = msg[2].asInt;
-			onNotesList.add(msg[1].asInt);
-			onNotesList.sort();
+            onNotes[midiChan][msg[1].asInt] = msg[2].asInt;
+			onNotesList[midiChan].add(msg[1].asInt);
+			onNotesList[midiChan].sort();
 			["FWD ON", msg[1].asInt].postln;
 		},
 		{
-			onNotes.removeAt(msg[1].asInt);
-			onNotesList.remove(msg[1].asInt);
-			onNotesList.sort();
+			onNotes[midiChan].removeAt(msg[1].asInt);
+			onNotesList[midiChan].remove(msg[1].asInt);
+			onNotesList[midiChan].sort();
 			["FWD OFF", msg[1].asInt].postln;
 		}
 	);
 };
 OSCFunc(noteForwardHandler, "/forwardNotes");
 
+//TODO - should this be midiChannel or arpeggiatorChannelInd?
+//msg is [addr, midiChannel, [note, vel, onOff.. ]
+noteForwardHandler = {|msg, time, addr, recvPort|
+
+    var midiChan = msg[0].asInt;
+	["onOff message", msg].postln;
+    lock.wait;
+    (0..(((msg.size-2)/3)-1)).do({|i|
+        var ind = (i*3)+2;
+        ["CHORD PIECE", ind].postln;
+        if(msg[ind+2].asString == "on",å
+            {
+                onNotes[midiChan][msg[ind].asInt] = msg[ind+1].asInt;
+                onNotesList[midiChan].add(msg[ind].asInt);
+                onNotesList[midiChan].sort();
+            },
+            {
+                onNotes[midiChan].removeAt(msg[ind].asInt);
+                onNotesList[midiChan].remove(msg[ind].asInt);
+                onNotesList[midiChan].sort();
+            }
+        );
+    });
+    "DONE UPDATING CHORD".postln;
+    lock.signal;
+};
+OSCFunc(noteForwardHandler, "/forwardChord");
+
 
 //msg[1] is the pydal channel being played on
 //msg[2] is the string pattern getting played
 //msg[3] is the midi channel being played on
+//msg[4] is the total pattern length
 startPattern = {|msg, time, addr, recvPort|
 	//parse string to pattern
 	var patternList, loopFrac, ind, startDelay, chanClock;
@@ -51,7 +87,7 @@ startPattern = {|msg, time, addr, recvPort|
 	channelToMidiChannel[msg[1]] = msg[3].asInt;
 
 	//save pattern to map
-	channelPatternMap[msg[1]] = timeListToDurationList.(patternList);
+    channelPatternMap[msg[1]] = timeListToDurationList.(patternList, msg[4].asFloat);
 	chanBackupPatMap[msg[1]] = [];
 
 	//create channel tempo clock if needed
@@ -83,23 +119,26 @@ playStepGenerator = {|i|
 	var playStep = {
 		//if list len == 0, exit
 		var retVal = nil;
+
+        //if last step (or < 20 ms from end?), set backupPat to actual pattern
+        if((channelInd[i] == 0) && (chanBackupPatMap[i].size > 0), {
+            //"LOADED BACKUP".postln;
+            channelPatternMap[i] = chanBackupPatMap[i]
+        });
+
 		if(channelPatternMap[i].size != 0, {
 			var ind = channelInd[i];
 			var patList = channelPatternMap[i];
 			var step = patList[ind];
 			var dur = step[0];
 
+            lock.wait;
 			step[1].do({|samp| sendSample.(samp, channelToMidiChannel[i], ind)});
+            lock.signal;
 			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
-			if(ind == (patList.size-2), {pythonOSCport.sendMsg("/arpeggiatorGetUpdate-"++i)});
-
-			//if last step (or < 20 ms from end?), set backupPat to actual pattern
-			if(ind == (patList.size-1), {
-				//"DID BACKUP".postln;
-				channelPatternMap[i] = chanBackupPatMap[i]
-			});
+			if(ind == (patList.size-1), {pythonOSCport.sendMsg("/arpeggiatorGetUpdate-"++i)});
 
 			//update indexes appropriately
 			channelInd[i] = (ind+1)%patList.size;
@@ -117,10 +156,12 @@ playStepGenerator = {|i|
 
 //msg[1] is the pydal channel being played on
 //msg[2] is the backup pattern
+//msg[3] is the midi channel being played on
+//msg[4] is the total pattern length
 recieveBackupPattern = {|msg, time, addr, recvPort|
 	//parse string and save it to backupmap
 	//["GOT BACKUP", msg[2]].postln;
-	chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString));
+    chanBackupPatMap[msg[1]] = timeListToDurationList.(patternRead.(msg[2].asString), msg[4].asFloat);
 };
 OSCFunc(recieveBackupPattern, "/arpeggiatorSendUpdate");
 
@@ -129,6 +170,7 @@ OSCFunc(recieveBackupPattern, "/arpeggiatorSendUpdate");
 stopPattern = {|msg, time, addr, recvPort|
 	if(channelPatternMap.keys.includes(msg[1]), {channelPatternMap[msg[1]] = []});
 	["STOP PATTERN", channelPatternMap.keys.includes(msg[1]), msg[1]].postln;
+    tempoClockMap[msg[1]].clear();
 };
 OSCFunc(stopPattern, "/arpeggiatorStop");
 
@@ -160,6 +202,11 @@ masterClockBeat = {|msg, time, addr, recvPort|
 };
 OSCFunc(masterClockBeat, "/masterClockBeat");
 
+// msg[1] is duration, msg[2] is midi channel for that duration
+OSCFunc({|msg, time, addr, recvPort|
+    noteDuration = msg[1].asFloat;
+    midiChanToDur[msg[2].asInt] = msg[1].asFloat;
+}, "/noteDuration");
 
 patternRead = {|patternStr|
 	var patternList = List.new;
@@ -172,35 +219,48 @@ patternRead = {|patternStr|
 	patternList
 };
 
-timeListToDurationList = {|oldList|
-	var pList = List.new;
-	if(oldList.size > 1,
-		{
-			(0..oldList.size-2).do({|i|
-				pList.add([oldList[i+1][0] - oldList[i][0], oldList[i][1]]);
-			});
+timeListToDurationList = {|oldList, totalLength|
+    var pList = List.new;
+    if(oldList.size > 1,
+        {
+            (0..oldList.size-2).do({|i|
+                pList.add([oldList[i+1][0] - oldList[i][0], oldList[i][1]]);
+            });
 
-	});
-	pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
-	pList
+    });
+    pList.add([totalLength - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
+
+    pList
 };
 
 sendSample = {|noteStr, midiChannel, ind|
-	[noteStr, ind, noteStr.isNil].postln;
-	if(onNotesList.size > 0, {
+	[noteStr, ind, noteStr.isNil, midiChannel.isNil].postln;
+    if((onNotesList[midiChannel].size > 0) && (noteStr.asSymbol != '~'), {
 		var noteInd = noteStr.asInt;
-		var newNote = onNotesList[noteInd % onNotesList.size];
-		var newNoteVel = onNotes[newNote];
-
+        var newNote = onNotesList[midiChannel][noteInd % onNotesList[midiChannel].size];
+		var newNoteVel = onNotes[midiChannel][newNote];
+        [noteInd, newNote, newNoteVel].postln;
 		//todo - send cc map stuff if applicable
 		Task({
 			midiOut.noteOn(midiChannel, newNote, newNoteVel); //maybe add velocity based on gain?
-			0.25.wait;
+			//noteDuration.wait;
+            midiChanToDur[midiChannel].wait;
 			midiOut.noteOff(midiChannel, newNote, newNoteVel);
 		}).play;
 	});
 };
 
+
 )
 //===========================================================================
 //scratch code below
+
+
+(
+
+a = List.new;
+a.add(5);
+a.add(6);
+a.remove(5);
+a.size
+)

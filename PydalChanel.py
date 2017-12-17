@@ -6,11 +6,11 @@ import phrase
 
 class Pydal:
 	
-	def __init__(self):
+	def __init__(self, port=('127.0.0.1', 34345)):
 		self.superColliderClient = OSC.OSCClient()
 		self.superColliderClient.connect( ('127.0.0.1', 57120) ) 
 
-		self.superColliderServer = OSC.OSCServer(('127.0.0.1', 34345))
+		self.superColliderServer = OSC.OSCServer(port)
 		self.serverThread = threading.Thread(target=self.superColliderServer.serve_forever)
 		self.serverThread.daemon = False
 		self.serverThread.start()
@@ -25,7 +25,9 @@ class Pydal:
 		return PydalChannel(num, self.superColliderServer, self.superColliderClient)
 
 	def newArpeggiatorChannel(self, midiChannel):
-		return ArpeggiatorChannel(self.numArpeggiatorChannels, self.superColliderServer, self.superColliderClient, midiChannel)
+		arpChan = ArpeggiatorChannel(self.numArpeggiatorChannels, self.superColliderServer, self.superColliderClient, midiChannel)
+		self.numArpeggiatorChannels += 1
+		return arpChan
 
 	#num is the BPM
 	def setTempo(self, num):
@@ -41,17 +43,18 @@ def read(rawStr, frac = 1.0, symbolKey = 'pydal'):
 	return node
 	#return PydalStringPattern(rawStr)
 
-pydalInstance = Pydal()
+#pydalInstance = Pydal()
+def getInstance(port=('127.0.0.1', 34345)):
+	return Pydal(port)
 
+# def tempo(num):
+# 	pydalInstance.setTempo(num)
 
-def tempo(num):
-	pydalInstance.setTempo(num)
+# def newChannel(num):
+# 	return pydalInstance.newChannel(num)
 
-def newChannel(num):
-	return pydalInstance.newChannel(num)
-
-def end():
-	pydalInstance.end()
+# def end():
+# 	pydalInstance.end()
 
 
 #this is the return object from a Pydal "function"
@@ -103,6 +106,7 @@ class PydalChannel:
 		self.superColliderServer = server
 		self.superColliderClient = client
 		self.superColliderServer.addMsgHandler("/pydalGetUpdate-"+str(self.num), self._update)
+		self.isPlaying = False
 
 
 	def _update(self, *args):
@@ -112,19 +116,26 @@ class PydalChannel:
 		msg.setAddress("/pydalSendUpdate")
 		msg.append(self.num)
 		msg.append(renderStr)
+		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
-	def play(self, pat):
+	def play(self, pat, metaInfo=None):
 		self.pydalPattern = pat
+		self.isPlaying = True
 		renderList = self.pydalPattern.render()
 		renderStr = ";".join(str(t[0]) + "-" + ",".join(t[1]) for t in renderList)
 		msg = OSC.OSCMessage()
 		msg.setAddress("/pydalPlay")
 		msg.append(self.num)
 		msg.append(renderStr)
+		msg.append(pat.frac)
+		msg.append(pat.type)
+		if metaInfo is not None:
+			msg.append(metaInfo)
 		self.superColliderClient.send(msg)
 
 	def stop(self):
+		self.isPlaying = False
 		msg = OSC.OSCMessage()
 		msg.setAddress("/pydalStop")
 		msg.append(self.num)
@@ -150,6 +161,7 @@ class ArpeggiatorChannel:
 		msg.append(self.num)
 		msg.append(renderStr)
 		msg.append(self.midiChannel)
+		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
 	def play(self, pat):
@@ -161,6 +173,7 @@ class ArpeggiatorChannel:
 		msg.append(self.num)
 		msg.append(renderStr)
 		msg.append(self.midiChannel)
+		msg.append(self.pydalPattern.frac)
 		self.superColliderClient.send(msg)
 
 	def stop(self):
@@ -169,6 +182,31 @@ class ArpeggiatorChannel:
 		msg.append(self.num)
 		msg.append(self.midiChannel)
 		self.superColliderClient.send(msg)
+
+
+class LoopPattern:
+
+	def __init__(self, loop):
+		self.loop = loop #[pre-note-wait, note, vel, chan, "on/off/timeafterlasthit"]
+		self.frac = round(sum([hit[0] for hit in loop]))
+		self.type = "loop"
+
+	# Pydal sequencer assumes list is a timestamp list (not hit duration list)  and then converts 
+	# it to a hit list where the time associated with a hit is the time between it and the NEXT hit.
+	# Also, it assumes first event happens at 0.0 time (need to add a ~ event if this is not the case)
+	@staticmethod
+	def hitListToTimestampList(loop):
+		newLoop = copy.deepcopy(loop)
+		newLoop.pop()   #remove timeAfterLastHit
+		for i in range(1, len(newLoop)): #convertToTimestampLoop
+			newLoop[i][0] += newLoop[i-1][0]
+		if newLoop[0][0] != 0: #add 0.0 time starting event
+			newLoop.insert(0, [0, 0, 0, 0, "~"])
+		return newLoop
+
+	def render(self):
+		newLoop = self.hitListToTimestampList(self.loop)
+		return [[hit[0], {"^".join([str(h) for h in hit[1:]])}] for hit in newLoop]
 
 
 # TODO: probably want this implementation 

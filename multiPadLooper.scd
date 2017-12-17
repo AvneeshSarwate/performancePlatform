@@ -1,23 +1,101 @@
+//env vars for control
 (
-var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton;
+~truncateLoop = false;
+)
+
+(
+var launchpadOut, padTL, padBL, padTR, padBR, colorBL1, colorBR1, colorTL1, colorTR1, colorBL2, colorBR2, colorTL2, colorTR2, colorON, pads, padMap, madePadList, scales, roots, padOn, padOff, setPadLights, transposes, makePadList, indToNote_, indToNote, midiOut, launchPad, tempoClock, interruptLoopButtons, controlChanInd, tapTempoSetButton, tapTempoToggle, recordButton, lastTap, playMetronome, recordingMetronome, metronomeFunc, preRecordCount, preRecordLength, recordBuffer, color1, tlBanks, trBanks, blBanks, brBanks, banks, bankMap, recordingState, bankSet, bankToSaveTo, bankToRecording, recordColor, tempLoopTask, tempLoopString, createRecordedTask, playingBanks, metronomeFlashTask, recordingInterim, resetRecordingState, interruptLooping, controlChanButton, arrowButtons, color2, up, down, left, right, padsByChannel, recordingStartBeat, recordingEndBeat, truncateLoop, quantize, algOrderList, pythonOSCport, algResponseHandler, algButtons, quantizationLevels, algBanks, liveCodeHandler, newKeyButton, masterClockOSCport, masterClockTempoHandler, onDeckBuffers, algChannelsInfo, recieveBuffer, startChannel, stringToBuf, stopChannel, rootScaleHandler, newKeysTransposes, newKeysPadIndToNote, newKeysSetPadLights, playingNewKeys, newKeysChan, hitListToNoteList, noteListToHitList, quantizeButton, quantizeColor, quantized, controlHandler, masterClockBeatHandler, setBankMelody, receiveScene, tempoalignTempoButton, alignTempo, buttonForwarding, buttonForwardingButton, metronomeOut, padIndToColor, moduleLights, controlHandlerWrapper, processPort;
+
+//light switching variables
+var setLight, ccLights, padColorState, cycleLight, lightIndex, cycleLight_BUTTON;
 
 //MIDIClient.init;
 //MIDIIn.connectAll;
 launchpadOut = MIDIOut.newByName("Launchpad Pro", "Standalone Port");
 launchpadOut.latency = 0;
 midiOut = MIDIOut.newByName("IAC Driver", "Bus 2");
+metronomeOut = MIDIOut.newByName("IAC Driver", "Bus 3");
 midiOut.latency = 0;
+metronomeOut.latency = 0;
 pythonOSCport = NetAddr("localhost", 13371);
 masterClockOSCport = NetAddr("localhost", 57120);
+processPort = NetAddr("localhost", 12345);
+
+
+//----------------------------------------------
+//light switching variables
+cycleLight_BUTTON = 95;
+padColorState = Dictionary.new;
+~padColors = padColorState;
+ccLights = List.new;
+(1..8).do({|i|
+    ccLights.add(i);
+    ccLights.add(90+i);
+    ccLights.add(i*10);
+    ccLights.add((i*10)+9);
+});
+
+setLight = {|note, color, lightIndexOverride=false|
+    if((~lightIndex == lightIndex) || lightIndexOverride, {
+        if(ccLights.includes(note),
+            {launchpadOut.control(0, note, color)},
+            {launchpadOut.noteOn(0, note, color)}
+        );
+    });
+    padColorState[note] = color;
+};
+(1..98).do({|note|
+    if(ccLights.includes(note),
+        {launchpadOut.control(0, note, 0)},
+        {launchpadOut.noteOn(0, note, 0)}
+    );
+    padColorState[note] = 0;
+});
+cycleLight = {
+    //TODO: change name of this port to something like SCOSCport
+    Task({
+        masterClockOSCport.sendMsg("/lightsChange", (~lightIndex+1)%~lightIndexes.size);
+        0.01.wait;
+        ~lightIndex = (~lightIndex+1)%~lightIndexes.size;
+    }).play;
+};
+
+//msg[1] is lightIndex
+OSCFunc({|msg, time, addr, recvPort|
+    if(msg[1].asInt == lightIndex, {
+        var colorStateLog = List.new(100);
+        (0..99).do({|i| colorStateLog.add(0)});
+        padColorState.keys.do({|key| setLight.(key, padColorState[key], true);
+            colorStateLog[key]=padColorState[key]});
+        ["CHANGING MULTILOOP LIGHTS", msg[1], colorStateLog].postln;
+    });
+
+}, "/lightsChange");
+lightIndex = if(~lightIndexes.size == 0,
+    {
+        ~lightIndexes.add(0);
+        0
+    },
+    {
+        ~lightIndexes.add(~lightIndexes.maxItem+1);
+        ~lightIndexes.maxItem
+    }
+);
+~lightIndex = lightIndex;
+["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
+//TODO - add ~lightIndex == lightIndex condition to all launchpad note/cc hanlders
+//----------------------------------------------
+
+
+
 
 
 //OPTIONS
 preRecordLength = 0;
-truncateLoop = true;
+~truncateLoop = true;
 quantizationLevels = [3,4];
 
 
-algButtons = [95];
 
 
 a = [1, 2, 3, 4];
@@ -63,6 +141,8 @@ colorBL2 = 72;
 colorBR2 = 13;
 color2 = [colorTL2, colorTR2, colorBL2, colorBR2];
 
+padIndToColor = Dictionary.new();
+
 colorON = 13;
 
 tlBanks = [50, 60, 70, 80];
@@ -76,11 +156,11 @@ bankSet.addAll(banks.flatten(1));
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
 bankMap = Dictionary.new();
 (0..3).do({|i| (0..3).do({|j|
-	//launchpadOut.control(0, j, color1[i]);
+	//setLight.(j, color1[i]);
 	bankMap.put(banks[i][j], [j, i, false, nil, nil, nil, nil]); //TODO: reverse i,j here and everywhere else
 })});
 z = bankMap;
-bankSet.do({|i| launchpadOut.control(0, i, 0)});
+bankSet.do({|i| setLight.(i, 0)});
 playingBanks = Set.new();
 algBanks = List.new();
 
@@ -97,7 +177,7 @@ scales = [
 	[0, 2, 3, 5, 7, 8, 10], //BL
 	[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], //BR
 ];
-roots = [60, 60, 36, 36];
+roots = [60, 60, 48, 36];
 
 indToNote_ = {|ind, scale, root, trans|
 	root + scale[(ind+trans)%scale.size()] + (((ind+trans) / scale.size).floor * 12);
@@ -147,11 +227,23 @@ newKeysSetPadLights = {|ctrlChanInd|
 			var isRoot = (note%12) == (root%12);
 			var floorRoot = note - (((note%12) - (root%12)) % 12);
 			var isInScale = scale.collect({|n| floorRoot + n}).includes(note);
-			["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
-			if(isInScale && isRoot.not, {launchpadOut.noteOn(0, ind, color1[ctrlChanInd])});
-			if(isRoot, {launchpadOut.noteOn(0, ind, color2[ctrlChanInd])});
-			if(isInScale.not, {launchpadOut.noteOff(0, ind, color2[ctrlChanInd])});
-		})
+            var moduleLight;
+			//["LIGHT", note, isInScale, isRoot, scale.collect({|n| floorRoot + n}).includes(note), scale.collect({|n| floorRoot + n})].postln;
+			if(isInScale && isRoot.not, {
+				setLight.(ind, color1[ctrlChanInd]);
+				padIndToColor[ind] = color1[ctrlChanInd];
+			});
+			if(isRoot, {
+				setLight.(ind, color2[ctrlChanInd]);
+				padIndToColor[ind] = color2[ctrlChanInd];
+			});
+			if(isInScale.not, {
+				setLight.(ind, 0);
+				padIndToColor[ind] = 0;
+			});
+            moduleLight = ~moduleLightsPerChannel[ctrlChanInd][ind];
+            if(moduleLight.isNil.not, {setLight.(ind, moduleLight)});
+		});
 	});
 };
 //---------------------------------------------------------------------------------------------
@@ -171,14 +263,14 @@ left = 94;
 
 interruptLoopButtons = [1, 2, 3, 4];
 interruptLooping = [false, false, false, false, false];
-launchpadOut.control(0, 1, colorTL1);
-launchpadOut.control(0, 2, colorTR1);
-launchpadOut.control(0, 3, colorBL1);
-launchpadOut.control(0, 4, colorBR1);
+setLight.(1, colorTL1);
+setLight.(2, colorTR1);
+setLight.(3, colorBL1);
+setLight.(4, colorBR1);
 
 controlChanInd = 0;
 controlChanButton = 8;
-launchpadOut.control(0, controlChanButton, color1[controlChanInd]);
+setLight.(controlChanButton, color1[controlChanInd]);
 
 onDeckBuffers = List.fill(16, {nil;});
 
@@ -191,7 +283,8 @@ setPadLights = {|padMIDIs, c1, c2, padInd|
 	(0..15).do({|i|
 		var col;
 		if(((i+transposes[padInd]) % scales[padInd].size) == 0, {col = c2}, {col = c1});
-		launchpadOut.noteOn(0, padMIDIs[i], col);
+		setLight.(padMIDIs[i], col);
+		padIndToColor[padMIDIs[i]] = col;
 	});
 };
 
@@ -204,9 +297,9 @@ launchPad = MIDIClient.sources.select({|elem| (elem.name == "Standalone Port")
 	&& (elem.device == "Launchpad Pro")})[0];
 [launchPad, MIDIClient.sources[2]].postln;
 a = {|vel, note, chan, port|
-	if(chan == 0, {
+    if((chan == 0) && (~lightIndex == lightIndex), {
+        //["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 		if(pads.includes(note), {
-			//TODO newKeys - new note map, new channel
 			var chan, newNote;
 			if(playingNewKeys,
 				{
@@ -220,7 +313,7 @@ a = {|vel, note, chan, port|
 				}
 			);
 			if(buttonForwarding && (controlChanInd == chan),
-				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "on")},
+				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "on", note)},
 				{midiOut.noteOn(chan, newNote, vel)}
 			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "on"])});
@@ -230,7 +323,8 @@ a = {|vel, note, chan, port|
 padOn = MIDIFunc.noteOn(a, nil, nil, launchPad.uid);
 
 b = {|vel, note, chan, port|
-	if(chan == 0, {
+	if((chan == 0) && (~lightIndex == lightIndex), {
+        //["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex].postln;
 		if(pads.includes(note), {
 			var chan, newNote;
 			if(playingNewKeys,
@@ -246,7 +340,7 @@ b = {|vel, note, chan, port|
 			);
 
 			if(buttonForwarding && (controlChanInd == chan),
-				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "off")},
+				{pythonOSCport.sendMsg("/buttonForwarding", chan, newNote, vel, "off", note)},
 				{midiOut.noteOff(chan, newNote, vel)}
 			);
 			if(recordingMetronome, {recordBuffer.add([tempoClock.beats, newNote, vel, chan, "off"])});
@@ -338,7 +432,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	var melodyEndingBeat;
 
 
-	recBuf.do({|hit| /*[hit[0], startBeat].postln;*/ if(hit[0] < startBeat, {hit[0] = startBeat}) });
+	recBuf.do({|hit| if(hit[0] < startBeat, {hit[0] = startBeat}) });
 	recBuf.do({|elem|
 		if(elem[4] == "on",
 			{hangingNotes.add([elem[1], elem[3]])},
@@ -348,7 +442,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
 	melodyEndingBeat = recBuf[recBuf.size-1][0].ceil;
 
-	if(truncateLoop,
+	if(~truncateLoop,
 		{timeAfterLastHit = (recBuf[recBuf.size-1][0].ceil - recBuf[recBuf.size-1][0])},
 		{timeAfterLastHit = endBeat - recBuf[recBuf.size-1][0]}
 	);
@@ -414,7 +508,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 	//TODO - something still messed up with long held notes
 	//TOGGLE QUANTIZATION HERE
 	if(quantized, {
-		var loopDur = if(truncateLoop,  melodyEndingBeat - startBeat, endBeat - startBeat);
+		var loopDur = if(~truncateLoop,  melodyEndingBeat - startBeat, endBeat - startBeat);
 		var maxEnd = 0;
 
 		["timeAFterLastHit", startBeat, endBeat, melodyEndingBeat].postln;
@@ -435,7 +529,7 @@ quantize = {|oldRecBuf, quantDivArray, startBeat, endBeat|
 
 	timeAfterLastHit.postln;
 
-	//recBuf.do({|hit| if(true/*hit[4] == "on"*/, {["HIT TIME", hit[4], hit[0]].postln})});
+	//recBuf.do({|hit| if(true/*hit[4] == "on", {["HIT TIME", hit[4], hit[0]].postln})});
 
 
 	recBuf.add([timeAfterLastHit, 0, 0, 0, "timeAfterLastHit"]); //xtra vals to simlpify save/load serialization
@@ -496,7 +590,7 @@ r = createRecordedTask;
 OSCFunc({|msg, time, addr, recvPort|
 	//msg[1] is the new BEAT DURATION (not tempo)
 	tempoClock = TempoClock.new(1/msg[1], 0);
-	t = tempoClock;
+	//t = tempoClock;
 	tempoClock.schedAbs(1, metronomeFunc);
 	"MULTILOOP ONE SHOT".postln;
 }, "/masterClockBeat").oneShot;
@@ -508,14 +602,14 @@ tapTempoSetButton = 5;
 tapTempoToggle = 6;
 recordButton = 7;
 recordColor = 5;
-launchpadOut.control(0, recordButton, recordColor);
-launchpadOut.noteOff(0, quantizeButton, quantizeColor);
+setLight.(recordButton, recordColor);
+setLight.(quantizeButton, 0);
 lastTap = TempoClock.beats;
 playMetronome = false;
 recordingMetronome = false;
 recordingInterim = false;
 preRecordCount = 0;
-//0: not recording, 1: "record" hit, 2: bank specified, 3: pre record metronome, 4: actually recording notes
+//0: not recording, 1: pre record metronome, 2: recording notes 3:stopped recording and tempBuffer full
 recordingState = 0;
 bankToSaveTo = 0;
 bankToRecording = Dictionary.new();
@@ -529,22 +623,21 @@ controlHandler = {|vel, note, chan, port|
 		var now = TempoClock.beats;
 		if((now - lastTap) < 2, {masterClockOSCport.sendMsg("/uploadTempo", now - lastTap, alignTempo)});
 		lastTap = now;
-		//TODO - send tap info to master clock
 	});
 	if((note == tempoalignTempoButton) && (vel == 127), {
 		alignTempo = alignTempo.not;
 		if(alignTempo,
-			{launchpadOut.noteOn(0, tempoalignTempoButton, 81)},
-			{launchpadOut.noteOff(0, tempoalignTempoButton, 0)}
+			{setLight.(tempoalignTempoButton, 81)},
+			{setLight.(tempoalignTempoButton, 0)}
 		);
 	});
 	if((note == buttonForwardingButton) && (vel == 127), {
 		buttonForwarding = buttonForwarding.not;
 		if(buttonForwarding,
-			{launchpadOut.noteOn(0, buttonForwardingButton, 81)},
-			{launchpadOut.noteOff(0, buttonForwardingButton, 0)}
+			{setLight.(buttonForwardingButton, 81)},
+			{setLight.(buttonForwardingButton, 0)}
 		);
-
+        ["MULTI LOOP 96", ~lightIndex].postln;
 	});
 	if((note == tapTempoToggle) && (vel == 127), {playMetronome = playMetronome.not});
 	if((note == recordButton) && (vel == 127), {
@@ -567,7 +660,7 @@ controlHandler = {|vel, note, chan, port|
 			recordingState = 3;
 			preRecordCount = 0;
 			recordingMetronome = false;
-			recordingEndBeat = tempoClock.beats.ceil;
+			recordingEndBeat = tempoClock.beats.round;
 
 			//TODO: handle cases where multiple inst hits in a recBuf, or when there's no noteOns recorded
 			chan = recordBuffer[0][3];
@@ -584,7 +677,6 @@ controlHandler = {|vel, note, chan, port|
 		if(recordingState == 3,
 			{
 				//save the recorded buffer to the appropriate bank
-				//todo bug: stop and free the existing task in this bank
 				if(thisBank[3] != nil, {
 					thisBank[3].stop;
 					thisBank[3].free;
@@ -620,14 +712,13 @@ controlHandler = {|vel, note, chan, port|
 											var elem = bankMap[bNote];
 											elem[3].stop;
 											elem[2] = false; //TODO: refactor to make bank on/off functions
-											Task({0.001.wait; launchpadOut.control(0, bNote, color1[elem[1]]);}).play;
+											Task({0.001.wait; setLight.(bNote, color1[elem[1]]);}).play;
 											playingBanks.remove(bNote);
 									})
 								});});
 								//TODO: this won't kill notes of an instrument thats not on this channel
 								//TODO: with newKeys, should generalize coloring of loop banks
 								//midiOut.allNotesOff(thisBank[1]);
-								//todo: if algLooping, start algMelodyTask instead (no longer relevant?)
 								if(thisBank[5].isNil, {thisBank[3].start}, {thisBank[5].start});
 								thisBank[2] = true;
 								playingBanks.add(note);
@@ -642,12 +733,12 @@ controlHandler = {|vel, note, chan, port|
 								thisBank[5] = nil;
 								thisBank[6] = nil;
 								thisBank[2] = false;
-								launchpadOut.control(0, note, color1[thisBank[1]]);
+								setLight.(note, color1[thisBank[1]]);
 								playingBanks.remove(note);
 								pythonOSCport.sendMsg("/loopPlay", thisBank[1], thisBank[0], false); //mark python loop-info as stopped
 						});
 						"TEMPOCLOCK FUNC RUN".postln;
-						//launchpadOut.control(0, note, 0);
+						//setLight.(note, 0);
 						nil;
 					});
 				});
@@ -655,7 +746,7 @@ controlHandler = {|vel, note, chan, port|
 	});
 	if((note == controlChanButton) && (vel == 127), {
 		controlChanInd = (controlChanInd+1) % 4;
-		launchpadOut.control(0, controlChanButton, color1[controlChanInd]);
+		setLight.(controlChanButton, color1[controlChanInd]);
 		newKeysChan = controlChanInd;
 		if(playingNewKeys, {newKeysSetPadLights.(controlChanInd)});
 		//todo - turn off note if swapping between different channels on newKeys or to/from newKeys to old
@@ -679,8 +770,8 @@ controlHandler = {|vel, note, chan, port|
 	if((note == quantizeButton) && (vel == 127), {
 		quantized = quantized.not;
 		if(quantized,
-			{launchpadOut.noteOn(0, quantizeButton, quantizeColor)},
-			{launchpadOut.noteOff(0, quantizeButton, quantizeColor)}
+			{setLight.(quantizeButton, quantizeColor)},
+			{setLight.(quantizeButton, 0)}
 		);
 	});
 	if(arrowButtons.includes(note) && (vel == 127), {
@@ -708,14 +799,22 @@ controlHandler = {|vel, note, chan, port|
 	//MULTIPLE ALG BUTTONS CAN BE HELD DOWN
 	//THEIR ORDER WILL SPECIFY A "pipeline" of transformations
 	//if alg button, add/remove from list depending on button up/down
-	if(algButtons.includes(note), {
-		if(vel == 127,
-			{algOrderList.add(note-95)},
-			{algOrderList.remove(algOrderList.indexOf(note-95))}
-		);
-	});
+	if((note == cycleLight_BUTTON) && (vel !=0), {
+        // ["MULTILOOP BUTTON CYCLE HIT", ~lightIndex, lightIndex].postln;
+        //if(~cycling, {cycleLight.()})
+        if(~truncateLoop, {setLight.(cycleLight_BUTTON, 45)}, {setLight.(cycleLight_BUTTON, 0)});
+        ~truncateLoop = ~truncateLoop.not; //light on means NOT TRUNCATING
+    });
 };
-MIDIFunc.cc(controlHandler, nil, nil, launchPad.uid);
+controlHandlerWrapper = {|vel, note, chan, port|
+    ~lock.wait;
+    if((chan == 0) && (~lightIndex == lightIndex) && (vel != 0), {
+        //["LIGHT INDEX MULTILOOP", ~lightIndex, lightIndex, SystemClock.beats].postln;
+        controlHandler.(vel, note, chan, port)
+    });
+    ~lock.signal;
+};
+MIDIFunc.cc(controlHandlerWrapper, nil, nil, launchPad.uid);
 
 //midiNote -> [bankInd, bankChan, isOn, loopTask/nil, loopString, algMelodyTask, algMelodyString]
 setBankMelody = {|button, hitString, startBeat, playing|
@@ -729,7 +828,7 @@ setBankMelody = {|button, hitString, startBeat, playing|
 		var bank = bankMap[button];
 		bank[3] = createRecordedTask.(stringToBuf.(hitString));
 		bank[4] = hitString;
-		launchpadOut.noteOn(0, button, color1[bank[1]]);
+		setLight.(button, color1[bank[1]]);
 		nil;
 		["START FUNC NOW"].postln;
 		if(playing, {
@@ -767,7 +866,7 @@ receiveScene = {|msg, time, addr, recvPort|
 				bank[3] = nil;
 				bank[4] = nil;
 				bank[2] = false;
-				launchpadOut.noteOff(0, button, color1[bank[1]]);
+				setLight.(button, 0);
 				midiOut.allNotesOff(bank[1]);
 			});
 			nil;
@@ -899,7 +998,7 @@ class AlgResponder:
 resetRecordingState = {
 	recordingMetronome = false;
 	recordingState = 0;
-	launchpadOut.control(0, recordButton, recordColor);
+	setLight.(recordButton, recordColor);
 	recordBuffer.clear();
 	tempLoopTask = nil;
 	tempLoopString = nil;
@@ -907,11 +1006,11 @@ resetRecordingState = {
 
 metronomeFlashTask = Task({
 	if(recordingMetronome || (tempLoopTask != nil),
-		{launchpadOut.control(0, recordButton, (recordingState==2).if(17,recordColor))});
-	playingBanks.do({|bNote| launchpadOut.control(0, bNote, color1[bankMap[bNote][1]])});
+		{setLight.(recordButton, (recordingState==2).if(17,recordColor))});
+	playingBanks.do({|bNote| setLight.(bNote, color1[bankMap[bNote][1]])});
 	(tempoClock.beatDur/2).wait;
-	if(recordingMetronome || (tempLoopTask != nil), {launchpadOut.control(0, recordButton, 0)});
-	playingBanks.do({|bNote| launchpadOut.control(0, bNote, 0)});
+	if(recordingMetronome || (tempLoopTask != nil), {setLight.(recordButton, 0)});
+	playingBanks.do({|bNote| setLight.(bNote, 0)});
 });
 
 metronomeFunc = {
@@ -940,15 +1039,68 @@ metronomeFunc = {
 			{
 				Task({ //TODO - refactor duration note on/off stuff into functions
 					var drum = recordingInterim.if(37, 38);
-					midiOut.noteOn(4, drum, 64); 0.05.wait; midiOut.noteOff(4, drum, 64);}).play;
+					metronomeOut.noteOn(4, drum, 64); 0.05.wait; midiOut.noteOff(4, drum, 64);}).play;
 			},
 			{
-				Task({midiOut.noteOn(4, 36, 64); 0.05.wait; midiOut.noteOff(4, 36, 64); }).play;
+				Task({metronomeOut.noteOn(4, 36, 64); 0.05.wait; midiOut.noteOff(4, 36, 64); }).play;
 		});
 	});
 	//["beat", tempoClock.beats, tempoClock.beatDur].postln;
 	1;
 };
+
+
+/*
+general idea - multiPadLooper can expose info about basic pad color state (eg, padToColorMap and
+padToNote/ChanMap),but module is responsible for managing its own color state. pad could push events
+(eg, keyboard scrolling, switching btw quad/extended keyboards, switching inst on extended)
+to let module recolor as necessary. Upon event occuring, keyboard will recolor first
+(thus updating padToColorMap), and then module will update lights afterwards.
+TODO - add event broadcasting for multiPadLooper color state change.
+*/
+// msg [addr, padInd, color(-1 if revert to old), repeated]
+~basePadColors = padIndToColor;
+
+//best practice is to only have 1 hyperkeyboard that changes pad-lighting at a time
+//nil value means no special module lighting for that key
+~moduleLightsPerChannel = Dictionary.new;
+(0..3).do({|i|
+    ~moduleLightsPerChannel[i] = Dictionary.new;
+});
+//msg = [addr, key, color, chanInd]
+moduleLights = {|msg, time, addr, recvPort|
+	//["MODULE LIGHTS", msg].postln;
+	(1,3..(msg.size-2)).do({|i|
+		if(msg[i+1] > 0,
+			{
+                if(playingNewKeys && (controlChanInd == msg[3].asInt), {setLight.(msg[i], msg[i+1])});
+                ~moduleLightsPerChannel[msg[3].asInt][msg[i]] = msg[i+1];
+            },
+			{
+                if(playingNewKeys && (controlChanInd == msg[3].asInt), {setLight.(msg[i], padIndToColor[msg[i]])});
+                ~moduleLightsPerChannel[msg[3].asInt][msg[i]] = nil;
+            }
+		);
+	})
+};
+OSCFunc(moduleLights, "/moduleLights");
+
+OSCFunc({|msg, time, addr, recvPort|
+    Task({
+        var colorList = List.new;
+        var selectedList = List.new;
+        0.1.wait;
+        (8..1).do({|i|
+            (1..8).do({|j|
+                var colStr = switch(~basePadColors[i*10+j], 112, {"key"}, 45, {"root"}, 21, {"on"}, 0, {"nk"});
+                var selStr = if(~padColors[i*10+j] == 21, {"sel"}, {"nsel"});
+                colorList.add(colStr);
+                selectedList.add(selStr);
+            });
+        });
+        processPort.sendMsg("/processMatrices", msg[1] , colorList.join("."), selectedList.join("."));
+    }).play
+},"/chordPadIndFwd")
 
 
 /*
@@ -1025,7 +1177,7 @@ fileSplit.do({|line|
 	f[key][4] = lineSplit[1];
 
 	//turn on lights of necessary banks
-	launchpadOut.control(0, k[f[key][1]][f[key][0]], l[f[key][1]]);
+	setLight.(k[f[key][1]][f[key][0]], l[f[key][1]]);
 });
 )
 
@@ -1060,76 +1212,38 @@ var scale = [0, 2, 4, 5 , 7 , 9, 11];
 // ================================================================================================
 
 (
-var hitListToNoteList, noteListToHitList;
+var st = "0.0,64,118,3,on-0.0,70,118,1,on-0.0,70,120,2,on-0.111803,70,120,2,off-0.231101,64,118,3,off-0.0,70,118,1,off-0.407096,64,111,3,on-0.0,70,111,1,on-0.127192,64,111,3,off-0.0,70,111,1,off-0.122808,65,117,3,on-0.0,68,98,0,off-0.0,68,98,0,on-0.0,70,120,2,on-0.0,72,117,1,on-0.096141,68,98,0,on-0.015662,70,120,2,off-0.001363,68,98,0,off-0.022534,65,117,3,off-0.0,72,117,1,off-0.3643,65,118,3,on-0.0,72,118,1,on-0.183747,65,118,3,off-0.0,72,118,1,off-0.316253,63,117,3,on-0.0,72,118,1,on-0.294883,72,118,1,off-0.094903,63,117,3,off-0.110214,70,96,0,on-0.039907,70,96,0,off-0.210093,63,116,3,on-0.0,72,112,1,on-0.127904,63,116,3,off-0.000296,72,112,1,off-0.1218,63,116,3,on-0.0,72,116,1,on-0.142987,63,116,3,off-0.0,72,116,1,off-0.357013,63,120,3,on-0.0,72,118,2,on-0.0,72,120,1,on-0.13537,72,118,2,off-0.040893,63,120,3,off-0.0,72,120,1,off-0.323737,63,113,3,on-0.0,68,104,0,on-0.0,74,117,1,on-0.134925,63,113,3,off-0.223343,68,104,0,off-0.031518,74,117,1,off-0.110214,63,116,3,on-0.0,72,117,2,on-0.143854,72,117,2,off-0.007526,63,116,3,off-0.09862,74,116,1,on-0.127904,74,116,1,off-0.122096,62,116,3,on-0.0,70,119,2,on-0.0,72,121,2,on-0.0,74,116,1,on-0.158418,72,121,2,off-0.040768,70,119,2,off-0.111906,62,116,3,off-0.0,74,116,1,off-0.355575,68,115,0,on-0.083333,62,114,3,on-0.0,74,114,1,on-0.028532,68,115,0,off-0.090169,62,114,3,off-0.0,74,114,1,off-0.131299,63,118,3,on-0.0,72,108,1,on-0.0,74,120,2,on-1e-06,70,112,0,on-0.096008,70,112,0,off-0.048012,72,108,1,off-0.023165,74,120,2,off-0.127697,63,118,3,off-0.205117,72,121,1,on-0.199338,72,121,1,off-0.050662,63,112,3,on-0.1282,63,112,3,off-0.1218,63,108,3,on-0.0,70,113,1,on-0.0,72,121,2,on-1e-06,67,116,0,on-0.096039,67,116,0,off-0.038885,70,113,1,off-0.009096,63,108,3,off-0.015661,72,121,2,off-0.340318,63,121,3,on-0.0,70,116,1,on-0.15138,70,116,1,off-0.047958,63,121,3,off-0.300662,0,0,0,timeAfterLastHit";
 
-//does NOT include timeAfterLastHit
-//makes assumption that there is always a noteOn before a noteOff
-hitListToNoteList = {|hitList|
-	var notesToStartStop = Dictionary.new();
-	var noteList = List.new();
-	var timeSoFar = 0;
-	var count = 1;
-	"AAAAAAA".postln;
-	x = hitList;
-	"A1".postln;
-	hitList.do({|hit|
-		hit.postln;
-		timeSoFar = timeSoFar + hit[0];
-		if(notesToStartStop[hit[1]].isNil,
-			//time, velocity, midiChan, on/off
-			{notesToStartStop[hit[1]] = [[timeSoFar,  hit[2], hit[3], hit[4]]].asList},
-			{
-				count = count+1;
-				["pre", notesToStartStop[hit[1]].size].postln;
-				notesToStartStop[hit[1]].add([timeSoFar,  hit[2], hit[3], hit[4]]);
-				["post", notesToStartStop[hit[1]].size].postln;
-			}
-	)});
-	"A2".postln;
-	notesToStartStop.postln;
-	notesToStartStop.keys.do({|midiNote|
-		var startStop = notesToStartStop[midiNote];
-		[count, startStop.size].postln;
-		(0,2..(startStop.size-2)).do({|ind|
-			//time, midiNote, onVelocity, midiChan, duration
-			noteList.add([startStop[ind][0], midiNote, startStop[ind][1], startStop[ind][2], startStop[ind+1][0]-startStop[ind][0]]);
-		});
+var stringToBuf = {|melString|
+	var buf = melString.split($-).collect({|hitString|
+		var sp = hitString.split($,);
+        sp.postln;
+		[sp[0].asFloat, sp[1].asInt, sp[2].asInt, sp[3].asInt, sp[4]]
 	});
-
-	noteList.sort({|a, b| a[0] < b[0]});
-	"A3".postln;
-	noteList;
-};
-y = hitListToNoteList;
-
-noteListToHitList = {|noteList|
-	var intermediateHitList = List.new();
-
-	noteList.do({|n|
-		intermediateHitList.add([n[0], n[1], n[2], n[3], "on"]);
-		intermediateHitList.add([n[0]+n[4], n[1], 0, n[3], "off"])
-	});
-	["B1", noteList.size, intermediateHitList.size].postln;
-	intermediateHitList.sort({|a, b| a[0] < b[0]});
-
-	"B2".postln;
-	((intermediateHitList.size-1), (intermediateHitList.size-2)..1).do({|ind|
-		intermediateHitList[ind][0] = intermediateHitList[ind][0] - intermediateHitList[ind-1][0];
-	});
-
-	intermediateHitList
+	//buf.do({|b| b.postln;});
+	buf
 };
 
-z = noteListToHitList;
-)
+//112, 45, 21, 0, c1, c2, held, clear
+~padColors
+~basePadColors
+[1,2].join(".")
 (
-a = if(5 > 6, 1, 2);
-a+1
+var colorList = List.new;
+var selectedList = List.new;
+(8..1).do({|i|
+    (1..8).do({|j|
+        var colStr = switch(~basePadColors[i*10+j], 112, {"key"}, 45, {"root"}, 21, {"on"}, 0, {"nk"});
+        var selStr = if(~padColors[i*10+j] == 21, {"sel"}, {"nsel"});
+        colorList.add(colStr);
+        selectedList.add(selStr);
+    });
+})
+NetAddr("localhost", 12345).sendMsg("/processMatrices", , colorList.join("."), selectedList.join(".");
 )
 
-"abbbc".splitext($b)
-"" == ""
 
-(
-y.(x)
+switch(8, 4, {true}, 5, {false}, )
+stringToBuf.(st)
+
 )

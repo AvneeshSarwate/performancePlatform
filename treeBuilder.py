@@ -1,5 +1,5 @@
 import treeLanguage as tl 
-
+import copy
 
 def main():
 
@@ -28,9 +28,9 @@ def toDotFile(fileName, tree):
 class Counter:
 
 	def __init__(self):
-		self.count = 0
+		self.count = -1
 
-	def __call__(self, arg):
+	def __call__(self):
 		self.count += 1
 		return self.count 
 
@@ -39,12 +39,25 @@ class TreeBuilder:
 	# Given a "flattened" token list, when trying to find what function matches
 	# what token, first split the token by ":" to get the "function key."
 	# This will allow you to use indexing for move[down, left, right]
-	def __init__(self, rootValue, transformationFunc):
-		self.root = Node(rootValue)
+	def __init__(self, rootValue, transformationFunc, fullTreeDepth=0, childNumFunc=None):
+		self.counter = Counter()
+		self.root = Node(self.counter, rootValue, None)
+		self.root.depth = 0
 		self.currentNode = self.root
 		self.transFunc = transformationFunc
 		self.siblingInd = 0
-		self.siblingIndStack = [0]
+		# nodes do not know who their siblings are. this stack lets you properly 
+		# handle sibling state when traversing up and down the tree
+		self.siblingIndStack = [] 
+		self.traversalStack = []
+
+		#only used with executeStepwise()
+		self.traversalSteps = []
+		self.traversalInd = 0
+		self.traversalString = ""
+
+		self.nonTraversingSymbols = ["+"]
+
 		self.funcMap = {}
 		self.funcMap['\/'] = self.moveDown
 		self.funcMap['^'] = self.moveUp
@@ -53,6 +66,40 @@ class TreeBuilder:
 		self.funcMap['\/!'] = self.newDown
 		self.funcMap['<!'] = self.newLeft
 		self.funcMap['>!'] = self.newRight
+		self.funcMap["+"] = self.stackPush
+		self.funcMap["-"] = self.stackPop
+		self.funcMap["_"] = lambda symbol: None
+
+		if fullTreeDepth > 0:
+			if childNumFunc is None:
+				childNumFunc = lambda depth: 2
+			self._buildTree(self.root, 0, fullTreeDepth, self.transFunc, childNumFunc)
+
+	def getTraversalState(self):
+		return (self.currentNode, self.siblingInd, copy.deepcopy(self.siblingIndStack))
+
+	def setTraversalState(self, node, siblingInd, siblingIndStack):
+		self.currentNode, self.siblingInd, self.siblingIndStack = (node, siblingInd, copy.deepcopy(siblingIndStack))
+
+	def _buildTree(self, node, depth, maxDepth, transFunc, childNumFunc):
+		if depth == maxDepth:
+			return
+		else:
+			for i in range(childNumFunc(depth)):
+				newVal = transFunc(node.value)
+				newNode = Node(self.counter, newVal, node)
+				node.children.append(newNode)
+				newNode.treePosition = node.treePosition + "-" + str(len(node.children)-1)
+				self._buildTree(newNode, depth+1, maxDepth, transFunc, childNumFunc)
+
+	def isNonTraversingSymbol(self, symbol):
+		return symbol in self.nonTraversingSymbols
+
+	def stackPush(self, symbol):
+		self.traversalStack.append((self.currentNode, self.siblingInd, copy.deepcopy(self.siblingIndStack)))
+
+	def stackPop(self, symbol):
+		self.currentNode, self.siblingInd, self.siblingIndStack = self.traversalStack.pop()
 
 	def moveDown(self, symbol):
 		ind = int(symbol.split(":")[1]) if ":" in symbol else 0
@@ -81,7 +128,7 @@ class TreeBuilder:
 
 	def newDown(self, symbol):
 		newVal = self.transFunc(self.currentNode.value)
-		newNode = Node(newVal, self.currentNode)
+		newNode = Node(self.counter, newVal, self.currentNode)
 		self.currentNode.children.append(newNode)
 		newNode.treePosition = self.currentNode.treePosition + "-" + str(len(self.currentNode.children)-1)
 		self.siblingIndStack.append(self.siblingInd)
@@ -91,7 +138,7 @@ class TreeBuilder:
 
 	def newRight(self, symbol):
 		newVal = self.transFunc(self.currentNode.value)
-		newNode = Node(newVal, self.currentNode.parent)
+		newNode = Node(self.counter, newVal, self.currentNode.parent)
 		self.currentNode.parent.children.insert(self.siblingInd+1, newNode)
 		newNode.treePosition = self.currentNode.parent.treePosition + "-" + str(self.siblingInd+1)
 		#TODO: modify sibling ind of all subsequent silings
@@ -105,7 +152,7 @@ class TreeBuilder:
 
 	def newLeft(self, symbol):
 		newVal = self.transFunc(self.currentNode.value)
-		newNode = Node(newVal, self.currentNode.parent)
+		newNode = Node(self.counter, newVal, self.currentNode.parent)
 		self.currentNode.parent.children.insert(self.siblingInd - 1, newNode)
 		newNode.treePosition = self.currentNode.parent.treePosition + "-" + str(max(self.siblingInd - 1, 0))
 		#TODO: modify sibling ind of all subsequent silings
@@ -122,13 +169,29 @@ class TreeBuilder:
 		for a in actions:
 			actionType = a.split(":")[0].strip('@')
 			self.funcMap[actionType](a)
-			if "@" not in a:
+			if "@" not in a and not self.isNonTraversingSymbol(a):
 				traversedVariants.append(self.currentNode.value)
-		return traversedVariants
+		return copy.deepcopy(traversedVariants)
 		#todo: return the sequence of values corresponding to the sequence of nodes
 		#traversed by the commands. should there be a special character (eg the @ in '\/@'')
 		#that indicates whether you want the result of that command included in the 
 		#values list returned?
+
+	def executeStepwise(self, treeString):
+		parsedString = tl.parse(treeString)
+		if self.traversalString != parsedString:
+			self.traversalString = parsedString
+			self.traversalSteps = self.execute(treeString)
+			self.traversalInd = 1
+			return self.traversalSteps[0]
+		else:
+			if self.traversalInd == len(self.traversalSteps):
+				self.traversalSteps = self.execute(treeString)
+				self.traversalInd = 1
+				return self.traversalSteps[0]
+			else: 
+				self.traversalInd += 1
+				return self.traversalSteps[self.traversalInd-1]
 
 	def nodesByDepth(self, returnValues=True):
 		nodes = [[self.root]]
@@ -141,13 +204,24 @@ class TreeBuilder:
 
 		return vals if returnValues else nodes
 
+	def toDotFile(fileName, tree):
+		el = []
+		def addEdges(node, edgeList):
+			for c in node.children:
+				edgeList.append(str(node.ind) + "->" + str(c.ind))
+				addEdges(c, edgeList)
+		addEdges(tree, el)
+		return "digraph " + fileName + " { \n" + "\n".join(el) + "\n}"
+
 class Node:
 
-	def __init__(self, value = None, parent = None):
+	def __init__(self, counter, value = None, parent = None):
 		self.children = []
 		self.value = value
 		self.parent = parent
 		self.treePosition = "0"
+		self.ind = counter()
+		self.depth = parent.depth + 1 if parent is not None else None
 
 
 

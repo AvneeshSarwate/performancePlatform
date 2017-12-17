@@ -4,6 +4,7 @@ import random
 import copy
 import phrase
 import pickle
+import itertools
 
 #functionHanlder
 class FH:
@@ -16,6 +17,8 @@ class FH:
 		self.serverThread = threading.Thread(target=self.superColliderServer.serve_forever)
 		self.serverThread.daemon = False
 		self.serverThread.start()
+
+		self.topRowFunctions = [0]*8
 
 		n = 4
 
@@ -42,19 +45,30 @@ class FH:
 		self.superColliderServer.addMsgHandler("/faderSettingSave", self.saveFaderSetting)
 		self.superColliderServer.addMsgHandler("/getCurrentFaderVals", self.recieveCurrentFaderVals)
 		self.superColliderServer.addMsgHandler("/buttonForwarding", self.buttonForwardingHandler)
+		self.superColliderServer.addMsgHandler("/miniLaunchpadTopRow", self.topRowHandler)
+		self.superColliderServer.addMsgHandler("/pedalButton", self.pedalButtonHandler)		
+
+
+		self.pedalButtonFunc = lambda: 0
 
 		self.channels = {} #key - int, val - (transFunc, rootMel)
 		self.savedStrings = []
 		self.buttonForwardingHandlers = [[] for i in range(n)]
 
+		# leaderPadInd -> [(padIndex, delayFromLeader)]
+		self.delays = {}
+		self.superColliderServer.addMsgHandler("/xyToPython", self.padFollowerHandler)
+
 	def addForwardingHandler(self, chanInd, handler):
 		self.buttonForwardingHandlers[chanInd].append(handler)
 
-	#stuff = [chan, note, vel, on/off]
+	#stuff = [chan, note, vel, on/off, launchpadKeyMidi]
 	def buttonForwardingHandler(self, addr, tags, stuff, source):
 		for handler in self.buttonForwardingHandlers[stuff[0]]:
-			handler.handle(*stuff[1:])
-		
+			handler.handle(*stuff)
+	
+	def pedalButtonHandler(self, addr, tags, stuff, source):
+		return self.pedalButtonFunc()
 
 	#stuff = [chanInd, bankNum, root, scale, loopString] 
 	def handleAlgRequest(self, addr, tags, stuff, source):
@@ -85,6 +99,11 @@ class FH:
 	def loopPlay(self, addr, tags, stuff, source):
 		self.loopInfo[stuff[0]][stuff[1]]["playing"] = stuff[2]
 
+	def resetButtonDestinations(self, destList):
+		msg = OSC.OSCMessage()
+		msg.setAddress("/resetButtonDestinations")
+		msg.append(destList)
+		self.superColliderClient.send(msg)
 
 	@staticmethod 
 	def stringToHitList(loopString):
@@ -97,7 +116,8 @@ class FH:
 
 	@staticmethod
 	def hitListToString(hitList, button, startBeat, playing=0):
-		return str(button) + " " + "-".join(map(lambda h: ",".join(map(str, h)), hitList)) + " " + str(startBeat) + " " + str(playing)
+		hitToStringList = lambda h: ['%f' % h[0]] + map(str, h[1:])
+		return str(button) + " " + "-".join(map(lambda h: ",".join(hitToStringList(h)), hitList)) + " " + str(startBeat) + " " + str(playing)
 
 
 	def sceneToString(self, loops, loopInfo):
@@ -235,6 +255,25 @@ class FH:
 		msg.append(chanInd)
 		self.superColliderClient.send(msg)
 
+	def topRowHandler(self, addr, tags, stuff, source):
+		if stuff[1] == 127:
+			self.topRowFunctions[stuff[0]]()
+
+	# followerPadDelay is [(padIndex, delayFromLeader)]
+	def setFollowers(self, leaderPad, *followerPadDelay):
+	    self.delays[leaderPad] = followerPadDelay
+
+	#stuff - [padInd, xVal, yVal]
+	def padFollowerHandler(self, addr, tags, stuff, source):
+		if stuff[0] in self.delays:    
+		    for padDelay in self.delays[stuff[0]]:
+		        msg = OSC.OSCMessage()
+		        msg.setAddress("/xyFollowing")
+		        msg.append(padDelay[0])
+		        msg.append(stuff[1])
+		        msg.append(stuff[2])
+		        msg.append(padDelay[1])
+		        self.superColliderClient.send(msg)
 
 def oneHitShift(hitList):
 	i1 = random.randint(0, len(hitList)-1)
@@ -258,7 +297,6 @@ def flattenByBeat(byBeat):
 	for i in range(len(byBeat)):
 		flattened += map(lambda note: [note[0]+i] + note[1:], byBeat[i])
 	return flattened
-
 
 
 #converts to a list of (timeStamp, midiNote, velocity, channel, duration)
@@ -346,7 +384,7 @@ def scaleNotesCalc(root, scale, n):
 def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beatIndexed=True, intraBeatRandom=False):
 	hitList = copy.deepcopy(hitList)
 	noteList = hitListToNoteList(hitList)
-	scaleNotes = scaleNotesCalc(root-36, scale, 50)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
 	if beatIndexed:
 		beatList = notesByBeat(noteList)
 		s = 0 if (start is None or start in range(len(beatList))) else start
@@ -367,6 +405,42 @@ def randTranspose(hitList, root, scale, down=3, up=3, start=None, end=None, beat
 	
 	return noteListToHitList(noteList)
 
+def scaleTranspose(hitList, root, scale, amount):
+	hitList = copy.deepcopy(hitList)
+	noteList = hitListToNoteList(hitList)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
+	for n in noteList:
+			n[1] = scaleNotes[scaleNotes.index(n[1]) + amount]
+	return noteListToHitList(noteList)
+
+def vectorTranspose(hitList, root, scale, transVec):
+	hitList = copy.deepcopy(hitList)
+	noteList = hitListToNoteList(hitList)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
+	beatList = notesByBeat(noteList)
+	for i in range(len(beatList)):
+		b = beatList[i]
+		for n in b:
+			transVal = transVec[i%len(transVec)]
+			n[1] = scaleNotes[scaleNotes.index(n[1]) + transVal]
+	noteList = flattenByBeat(beatList)
+	
+	return noteListToHitList(noteList)
+
+def shiftTranspose(hitList, root, scale, transVec):
+	hitList = copy.deepcopy(hitList)
+	noteList = hitListToNoteList(hitList)
+	scaleNotes = scaleNotesCalc(root-36, scale, 80)
+	beatList = notesByBeat(noteList)
+	for i in range(len(beatList)):
+		b = itertools.chain(*beatList[i:])
+		for n in b:
+			transVal = transVec[i%len(transVec)]
+			n[1] = scaleNotes[scaleNotes.index(n[1]) + transVal]
+	noteList = flattenByBeat(beatList)
+	
+	return noteListToHitList(noteList)
+
 def randBeatMove(hitList):
 	beatList = notesByBeat(hitListToNoteList(hitList))
 	i = random.randint(0, len(beatList)-1)
@@ -376,6 +450,12 @@ def randBeatMove(hitList):
 	else :
 		beatList.insert(k-1, beatList.pop(i))
 	return noteListToHitList(flattenByBeat(beatList))
+
+#todo - this only works if vector and numBeats is the same
+def vectorBeatPermute(hitList, vector):
+	beatList = notesByBeat(hitListToNoteList(hitList))
+	newBeatList = [beatList[i%len(beatList)] for i in vector]
+	return noteListToHitList(flattenByBeat(newBeatList))
 
 
 def treeFunc(hitList, root, scale, p=0.3):
@@ -387,6 +467,41 @@ def treeFunc(hitList, root, scale, p=0.3):
 		return randBeatMove(hitList)
 
 
+def warp(hitList, warpPoint, constant=.2, exponent=1):
+	noteList = hitListToNoteList(hitList)
+	def calcWarp(time, warpPoint, constant, exponent):
+		if(time == warpPoint): #todo - imlpement "event horizon check"
+			return 0
+		dist = constant/abs(warpPoint-time)**exponent
+		return dist if warpPoint > time else -1 * dist
+	warpList = map(lambda note: calcWarp(note[0], warpPoint, constant, exponent), noteList)
+	for i in range(len(noteList)):
+		noteList[i][0] += warpList[i]
+	return noteListToHitList(noteList)
+
+# noteSets is up to 3 sets of notes, each containing ints [0-11]
+# each set corresponds to a spatialization channel
+# if one of [0-11] is not specificied in a noteSet, it is played thru the normal channel 
+def spatialize(hitList, root, noteSets):
+	newNoteSets = map(lambda noteSet: map(lambda degree: (root+degree)%12, noteSet), noteSets)
+	newHitList = copy.deepcopy(hitList)
+	for hit in newHitList:
+		for i in range(len(noteSets)):
+			if hit[1] % 12 in newNoteSets[i]:
+				hit[3] = (i+1) * 4
+	return newHitList 
+
+def main():
+	hl = warp(hitList, 3)
+	for h in hitListToNoteList(hl):
+		print h
+
+def transformTranspositionVector(transVec, frac=0.25):
+	transformationCells = random.sample(range(len(transVec)), int(frac*len(transVec)))
+	newVec = copy.deepcopy(transVec)
+	for c in transformationCells:
+		newVec[c] += random.choice([-1, 1])
+	return newVec
 #TODO: print the strings of a few different buffers as test cases 
 
 hitString = '19 0.015517354926804,36,90,3,on-0.069313140281711,36,0,3,off-0.40111655031738,36,88,3,on-0.13826123650379,36,0,3,off-0.30373582635919,36,86,3,on-0.068988503365478,36,0,3,off-0.37323516937636,36,94,3,on-0.16584420671271,36,0,3,off-0.37435709074858,41,102,3,on-0.22119814726626,41,0,3,off-0.52463878235438,41,99,3,on-0.17918737393996,41,0,3,off-0.58129390059232,41,97,3,on-0.17996301558244,41,0,3,off-0.3181157736951,36,108,3,on-0.25061781998902,36,0,3,off-0.8401201725943,36,97,3,on-0.29228857541083,36,0,3,off-0.75886568925363,41,99,3,on-0.2358261358357,41,0,3,off-0.7734233730412,41,111,3,on-0.27621152805202,41,0,3,off-0.65788063380083,0,0,0,timeAfterLastHit 14'
@@ -395,6 +510,8 @@ hl1 = '59 0,67,115,1,on-0.35805304900001,67,0,1,off-0.099085806999994,68,114,1,o
 hl2 = '69 0,67,108,1,on-0.44206642100005,68,86,1,on-0.156972967,67,0,1,off-0.31932736300001,70,58,1,on-0.11475639299999,68,0,1,off-0.39217421299998,72,91,1,on-0.07848408000001,70,0,1,off-0.49621856299996,0,0,0,timeAfterLastHit 275'
 hl3 = '59 0.00026503200000061,67,116,1,on-0.109492002,67,0,1,off-0.114887669,67,97,1,on-0.083770298999999,67,0,1,off-0.150910389,67,113,1,on-0.094081841000001,67,0,1,off-0.162514201,67,114,1,on-0.083863190000001,67,0,1,off-0.177834871,67,117,1,on-0.083826460000001,67,0,1,off-0.156259629,67,106,1,on-0.073450127999999,67,0,1,off-0.188066174,67,110,1,on-0.083808517,67,0,1,off-0.173343166,67,107,1,on-0.073152808,67,0,1,off-0.182253786,67,112,1,on-0.073165353,67,0,1,off-0.167248956,67,97,1,on-0.068336707,67,0,1,off-0.198340459,67,97,1,on-0.062599650000001,67,0,1,off-0.188070831,67,105,1,on-0.083570547000001,67,0,1,off-0.172715621,68,118,1,on-0.078436826999999,68,0,1,off-0.151519889,68,111,1,on-0.072601442,68,0,1,off-0.172986674,68,107,1,on-0.062571509000001,68,0,1,off-0.193675872,68,117,1,on-0.083643336000002,68,0,1,off-0.178736165,0,0,0,timeAfterLastHit 4'
 # print FH.hitListToString(*FH.stringToHitList(hitString)) == hitString
+
+hitList = [[0, 60, 60, 1, "on"], [.75, 60, 60, 1, "off"], [.25, 61, 60, 1, "on"], [.75, 61, 60, 1, "off"], [.25, 62, 60, 1, "on"], [.75, 62, 60, 1, "off"], [.25, 63, 60, 1, "on"], [.75, 63, 60, 1, "off"], [.25, 0, 0, 1, "timeAfterLastHit"]]
 
 newHS = FH.stringToHitList(hl3)[0]
 noteList = hitListToNoteList(newHS)
@@ -423,4 +540,6 @@ codecHS = noteListToHitList(noteList)
 hl = randTranspose(newHS, 60, [0, 2, 3, 5, 7, 8, 10])
 #print hitListToNoteList(hl)
 
+if __name__ == '__main__':
+	main()
 

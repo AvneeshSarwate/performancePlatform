@@ -40,7 +40,7 @@ def tokenize(inputStr):
 # string in this array would stay the same. But for indexed tokens, 
 # (s in {<, >, \/}), it would be the regex '(s(:[0-9]+)?)$'
 def isSymbol(sym):
-	symbolTypes = ['(\\\/(:[0-9]+)?@?)$', '\^@?', '(<(:[0-9]+)?@?)$', '(>(:[0-9]+)?@?)$', '\\\/!@?', '<!@?', '>!@?']
+	symbolTypes = ['(\\\/(:[0-9]+)?@?)$', '\^@?', '(<(:[0-9]+)?@?)$', '(>(:[0-9]+)?@?)$', '\\\/!@?', '<!@?', '>!@?', '-@?', '\+', "_"]
 	return True in [re.match(s, sym) and True for s in symbolTypes]
 
 
@@ -60,7 +60,8 @@ def parseExpression(tokenList, ind, depth, debug = False):
 			parenOrMultNode, newInd = parseParenBlock(tokenList, ind+1, depth+1, debug)
 			node.children.append(parenOrMultNode)
 		else:
-			raise StopIteration("can only start expressions with symbols or open paren: ") 
+			print tokenList
+			raise StopIteration("can only start expressions with symbols or open paren: " + tokenList[ind] + " " + str(ind)) 
 
 		ind = newInd
 

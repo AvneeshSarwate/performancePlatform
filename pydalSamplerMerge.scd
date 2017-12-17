@@ -1,12 +1,23 @@
 (
-var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, noteOnFunc, noteOffFunc, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs, semaphore;
+var noteToInd, indToNote, noteToXY, isPadNote, buffers, recSynths, playSynths, recordOnTimes, loopDurTimes, recordMode, f1, f2, loopClocks, break, record_BUTTON, miniOut, padIndToRed, padIndToGreen, record_LIGHT, tempoClock, metronomeSynched, isPlaying, metronomeSync_BUTTON, isSynched, isRecording, startPlaying, stopPlaying, startRecording, stopRecording, syncFlash, red_LIGHT, green_LIGHT, amber_LIGHT, mini, used, abletonLatency, midiOut, pythonOSCport, channelPatternMap, chanBackupPatMap, channelInd, drumTypes, startPattern, playStepGenerator, recieveBackupPattern, stopPattern, patternRead, timeListToDurationList, sendSample, midiChannel, masterTempoClock, tempoClockMap, loopStartFunctions, masterClockBeat, masterClockTempoHandler, playBufQueues, usedBufs, semaphore, pedal, selectedBank, miniProxyNoteOnFunc, miniNoteOffFunc, pedalNoteOnFunc, pedalNoteOffFunc, selectedBankColorStack, miniProxy, miniNoteOnFunc;
 
 
 miniOut = MIDIOut.newByName("Launchpad Mini", "Launchpad Mini");
 miniOut.latency = 0;
 
-mini = MIDIClient.sources.select({|elem| (elem.name == "Launchpad Mini")
-	&& (elem.device == "Launchpad Mini")})[0];
+mini = MIDIClient.sources.select({|elem| (elem.device == "Launchpad Mini")
+	&& (elem.name == "Launchpad Mini")})[0];
+
+miniProxy = MIDIClient.sources.select({|elem| (elem.device == "IAC Driver")
+	&& (elem.name == "Bus 5")})[0];
+
+pedal = MIDIClient.sources.select({|elem| (elem.device == "FBV Express Mk II")
+	&& (elem.name == "Port 1")})[0];
+
+s.latency = 0.005;
+
+[mini.uid, miniProxy.uid, pedal.uid].postln;
+
 /*
 TODO -
 continue to tweak latency
@@ -19,7 +30,7 @@ things to set via python api
 
 //quneo control variables
 noteToInd = {|x|
-	var row = (x / 16).floor;
+	var row = 7- (x / 16).asInt;
 	var col = x % 16;
 	var retVal = -1;
 	if(col < 8, {retVal = row*10 + col});
@@ -29,11 +40,12 @@ noteToInd = {|x|
 
 noteToXY = {|x| [noteToInd.(x)%16, 7 - (x / 16).asInt]}; //convert note to pad xy (bottom left 0,0)
 isPadNote = {|x| noteToInd.(x) != -1};
-record_BUTTON = 8;
-metronomeSync_BUTTON = 24;
+record_BUTTON = 104;
+metronomeSync_BUTTON = 120;
 green_LIGHT = 48;
 red_LIGHT = 3;
 amber_LIGHT = 51;
+selectedBankColorStack = List.new();
 
 ~abletonLatency = 0;//4.0 * 0.0354; //seconds
 ~inputLatency = 0;  //skipforward into buffer to counteract input latency
@@ -43,8 +55,9 @@ amber_LIGHT = 51;
 
 Routine.run {
 
-	//s.options.inDevice = "Blue Snowball";
-	s.options.inDevice = "Built-in Microph";
+	s.options.inDevice = "Blue Snowball";
+	//s.options.inDevice = "Built-in Microph";
+	//s.options.inDevice = "POD HD400";
 	s.options.outDevice = "Built-in Output";//"Soundflower (64ch)";
 
 	s.bootSync;
@@ -70,6 +83,7 @@ Routine.run {
 	playSynths = Array.fill(78, {|i| Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[i]])});
 	playBufQueues = Dictionary.new();
 	(0..7).do({|c1| (0..7).do({|c2|
+		//aa is 0, which is bottom left
 		var ch = "abcdefgh";
 		playBufQueues[ch[c1]++ch[c2]] = List.fill(10, {Synth.newPaused(\playBuf, [\out, 0, \bufnum, buffers[(c1*8)+c2]])});
 	})});
@@ -148,6 +162,8 @@ stopRecording = {|padInd, note|
 	miniOut.noteOn(0, note, amber_LIGHT);
 	["RECORDING STOP", padInd, tempoClock.beats].postln;
 	isRecording[padInd] = false;
+	selectedBank= nil;
+	selectedBankColorStack.wrapAt(-1)[1] = amber_LIGHT;
 };
 
 stopPlaying = {|padInd, note|
@@ -160,11 +176,66 @@ stopPlaying = {|padInd, note|
 	isPlaying[padInd] = false;
 };
 
-noteOnFunc = {|vel, note, chan, port|
+miniProxyNoteOnFunc = {|vel, note, chan, port|
 	[note, "NOTE ON"].postln;
 	if(isPadNote.(note), {
 		var padInd = noteToInd.(note);
 		var frozenRecordMode = recordMode;
+		var recordStartClick = false;
+		var adjustTime = 0;
+		var leadIn = 0;
+		[isSynched, "IS SYNCHED"].postln;
+		if(frozenRecordMode.not,
+			{
+				if(isSynched,
+					{
+						var funcToExecute, eventTime;
+						if(isPlaying[padInd], {
+							funcToExecute = {stopPlaying.(padInd, note)};
+							adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
+						});
+						if(isPlaying[padInd].not, {
+							funcToExecute = {startPlaying.(padInd, note)};
+							adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
+						});
+
+						eventTime = tempoClock.timeToNextBeat + adjustTime;
+						tempoClock.sched(eventTime, funcToExecute);
+
+						["LATENCY COMPENSATED", tempoClock.timeToNextBeat,
+							tempoClock.timeToNextBeat - (~abletonLatency*tempoClock.tempo),
+							tempoClock.beats].postln;
+						["SHOULD BE TRUE", (~duration > 0) && recordStartClick, ~duration].postln;
+					},
+					{startPlaying.(padInd, note)}
+				);
+			},
+			{
+				var stackPop = selectedBankColorStack.pop;
+				if(stackPop.isNil.not, {
+					miniOut.noteOn(0, stackPop[0], stackPop[1]);
+				});
+				selectedBankColorStack.add([note, if(used[padInd], amber_LIGHT, 0)]);
+				selectedBank = note;
+				miniOut.noteOn(0, note, green_LIGHT);
+			}
+		);
+	});
+};
+MIDIFunc.noteOn(miniProxyNoteOnFunc, nil, nil, miniProxy.uid);
+
+miniNoteOnFunc = {|vel, note, chan, port|
+	if(note == record_BUTTON, {recordMode = recordMode.not});
+	if(note == metronomeSync_BUTTON, {isSynched = isSynched.not});
+};
+MIDIFunc.noteOn(miniNoteOnFunc, nil, nil, mini.uid);
+
+pedalNoteOnFunc = {|vel, pedalNote, chan, port|
+	var note = selectedBank;
+	var padInd = noteToInd.(note);
+	var frozenRecordMode = recordMode;
+	"PEDAL FUNC".postln;
+	if((pedalNote == 16) && (vel == 127) && recordMode && selectedBank.isNil.not, {
 		var recordStartClick = false;
 		var adjustTime = 0;
 		var leadIn = 0;
@@ -180,61 +251,46 @@ noteOnFunc = {|vel, note, chan, port|
 					adjustTime = ~countIn;
 					recordStartClick = true;
 				});
-				"C".postln;
-				if(frozenRecordMode.not && isPlaying[padInd], {
-					funcToExecute = {stopPlaying.(padInd, note)};
-					adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
-				});
-				"D".postln;
-				if(frozenRecordMode.not && isPlaying[padInd].not, {
-					funcToExecute = {startPlaying.(padInd, note)};
-					adjustTime = 0 - (~abletonLatency*tempoClock.tempo);
-				});
 
 				eventTime = tempoClock.timeToNextBeat + adjustTime;
 				tempoClock.sched(eventTime, funcToExecute);
 
-				["LATENCY COMPENSATED", tempoClock.timeToNextBeat,
-					tempoClock.timeToNextBeat - (~abletonLatency*tempoClock.tempo),
-					tempoClock.beats].postln;
-				["SHOULD BE TRUE", (~duration > 0) && recordStartClick, ~duration].postln;
-
-				if((~duration > 0) && recordStartClick, {"LATE STOP SCHED".postln; tempoClock.sched(eventTime+~duration, {
-					"LATE STOP".postln;
-					stopRecording.(padInd, note)
-				})});
+				if((~duration > 0) && recordStartClick, {
+					"LATE STOP SCHED".postln;
+					tempoClock.sched(eventTime+~duration, { stopRecording.(padInd, note); "LATE STOP".postln;});
+				});
 			},
 			{
-				if(frozenRecordMode,
-					{startRecording.(padInd, note)},
-					{startPlaying.(padInd, note)}
-				);
-			}
-		);
+				if(frozenRecordMode, startRecording.(padInd, note));
+		});
 	});
-
-	if(note == record_BUTTON, {recordMode = recordMode.not});
-	if(note == metronomeSync_BUTTON, {isSynched = isSynched.not});
+	if((pedalNote == 16) && (vel == 0) && recordMode && selectedBank.isNil.not, {
+		if(isSynched.not, {stopRecording.(padInd, note)});
+	});
 };
-MIDIFunc.noteOn(noteOnFunc, nil, nil, mini.uid);
+MIDIFunc.cc(pedalNoteOnFunc, nil, nil, pedal.uid);
 
 
-noteOffFunc = {|vel, note, chan, port|
+MIDIFunc.cc(pedalNoteOffFunc, nil, nil, pedal.uid);
+
+miniNoteOffFunc = {|vel, note, chan, port|
 	if(isPadNote.(note) && isSynched.not, {
 		var padInd = noteToInd.(note);
-		if(recordMode,
-			{stopRecording.(padInd, note);},
-			{stopPlaying.(padInd, note);}
-		);
+		stopPlaying.(padInd, note);
 	});
 	if(note == record_BUTTON, {
 		if(recordMode,
 			{miniOut.noteOn(0, record_BUTTON, red_LIGHT)},
-			{miniOut.noteOn(0, record_BUTTON, green_LIGHT)}
+			{
+				var stackPop = selectedBankColorStack.pop;
+				if(stackPop.isNil.not, {
+					miniOut.noteOn(0, stackPop[0], stackPop[1]);
+				});
+				miniOut.noteOn(0, record_BUTTON, green_LIGHT);
+			}
 	)});
 };
-
-MIDIFunc.noteOff(noteOffFunc, nil, nil, mini.uid);
+MIDIFunc.noteOff(miniNoteOffFunc, nil, nil, miniProxy.uid);
 
 
 
@@ -327,7 +383,7 @@ playStepGenerator = {|i|
 			var dur = step[0];
 
 			step[1].do({|samp| sendSample.(samp, ind)});
-			//["STEP", i, ind, tempoClockMap[i].beats%1, step].postln;
+			["STEP", i, ind, tempoClockMap[i].beats, step, dur].postln;
 
 			//if 2nd to last step, send request for next pattern TODO: won't work for patterns len 1?
 			if(ind == (patList.size-2), {pythonOSCport.sendMsg("/pydalGetUpdate-"++i)});
@@ -424,7 +480,8 @@ timeListToDurationList = {|oldList|
 			});
 
 	});
-	pList.add([oldList[oldList.size-1][0].ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
+	//adding 0.0001 a hack to make sure lists with timestamps like [0, 1] get converted to durations of [1, 1]
+	pList.add([(oldList[oldList.size-1][0] + 0.00001).ceil - oldList[oldList.size-1][0], oldList[oldList.size-1][1]]);
 	pList
 };
 "NEW SHIT".postln;
@@ -483,7 +540,7 @@ sendSample = {|drumStr, patternInd|
 				//semaphore.wait;
 				playBufQueues[bank].add(usedBufs[drumStr++patternInd]);
 				//semaphore.signal;
-				[masterTempoClock.beats,"STOPPED SAMPLE", drumStr++patternInd].postln;
+				[masterTempoClock.beats,"STOPPED SAMPLE", drumStr, patternInd].postln;
 				//[playBufQueues[bank].size].postln;
 				nil;
 			});
@@ -509,8 +566,8 @@ sendSample = {|drumStr, patternInd|
 )
 
 
-~abletonLatency = 1.0 * 0.0354; //seconds
-~inputLatency = 0;  //skipforward into buffer to counteract input latency
+~abletonLatency = 1.0 * 0.0404; //seconds
+~inputLatency = ;  //skipforward into buffer to counteract input latency
 
 ~countIn = 0;  //number of count in metronome hits
 ~duration = 0;  //preset number of beats to record for
