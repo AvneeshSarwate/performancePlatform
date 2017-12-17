@@ -12229,7 +12229,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 1581.0, 750.0, 188.0, 22.0 ],
+					"patching_rect" : [ 1618.0, 644.0, 188.0, 22.0 ],
 					"style" : "",
 					"text" : "jit.matrix template 1 char 960 540"
 				}

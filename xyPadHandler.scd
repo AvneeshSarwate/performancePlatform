@@ -2,7 +2,7 @@
 
 
 abletonOut = MIDIOut.newByName("IAC Driver", "Bus 4");
-ipadPort = NetAddr("192.168.0.7", 9000);
+ipadPort = NetAddr("192.168.1.216", 9000);
 pythonPort = NetAddr("localhost", 13371);
 tempoClock = TempoClock(1);
 

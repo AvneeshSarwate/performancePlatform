@@ -8,7 +8,7 @@ import json
 import threading
 import pickle 
 
-PORT_NUMBER = 8081
+PORT_NUMBER = 8899
 
 # scClient = OSC.OSCClient()
 # scClient.connect( ('127.0.0.1', 57120) ) 

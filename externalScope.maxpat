@@ -38,6 +38,17 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-15",
+					"maxclass" : "scope~",
+					"numinlets" : 2,
+					"numoutlets" : 0,
+					"patching_rect" : [ 549.0, 257.0, 361.0, 275.0 ],
+					"style" : ""
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-11",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
@@ -63,17 +74,6 @@
 			}
 , 			{
 				"box" : 				{
-					"id" : "obj-20",
-					"maxclass" : "lcd",
-					"numinlets" : 1,
-					"numoutlets" : 4,
-					"outlettype" : [ "list", "list", "int", "" ],
-					"patching_rect" : [ 539.5, 198.0, 300.0, 300.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
 					"id" : "obj-19",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
@@ -94,7 +94,7 @@
 					"outlettype" : [ "float" ],
 					"patching_rect" : [ 195.0, 142.0, 76.0, 22.0 ],
 					"style" : "",
-					"text" : "snapshot~ 1"
+					"text" : "snapshot~ 6"
 				}
 
 			}
@@ -107,7 +107,7 @@
 					"outlettype" : [ "float" ],
 					"patching_rect" : [ 293.0, 142.0, 76.0, 22.0 ],
 					"style" : "",
-					"text" : "snapshot~ 1"
+					"text" : "snapshot~ 6"
 				}
 
 			}
@@ -129,44 +129,15 @@
 					"id" : "obj-1",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
-					"numoutlets" : 2,
-					"outlettype" : [ "signal", "signal" ],
+					"numoutlets" : 0,
 					"patching_rect" : [ 169.0, 57.0, 170.0, 22.0 ],
 					"style" : "",
-					"text" : "poly~ feedbacker_sub down 8"
+					"text" : "poly~ feedbacker_sub"
 				}
 
 			}
  ],
 		"lines" : [ 			{
-				"patchline" : 				{
-					"destination" : [ "obj-5", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"source" : [ "obj-1", 1 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-6", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"source" : [ "obj-1", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-20", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"midpoints" : [ 90.0, 421.0, 532.5, 421.0, 532.5, 193.0, 549.0, 193.0 ],
-					"source" : [ "obj-19", 0 ]
-				}
-
-			}
-, 			{
 				"patchline" : 				{
 					"destination" : [ "obj-19", 0 ],
 					"disabled" : 0,
@@ -225,17 +196,7 @@
 
 			}
  ],
-		"parameters" : 		{
-			"obj-1.1::obj-33" : [ "live.gain~", "live.gain~", 0 ]
-		}
-,
-		"dependency_cache" : [ 			{
-				"name" : "feedbacker_sub.maxpat",
-				"bootpath" : "~/Dropbox",
-				"type" : "JSON",
-				"implicit" : 1
-			}
- ],
+		"dependency_cache" : [  ],
 		"autosave" : 0,
 		"styles" : [ 			{
 				"name" : "newobjBlue-1",

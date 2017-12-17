@@ -90,7 +90,7 @@ startWave = {|msg, time, addr, recvPort|
     var waveBufferTask = Task({
         var func = createCalcFunc.(msg[2].asString);
         {
-            var waveBuffer = (0,0.025..16).collect({|time| func.(time)}); //step size is hardcoded both here and drawCurve.js/maxpat
+            var waveBuffer = (0,0.025..16).collect({|time| (func.(time)+64}); //step size is hardcoded both here and drawCurve.js/maxpat
             ["VALUES", waveBuffer].postln;
             maxOSCport.sendRaw((["/curveValues"]++waveBuffer).asArray.asRawOSC);
             16.wait

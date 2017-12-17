@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 691.0, 476.0, 955.0, 653.0 ],
+		"rect" : [ 495.0, 298.0, 687.0, 410.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -38,6 +38,19 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-5",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "bang" ],
+					"patching_rect" : [ 828.0, 74.0, 60.0, 22.0 ],
+					"style" : "",
+					"text" : "loadbang"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-21",
 					"maxclass" : "message",
 					"numinlets" : 2,
@@ -58,7 +71,7 @@
 					"outlettype" : [ "jit_matrix", "" ],
 					"patching_rect" : [ 60.0, 335.0, 125.0, 22.0 ],
 					"style" : "",
-					"text" : "jit.matrix 1 char 432 4"
+					"text" : "jit.matrix 1 char 432 3"
 				}
 
 			}
@@ -109,7 +122,7 @@
 					"outlettype" : [ "bang", "" ],
 					"patching_rect" : [ 60.0, 377.0, 143.0, 22.0 ],
 					"style" : "",
-					"text" : "jit.window patterns 432 4"
+					"text" : "jit.window patterns 432 3"
 				}
 
 			}
@@ -343,7 +356,7 @@
 					"outlettype" : [ "jit_matrix", "" ],
 					"patching_rect" : [ 539.0, 107.0, 217.0, 22.0 ],
 					"style" : "",
-					"text" : "jit.matrix phaseTemplate 1 char 1000 4"
+					"text" : "jit.matrix phaseTemplate 1 char 1000 3"
 				}
 
 			}
@@ -492,6 +505,46 @@
 					"disabled" : 0,
 					"hidden" : 0,
 					"source" : [ "obj-3", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-129", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"order" : 1,
+					"source" : [ "obj-5", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-136", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"order" : 0,
+					"source" : [ "obj-5", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-138", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"order" : 3,
+					"source" : [ "obj-5", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-7", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"order" : 2,
+					"source" : [ "obj-5", 0 ]
 				}
 
 			}

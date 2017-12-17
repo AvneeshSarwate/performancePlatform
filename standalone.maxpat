@@ -267,14 +267,16 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-91",
+					"linecount" : 2,
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 294.0, 68.0, 150.0, 20.0 ],
+					"patching_rect" : [ 294.0, 68.0, 150.0, 33.0 ],
 					"presentation" : 1,
-					"presentation_rect" : [ 236.0, 124.105896, 150.0, 20.0 ],
+					"presentation_linecount" : 2,
+					"presentation_rect" : [ 236.0, 124.105896, 150.0, 33.0 ],
 					"style" : "",
-					"text" : "a. scan for cameras"
+					"text" : "a. scan for cameras (click both)"
 				}
 
 			}
@@ -778,7 +780,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1226.965698, 100.474487, 69.0, 22.0 ],
 					"presentation" : 1,
-					"presentation_rect" : [ 438.172363, 124.105896, 69.0, 22.0 ],
+					"presentation_rect" : [ 400.172363, 124.105896, 69.0, 22.0 ],
 					"style" : "messageGold",
 					"text" : "getinputlist"
 				}
@@ -831,7 +833,7 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-30",
-					"items" : [ "FaceTime HD Camera", ",", "USB Camera" ],
+					"items" : [ "FaceTime HD Camera", ",", "USB Camera #2", ",", "Logitech Camera" ],
 					"maxclass" : "umenu",
 					"numinlets" : 1,
 					"numoutlets" : 3,
@@ -882,6 +884,8 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1141.931396, 100.474487, 68.0, 22.0 ],
+					"presentation" : 1,
+					"presentation_rect" : [ 484.672363, 124.105896, 68.0, 22.0 ],
 					"style" : "messageGold",
 					"text" : "getvdevlist"
 				}
@@ -1055,7 +1059,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 296.465698, 117.105896, 69.0, 22.0 ],
 					"presentation" : 1,
-					"presentation_rect" : [ 110.672363, 124.105896, 69.0, 22.0 ],
+					"presentation_rect" : [ 72.672363, 124.105896, 69.0, 22.0 ],
 					"style" : "messageGold",
 					"text" : "getinputlist"
 				}
@@ -1108,7 +1112,7 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-12",
-					"items" : [ "FaceTime HD Camera", ",", "USB Camera" ],
+					"items" : [ "FaceTime HD Camera", ",", "USB Camera #2", ",", "Logitech Camera" ],
 					"maxclass" : "umenu",
 					"numinlets" : 1,
 					"numoutlets" : 3,
@@ -1159,6 +1163,8 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 211.431396, 117.105896, 68.0, 22.0 ],
+					"presentation" : 1,
+					"presentation_rect" : [ 157.172363, 124.105896, 68.0, 22.0 ],
 					"style" : "messageGold",
 					"text" : "getvdevlist"
 				}
@@ -1678,7 +1684,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-76", 0 ],
+					"destination" : [ "obj-40", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
 					"order" : 0,
@@ -2078,15 +2084,6 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-40", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"source" : [ "obj-76", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-76", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
@@ -2163,7 +2160,19 @@
 
 			}
  ],
-		"dependency_cache" : [  ],
+		"dependency_cache" : [ 			{
+				"name" : "jit.&.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "jit.|.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "jit.!.mxo",
+				"type" : "iLaX"
+			}
+ ],
 		"autosave" : 0,
 		"styles" : [ 			{
 				"name" : "AudioStatus_Menu",
@@ -2240,8 +2249,8 @@
 , 			{
 				"name" : "newobjYellow-1",
 				"default" : 				{
-					"fontsize" : [ 12.059008 ],
-					"accentcolor" : [ 0.82517, 0.78181, 0.059545, 1.0 ]
+					"accentcolor" : [ 0.82517, 0.78181, 0.059545, 1.0 ],
+					"fontsize" : [ 12.059008 ]
 				}
 ,
 				"parentstyle" : "",

@@ -7,8 +7,11 @@ MIDIIn.connectAll;
 ~lightIndex = nil;
 ~lock = Semaphore(1);
 ~cycling = true;
-
-masterTempoClock = TempoClock.new(1);
+~getLaunchpad = {|launchpadInd|
+    var ind = MIDIClient.destinations.collect({|elem, ind| if(((elem.name == "Standalone Port") && (elem.device == "Launchpad Pro")), ind, nil)}).select({|elem| elem.isNil.not})[launchpadInd];
+    MIDIOut.new(ind);
+};
+masterTempoClock = TempoClock.new(2);
 broadcastOSCport = NetAddr("localhost", 57120);
 
 masterTempoClock.sched(0, {broadcastOSCport.sendMsg("/masterClockBeat", masterTempoClock.beatDur); 1});

@@ -105,13 +105,13 @@ function drawBlock(gridRow, blockStart, blockEnd, colorMatrix, usage){
 		copyMatrix.frommatrix(colorMatrix);	
 		//post("     start in, end rolls over", blockStart, blockEnd);
 	} else {
-		post("FUCK ERROR");
-		post(blockStart);
-		post(blockEnd);
-		post(usage);
-		post(0 < blockEnd, blockEnd < xDim, blockEnd < blockStart, xDim);
+		//post("FUCK ERROR");
+		//post(blockStart);
+		//post(blockEnd);
+		//post(usage);
+		//post(0 < blockEnd, blockEnd < xDim, blockEnd < blockStart, xDim);
+		//post();
 	}
-	post();
 }
 
 function draw2(){
